@@ -7,3 +7,4 @@ javac -d classes -cp "src:lib" src/Main.java
 # eee233
 # test test# conflict
 # final test
+# comnc
