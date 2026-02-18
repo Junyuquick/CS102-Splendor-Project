@@ -42,11 +42,14 @@ To delete feature branch:
 
 For subsequent uses on Vscode:
 
-    1. Before you begin each coding session: " git pull "
+    1. if u need the code others merged to main branch already, 
+       type: " git checkout main && git pull && git checkout feature/<feature name> && git merge main "
 
-    2. ensure you are on correct branch: " git checkout feature/<feature name> "
+    2. else, before you begin each coding session: " git pull "
 
-    2. Once youre done, find the "COMMIT" button in Vscode, type the commit message and press it
+    3. ensure you are on correct branch: " git checkout feature/<feature name> "
+
+    4. Once youre done, find the "COMMIT" button in Vscode, type the commit message and press it
 
     Note: for commit message, we can type eg. "add token-bank and take 3 rule"
     • it’ll help us debug, and revert commits easily
