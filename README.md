@@ -51,3 +51,21 @@ For subsequent uses on Vscode:
     Note: for commit message, we can type eg. "add token-bank and take 3 rule"
     • it’ll help us debug, and revert commits easily
     
+
+How to test other's features before merging to main:
+
+    1. " git checkout main "
+
+    2. " git pull origin main "
+
+    3. " git checkout feature/<the friend's feature name> "
+
+    4. " git pull "
+
+    5. " git merge main "
+
+    6. run compile.sh and run.sh to test it
+
+    7. reset the changes " git reset --hard origin/feature/<friend's feature name>"
+
+    8. decide whether u want to merge the other's feature branch to main on github
