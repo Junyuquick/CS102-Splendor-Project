@@ -1,2 +1,2 @@
-java -cp "classes:lib/*" Main
+java -cp "classes" Main
 # file to run tbc
