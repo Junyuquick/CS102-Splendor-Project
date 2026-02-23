@@ -1,47 +1,71 @@
-package splendor.config;
+package config;
 
 import java.nio.file.Path;
 
+/*
+ * Immutable configuration data object(final).
+ *
+ * This class stores ALL validated configuration values loaded from config.properties.
+ * - All fields are final (cannot change after construction)
+ * - Values are retrieved via getters
+ *
+ * ConfigLoader is responsible for validating ranges and resolving relative paths
+ * before creating this Config object.
+ */
+
 public final class Config {
-    private final int winningPrestige;
+    //20 getters for 26variables
+
+    // ---------- Core game rules ----------
+    private final int pointsToWin;
     private final int maxTokensPerPlayer;
     private final int maxReservedCards;
     private final int maxNoblesPerTurn;
+
+    // ---------- Allowed player counts ----------
     private final int minPlayers;
     private final int maxPlayers;
 
+    // ---------- Board setup ----------
     private final int numLevels;
     private final int openCardsPerLevel;
 
+    // ---------- Nobles count by player count ---------
     private final int noblesCount2p;
     private final int noblesCount3p;
     private final int noblesCount4p;
 
+    // ---------- Bank token counts by player count ----------
     private final int bankNormal2p;
     private final int bankNormal3p;
     private final int bankNormal4p;
     private final int bankGold;
 
+    // ---------- Token-taking rules ----------
     private final int takeDifferentCount;
     private final int takeSameCount;
     private final int takeSameMinRemainingInBank;
 
+    // ---------- Reserve rules ----------
     private final int reserveGoldBonus;
-    private final boolean reserveFromDeckEnabled;
-    private final boolean reserveFromFaceUpEnabled;
 
+    // ---------- Data file paths ----------
     private final Path level1Path;
     private final Path level2Path;
     private final Path level3Path;
     private final Path noblesPath;
 
-    // Optional if you have images in your app:
+    // ---------- Asset directories ----------
     private final Path cardImageDir;
     private final Path tokenImageDir;
     private final Path nobleImageDir;
 
+    /*
+     * Constructs a Config object with all required values.
+     * (All validation should be done in ConfigLoader before calling this.)
+     */
     public Config(
-            int winningPrestige,
+            int pointsToWin,
             int maxTokensPerPlayer,
             int maxReservedCards,
             int maxNoblesPerTurn,
@@ -60,8 +84,6 @@ public final class Config {
             int takeSameCount,
             int takeSameMinRemainingInBank,
             int reserveGoldBonus,
-            boolean reserveFromDeckEnabled,
-            boolean reserveFromFaceUpEnabled,
             Path level1Path,
             Path level2Path,
             Path level3Path,
@@ -70,10 +92,10 @@ public final class Config {
             Path tokenImageDir,
             Path nobleImageDir
     ) {
-        this.winningPrestige = winningPrestige;
+        this.pointsToWin = pointsToWin;
         this.maxTokensPerPlayer = maxTokensPerPlayer;
-        this.maxReservedCards = maxReservedCards;
-        this.maxNoblesPerTurn = maxNoblesPerTurn;
+        this.maxReservedCards = maxReservedCards; 
+        this.maxNoblesPerTurn = maxNoblesPerTurn; 
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
         this.numLevels = numLevels;
@@ -89,8 +111,6 @@ public final class Config {
         this.takeSameCount = takeSameCount;
         this.takeSameMinRemainingInBank = takeSameMinRemainingInBank;
         this.reserveGoldBonus = reserveGoldBonus;
-        this.reserveFromDeckEnabled = reserveFromDeckEnabled;
-        this.reserveFromFaceUpEnabled = reserveFromFaceUpEnabled;
         this.level1Path = level1Path;
         this.level2Path = level2Path;
         this.level3Path = level3Path;
@@ -100,35 +120,31 @@ public final class Config {
         this.nobleImageDir = nobleImageDir;
     }
 
-    // ---- getters (examples) ----
-    public int getWinningPrestige() { return winningPrestige; }
+    // ---------- Simple getters ----------
+    public int getpointsToWin() { return pointsToWin; }
     public int getMaxTokensPerPlayer() { return maxTokensPerPlayer; }
-    public int getOpenCardsPerLevel() { return openCardsPerLevel; }
-    public int getNumLevels() { return numLevels; }
+    public int getMaxReservedCards() { return maxReservedCards; }
+    public int getMaxNoblesPerTurn() { return maxNoblesPerTurn; }
+    public int getMinPlayer() { return minPlayers; }
+    public int getMaxPlayer() { return maxPlayers; }
 
-    public Path getLevel1Path() { return level1Path; }
-    public Path getLevel2Path() { return level2Path; }
-    public Path getLevel3Path() { return level3Path; }
+    public int getNumLevels() { return numLevels; }
+    public int getOpenCardsPerLevel() { return openCardsPerLevel; }
+
+    public int getTakeDifferentCount() { return takeDifferentCount; }
+    public int getTakeSameCount() { return takeSameCount; }
+    public int getTakeSameMinRemainingInBank() { return takeSameMinRemainingInBank; }
+
+    public int getReserveGoldBonus() { return reserveGoldBonus; }
     public Path getNoblesPath() { return noblesPath; }
 
     public Path getCardImageDir() { return cardImageDir; }
-    public Path getTokenImageDir() { return tokenImageDir; }
+    public Path getTokenImageDir() { return tokenImageDir; } 
     public Path getNobleImageDir() { return nobleImageDir; }
-
-    // ---- derived helpers (avoid magic logic in engine) ----
-    public int getInitialNormalGemCount(int playerCount) {
-        return switch (playerCount) {
-            case 2 -> bankNormal2p;
-            case 3 -> bankNormal3p;
-            case 4 -> bankNormal4p;
-            default -> throw new IllegalArgumentException("Unsupported player count: " + playerCount);
-        };
-    }
-
-    public int getInitialGoldGemCount(int playerCount) {
-        return bankGold;
-    }
-
+    
+    /*
+     * Returns how many nobles should be placed on the board for a given player count.
+     */
     public int getNoblesCount(int playerCount) {
         return switch (playerCount) {
             case 2 -> noblesCount2p;
@@ -138,6 +154,28 @@ public final class Config {
         };
     }
 
+    /*
+     * Returns how many nobles should be placed on the board for a given player count.
+     */
+    public int getInitialNormalGemCount(int playerCount) {
+        return switch (playerCount) {
+            case 2 -> bankNormal2p;
+            case 3 -> bankNormal3p;
+            case 4 -> bankNormal4p;
+            default -> throw new IllegalArgumentException("Unsupported player count: " + playerCount);
+        };
+    }
+
+    /*
+     * Returns how many nobles should be placed on the board for a given player count.
+     */
+    public int getInitialGoldGemCount(int playerCount) {
+        return bankGold;
+    }
+
+    /*
+     * Returns how many nobles should be placed on the board for a given player count.
+     */
     public Path getCardsPath(int level) {
         return switch (level) {
             case 1 -> level1Path;
@@ -146,4 +184,5 @@ public final class Config {
             default -> throw new IllegalArgumentException("Unsupported level: " + level);
         };
     }
+    
 }

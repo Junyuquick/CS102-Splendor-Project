@@ -1,2 +1,2 @@
-javac -d classes -cp "src:lib/*" src/Main.java
+javac -d classes -cp "src" src/Main.java
 # file to compile tbc
