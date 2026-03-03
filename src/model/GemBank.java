@@ -34,6 +34,39 @@ public class GemBank {
     public int getCount(GemColor color) {
         return inventory.getOrDefault(color, 0);
     }
+
+    // Compatibility method used by engine classes
+    public int getTokenCount(GemColor color) {
+        return getCount(color);
+    }
+
+    // Compatibility method used by engine classes
+    public void addTokens(Map<GemColor, Integer> delta) {
+        if (delta == null) {
+            return;
+        }
+        for (Map.Entry<GemColor, Integer> entry : delta.entrySet()) {
+            addGems(entry.getKey(), entry.getValue());
+        }
+    }
+
+    // Compatibility method used by engine classes
+    public boolean removeTokens(Map<GemColor, Integer> delta) {
+        if (delta == null || delta.isEmpty()) {
+            return true;
+        }
+
+        for (Map.Entry<GemColor, Integer> entry : delta.entrySet()) {
+            if (getCount(entry.getKey()) < entry.getValue()) {
+                return false;
+            }
+        }
+
+        for (Map.Entry<GemColor, Integer> entry : delta.entrySet()) {
+            removeGems(entry.getKey(), entry.getValue());
+        }
+        return true;
+    }
      
     public int getTotalGemCount() {
         return inventory.values().stream().mapToInt(Integer::intValue).sum();

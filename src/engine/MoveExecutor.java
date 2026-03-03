@@ -43,7 +43,7 @@ public class MoveExecutor {
      * @throws IllegalArgumentException if the move type is not supported
      */
     public void execute(GameState state, Player player, Move move) {
-        switch (move.getMoveType()) {
+        switch (move.getType()) {
             case TAKE_THREE_DIFFERENT:
                 applyTakeThreeDiff(state, player, move);
                 break;
@@ -57,7 +57,7 @@ public class MoveExecutor {
                 applyBuy(state, player, move);
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported move type: " + move.getMoveType());
+                throw new IllegalArgumentException("Unsupported move type: " + move.getType());
         }
     }
     

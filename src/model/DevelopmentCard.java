@@ -1,23 +1,25 @@
 package model;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 public class DevelopmentCard {
 
-    private final CardLevel level;
+    private final int level;
     private final int prestigePoints;
     private final GemColor bonusColor;
     private final Cost cost;
 
-    /**
-     * Constructs a DevelopmentCard.
-     */
-    public DevelopmentCard(CardLevel level,
+    public DevelopmentCard(int level,
                            int prestigePoints,
                            GemColor bonusColor,
                            Cost cost) {
+        if (level < 1 || level > 3) {
+            throw new IllegalArgumentException("Card level must be 1, 2, or 3");
+        }
+        this.level = level;
 
-        this.level = Objects.requireNonNull(level, "CardLevel cannot be null");
         this.cost = Objects.requireNonNull(cost, "Cost cannot be null");
 
         if (prestigePoints < 0) {
@@ -32,32 +34,20 @@ public class DevelopmentCard {
         this.bonusColor = bonusColor;
     }
 
-    /**
-     * Returns the card level (LEVEL1, LEVEL2, LEVEL3).
-     */
-    public CardLevel getLevel() {
+    public int getLevel() {
         return level;
     }
 
-    /**
-     * Returns the prestige points granted by this card.
-     */
     public int getPrestigePoints() {
         return prestigePoints;
     }
 
-    /**
-     * Returns the permanent bonus gem color provided by this card.
-     */
     public GemColor getBonusColor() {
         return bonusColor;
     }
 
-    /**
-     * Returns the cost required to purchase this card.
-     */
-    public Cost getCost() {
-        return cost;
+    public Map<GemColor, Integer> getCost() {
+        return Collections.unmodifiableMap(cost.asMap());
     }
 
     @Override
