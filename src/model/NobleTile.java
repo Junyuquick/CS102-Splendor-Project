@@ -6,15 +6,21 @@ import java.util.Objects;
 
 public class NobleTile {
 
+    private final int id;
     private final int prestigePoints;
     private final Cost requirement;
 
-    public NobleTile(int prestigePoints, Cost requirement) {
+    public NobleTile(int id, int prestigePoints, Cost requirement) {
+        this.id = id;
         if (prestigePoints < 0) {
             throw new IllegalArgumentException("Prestige points cannot be negative");
         }
         this.prestigePoints = prestigePoints;
         this.requirement = Objects.requireNonNull(requirement, "Requirement cannot be null");
+    }
+
+    public int getId() {
+        return id;
     }
 
     public int getPrestigePoints() {
@@ -33,7 +39,8 @@ public class NobleTile {
     @Override
     public String toString() {
         return "NobleTile{" +
-                "prestigePoints=" + prestigePoints +
+                "id=" + id +
+                ", prestigePoints=" + prestigePoints +
                 ", requirement=" + requirement +
                 '}';
     }
