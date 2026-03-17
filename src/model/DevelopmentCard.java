@@ -6,15 +6,18 @@ import java.util.Objects;
 
 public class DevelopmentCard {
 
+    private final int id;
     private final int level;
     private final int prestigePoints;
     private final GemColor bonusColor;
     private final Cost cost;
 
-    public DevelopmentCard(int level,
+    public DevelopmentCard(int id,
+                           int level,
                            int prestigePoints,
                            GemColor bonusColor,
                            Cost cost) {
+        this.id = id;
         if (level < 1 || level > 3) {
             throw new IllegalArgumentException("Card level must be 1, 2, or 3");
         }
@@ -32,6 +35,10 @@ public class DevelopmentCard {
 
         this.prestigePoints = prestigePoints;
         this.bonusColor = bonusColor;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public int getLevel() {
@@ -52,7 +59,8 @@ public class DevelopmentCard {
 
     @Override
     public String toString() {
-        return "Level: " + level +
+        return "ID: " + id +
+               ", Level: " + level +
                ", Points: " + prestigePoints +
                ", Bonus: " + bonusColor +
                ", Cost: " + cost;

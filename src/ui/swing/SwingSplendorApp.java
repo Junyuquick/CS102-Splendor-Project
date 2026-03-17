@@ -295,15 +295,29 @@ public class SwingSplendorApp extends JFrame {
                 char colChar = (char) ('a' + col);
                 String key = "" + colChar + tier;
                 JButton btn = new JButton();
-                btn.setVerticalAlignment(SwingConstants.TOP);
-                btn.setHorizontalAlignment(SwingConstants.LEFT);
                 btn.setFocusPainted(false);
                 btn.setOpaque(true);
+                btn.setHorizontalAlignment(SwingConstants.CENTER);
+                btn.setVerticalAlignment(SwingConstants.CENTER);
+                btn.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6)); // 6px margin for top/bottom/left/right
                 if (col < cards.size()) {
                     DevelopmentCard card = cards.get(col);
-                    btn.setText(cardHtml(key, card));
+                    ImageIcon icon = loadCardIcon(card);
+                    if (icon != null) {
+                        btn.setIcon(icon);
+                        btn.setDisabledIcon(icon); // Ensure icon is colored even if button is disabled
+                        btn.setText("");
+                        btn.setBackground(new Color(250, 244, 230)); // Match noble background color
+                        btn.setContentAreaFilled(true); // Fill background
+                        btn.setOpaque(true); // Opaque for proper rendering
+                        btn.setEnabled(true); // Ensure button is enabled
+                    } else {
+                        btn.setText(cardHtml(key, card));
+                        btn.setBackground(colorForBonus(card.getBonusColor()));
+                        btn.setContentAreaFilled(true);
+                        btn.setOpaque(true);
+                    }
                     btn.setToolTipText(cardTooltip(key, card));
-                    btn.setBackground(colorForBonus(card.getBonusColor()));
                     btn.setBorder(new LineBorder(new Color(120, 120, 120), 2));
                     btn.addActionListener(e -> {
                         selectedBoardCard = card;
@@ -315,6 +329,8 @@ public class SwingSplendorApp extends JFrame {
                     btn.setText("<html><b>" + key + "</b><br/>Empty</html>");
                     btn.setBackground(new Color(230, 230, 230));
                     btn.setEnabled(false);
+                    btn.setContentAreaFilled(true);
+                    btn.setOpaque(true);
                 }
                 cardButtons.put(key, btn);
                 marketPanel.add(btn);
@@ -541,8 +557,17 @@ public class SwingSplendorApp extends JFrame {
             reservedModel.addElement(card);
         }
         reservedList.setCellRenderer((list, value, index1, isSelected, cellHasFocus) -> {
-            JLabel cell = new JLabel("r" + (index1 + 1) + " | P:" + value.getPrestigePoints() + " " + value.getBonusColor()
-                    + " | Cost " + value.getCost());
+            ImageIcon icon = loadCardIcon(value);
+            JLabel cell;
+            if (icon != null) {
+                cell = new JLabel(icon);
+                cell.setText("r" + (index1 + 1));
+                cell.setHorizontalTextPosition(JLabel.CENTER);
+                cell.setVerticalTextPosition(JLabel.BOTTOM);
+            } else {
+                cell = new JLabel("r" + (index1 + 1) + " | P:" + value.getPrestigePoints() + " " + value.getBonusColor()
+                        + " | Cost " + value.getCost());
+            }
             cell.setOpaque(true);
             if (isSelected) {
                 cell.setBackground(new Color(207, 229, 255));
@@ -762,10 +787,16 @@ public class SwingSplendorApp extends JFrame {
 
             if (i < nobles.size()) {
                 NobleTile noble = nobles.get(i);
-                JLabel label = new JLabel(
-                        "<html><b>N" + (i + 1) + "</b><br/>P:" + noble.getPrestigePoints()
-                                + "<br/>Req:" + noble.getRequirement().asMap() + "</html>"
-                );
+                ImageIcon icon = loadNobleIcon(noble);
+                JLabel label;
+                if (icon != null) {
+                    label = new JLabel(icon);
+                } else {
+                    label = new JLabel(
+                            "<html><b>N" + (i + 1) + "</b><br/>P:" + noble.getPrestigePoints()
+                                    + "<br/>Req:" + noble.getRequirement().asMap() + "</html>"
+                    );
+                }
                 label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
                 nobleCard.add(label, BorderLayout.CENTER);
                 nobleCard.setToolTipText("Noble " + (i + 1) + " | Prestige " + noble.getPrestigePoints()
@@ -856,17 +887,49 @@ public class SwingSplendorApp extends JFrame {
         return null;
     }
 
+    private ImageIcon loadCardIcon(DevelopmentCard card) {
+        String filename = "card_" + card.getId() + ".png";
+        Path path = Path.of("media", "devLevel" + card.getLevel(), filename);
+        if (Files.exists(path)) {
+            return loadScaledIcon(path);
+        }
+        return null;
+    }
+
+    private ImageIcon loadNobleIcon(NobleTile noble) {
+        String filename = "card_" + noble.getId() + ".png";
+        Path path = Path.of("media", "nobles", filename);
+        if (Files.exists(path)) {
+            return loadScaledIcon(path);
+        }
+        return null;
+    }
+
     private ImageIcon loadScaledIcon(Path imagePath) {
         ImageIcon icon = new ImageIcon(imagePath.toString());
         Image src = icon.getImage();
-        int size = 76;
+        int targetW = 120;
+        int targetH = 120;
+        int imgW = src.getWidth(null);
+        int imgH = src.getHeight(null);
+        if (imgW <= 0 || imgH <= 0) {
+            // fallback to square
+            imgW = imgH = 1;
+        }
+        double scale = Math.min((double)targetW / imgW, (double)targetH / imgH);
+        int newW = (int)(imgW * scale);
+        int newH = (int)(imgH * scale);
+        int x = (targetW - newW) / 2;
+        int y = (targetH - newH) / 2;
 
-        BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = out.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.drawImage(src, 0, 0, size, size, null);
+        g2.setBackground(new Color(0,0,0,0));
+        g2.clearRect(0, 0, targetW, targetH);
+        g2.drawImage(src, x, y, newW, newH, null);
         g2.dispose();
         return new ImageIcon(out);
     }
@@ -1082,7 +1145,7 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private Map<Integer, List<DevelopmentCard>> buildDecks() {
-        Path csv = Path.of("temporaryFolder", "Splendor Cards.csv");
+        Path csv = Path.of("data");
         try {
             return new CardLoader().load(csv);
         } catch (IOException | IllegalArgumentException e) {
@@ -1119,11 +1182,44 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private List<NobleTile> buildNobles() {
+        Path csv = Path.of("data", "nobles.csv");
+        try {
+            List<String> lines = Files.readAllLines(csv);
+            List<NobleTile> nobles = new ArrayList<>();
+            // Skip header
+            for (int i = 1; i < lines.size(); i++) {
+                String raw = lines.get(i).trim();
+                if (raw.isEmpty()) continue;
+                String[] cols = raw.split(",");
+                if (cols.length < 7) {
+                    throw new IllegalArgumentException("Invalid noble row at line " + (i + 1) + ": " + raw);
+                }
+                int id = i; // Use row number as id
+                int points = Integer.parseInt(cols[1].trim());
+                int reqWhite = Integer.parseInt(cols[2].trim());
+                int reqBlue = Integer.parseInt(cols[3].trim());
+                int reqGreen = Integer.parseInt(cols[4].trim());
+                int reqRed = Integer.parseInt(cols[5].trim());
+                int reqBlack = Integer.parseInt(cols[6].trim());
+                Map<GemColor, Integer> reqs = Map.of(
+                        GemColor.WHITE, reqWhite,
+                        GemColor.BLUE, reqBlue,
+                        GemColor.GREEN, reqGreen,
+                        GemColor.RED, reqRed,
+                        GemColor.BLACK, reqBlack
+                );
+                nobles.add(noble(id, points, reqs));
+            }
+            return nobles;
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Failed to load nobles from " + csv + ". Falling back to sample nobles. Reason: " + e.getMessage());
+        }
+
         return List.of(
-                noble(3, mapCost(3, 3, 3, 0, 0)),
-                noble(3, mapCost(0, 3, 3, 3, 0)),
-                noble(3, mapCost(0, 0, 3, 3, 3)),
-                noble(3, mapCost(3, 0, 0, 3, 3))
+                noble(1, 3, mapCost(3, 3, 3, 0, 0)),
+                noble(2, 3, mapCost(0, 3, 3, 3, 0)),
+                noble(3, 3, mapCost(0, 0, 3, 3, 3)),
+                noble(4, 3, mapCost(3, 0, 0, 3, 3))
         );
     }
 
@@ -1132,15 +1228,15 @@ public class SwingSplendorApp extends JFrame {
         for (Map.Entry<GemColor, Integer> entry : costs.entrySet()) {
             cost.set(entry.getKey(), entry.getValue());
         }
-        return new DevelopmentCard(level, points, bonus, cost);
+        return new DevelopmentCard(0, level, points, bonus, cost);
     }
 
-    private NobleTile noble(int points, Map<GemColor, Integer> reqs) {
+    private NobleTile noble(int id, int points, Map<GemColor, Integer> reqs) {
         model.Cost cost = new model.Cost();
         for (Map.Entry<GemColor, Integer> entry : reqs.entrySet()) {
             cost.set(entry.getKey(), entry.getValue());
         }
-        return new NobleTile(points, cost);
+        return new NobleTile(id, points, cost);
     }
 
     private Map<GemColor, Integer> mapCost(int w, int b, int g, int r, int k) {

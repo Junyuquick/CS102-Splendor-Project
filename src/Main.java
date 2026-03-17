@@ -155,7 +155,7 @@ public class Main {
     }
 
     public static Map<Integer, List<DevelopmentCard>> buildDecks() {
-        Path csv = Path.of("temporaryFolder", "Splendor Cards.csv");
+        Path csv = Path.of("data");
         try {
             return new CardLoader().load(csv);
         } catch (IOException | IllegalArgumentException e) {
@@ -197,10 +197,10 @@ public class Main {
 
     public static List<NobleTile> buildNobles() {
         return List.of(
-                noble(3, mapCost(3, 3, 3, 0, 0)),
-                noble(3, mapCost(0, 3, 3, 3, 0)),
-                noble(3, mapCost(0, 0, 3, 3, 3)),
-                noble(3, mapCost(3, 0, 0, 3, 3))
+                noble(1, 3, mapCost(3, 3, 3, 0, 0)),
+                noble(2, 3, mapCost(0, 3, 3, 3, 0)),
+                noble(3, 3, mapCost(0, 0, 3, 3, 3)),
+                noble(4, 3, mapCost(3, 0, 0, 3, 3))
         );
     }
 
@@ -209,15 +209,15 @@ public class Main {
         for (Map.Entry<GemColor, Integer> entry : costs.entrySet()) {
             cost.set(entry.getKey(), entry.getValue());
         }
-        return new DevelopmentCard(level, points, bonus, cost);
+        return new DevelopmentCard(0, level, points, bonus, cost);
     }
 
-    public static NobleTile noble(int points, Map<GemColor, Integer> reqs) {
+    public static NobleTile noble(int id, int points, Map<GemColor, Integer> reqs) {
         Cost cost = new Cost();
         for (Map.Entry<GemColor, Integer> entry : reqs.entrySet()) {
             cost.set(entry.getKey(), entry.getValue());
         }
-        return new NobleTile(points, cost);
+        return new NobleTile(id, points, cost);
     }
 
     public static Map<GemColor, Integer> mapCost(int w, int b, int g, int r, int k) {
