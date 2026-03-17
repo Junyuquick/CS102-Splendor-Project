@@ -1,3 +1,3 @@
-# javac -d classes -cp "src" src/Main.java && java -cp "classes" Main
+# run this code to launch Splendor app
 
-javac $(find src -name '*.java') && java -cp src SwingMain
+javac -d classes $(find src -name '*.java') && java -cp classes SwingMain
