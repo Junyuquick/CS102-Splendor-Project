@@ -27,6 +27,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JEditorPane;
 import javax.swing.JTextArea;
 import javax.swing.Timer;
@@ -34,11 +35,13 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.ImageIcon;
 import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
@@ -47,6 +50,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -57,6 +61,28 @@ import java.util.Set;
 import java.util.HashSet;
 
 public class SwingSplendorApp extends JFrame {
+    private static final int DEV_CARD_ICON_WIDTH = 96;
+    private static final int DEV_CARD_ICON_HEIGHT = 134;
+    private static final int DEV_CARD_BUTTON_WIDTH = 108;
+    private static final int DEV_CARD_BUTTON_HEIGHT = 146;
+    private static final int NOBLE_ICON_SIZE = 110;
+    private static final int TOKEN_BUTTON_SIZE = 60;
+    private static final int TOKEN_ICON_SIZE = 48;
+    private static final int NOBLE_CARD_WIDTH = 122;
+    private static final int NOBLE_CARD_HEIGHT = 122;
+    private static final Color APP_BG = new Color(24, 27, 31);
+    private static final Color PANEL_BG = new Color(31, 36, 42);
+    private static final Color PANEL_BG_ALT = new Color(39, 45, 52);
+    private static final Color SURFACE_BG = new Color(46, 53, 61);
+    private static final Color EMPTY_BG = new Color(58, 63, 70);
+    private static final Color TEXT_PRIMARY = new Color(232, 236, 241);
+    private static final Color TEXT_MUTED = new Color(182, 190, 200);
+    private static final Color BORDER_COLOR = new Color(92, 102, 114);
+    private static final Color ACCENT_BLUE = new Color(78, 144, 255);
+    private static final Color ACCENT_GREEN = new Color(60, 179, 113);
+    private static final Color ACCENT_RED = new Color(212, 88, 88);
+    private static final Color SELECTED_BG = new Color(52, 71, 96);
+
     private enum Mode {
         IDLE, TAKE_THREE, TAKE_TWO, RESERVE, BUY
     }
@@ -157,30 +183,41 @@ public class SwingSplendorApp extends JFrame {
 
     private void buildUi() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1500, 950);
+        setSize(1500, 1020);
+        setMinimumSize(new Dimension(1450, 980));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(APP_BG);
 
         JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(APP_BG);
         statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         statusLabel.setFont(statusLabel.getFont().deriveFont(Font.BOLD, 16f));
+        statusLabel.setForeground(TEXT_PRIMARY);
         phaseLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         phaseLabel.setFont(phaseLabel.getFont().deriveFont(Font.BOLD, 14f));
+        phaseLabel.setForeground(TEXT_MUTED);
         topBar.add(statusLabel, BorderLayout.WEST);
         topBar.add(phaseLabel, BorderLayout.EAST);
         add(topBar, BorderLayout.NORTH);
 
         JPanel leftBank = new JPanel(new BorderLayout(8, 8));
-        leftBank.setBorder(BorderFactory.createTitledBorder("Bank"));
+        leftBank.setBackground(PANEL_BG);
+        leftBank.setBorder(createTitledBorder("Bank"));
+        bankCountPanel.setBackground(PANEL_BG);
         leftBank.add(bankCountPanel, BorderLayout.NORTH);
         JPanel tokenPanel = new JPanel(new GridLayout(3, 2, 6, 6));
+        tokenPanel.setBackground(PANEL_BG);
         for (GemColor color : GemColor.values()) {
             JButton button = new JButton(color.name());
             button.setFocusPainted(false);
             button.setBackground(tokenColor(color));
+            button.setContentAreaFilled(true);
             button.setOpaque(true);
-            button.setPreferredSize(new Dimension(96, 96));
-            button.setMargin(new Insets(2, 2, 2, 2));
+            button.setForeground(color == GemColor.BLACK ? TEXT_PRIMARY : new Color(20, 20, 20));
+            button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
+            button.setPreferredSize(new Dimension(TOKEN_BUTTON_SIZE, TOKEN_BUTTON_SIZE));
+            button.setMargin(new Insets(0, 0, 0, 0));
             button.setToolTipText("Click to select " + color.name() + " token(s)");
             ImageIcon icon = loadTokenIcon(color);
             if (icon != null) {
@@ -197,36 +234,62 @@ public class SwingSplendorApp extends JFrame {
         add(leftBank, BorderLayout.WEST);
 
         JPanel center = new JPanel(new BorderLayout(8, 8));
-        center.setBorder(BorderFactory.createTitledBorder("Market"));
-        center.add(marketPanel, BorderLayout.CENTER);
+        center.setBackground(PANEL_BG);
+        center.setBorder(createTitledBorder("Market"));
+        marketPanel.setBackground(PANEL_BG);
+        marketPanel.setPreferredSize(new Dimension(
+                (DEV_CARD_BUTTON_WIDTH * 4) + (10 * 3),
+                (DEV_CARD_BUTTON_HEIGHT * 3) + (10 * 2)
+        ));
+        JPanel marketWrapper = new JPanel(new GridBagLayout());
+        marketWrapper.setBackground(PANEL_BG);
+        marketWrapper.add(marketPanel);
+        center.add(marketWrapper, BorderLayout.CENTER);
         JPanel nobleWrap = new JPanel(new BorderLayout());
-        nobleWrap.setBorder(BorderFactory.createTitledBorder("Nobles"));
+        nobleWrap.setBackground(PANEL_BG);
+        nobleWrap.setBorder(createTitledBorder("Nobles"));
+        noblesPanel.setBackground(PANEL_BG);
         nobleWrap.add(noblesPanel, BorderLayout.CENTER);
         center.add(nobleWrap, BorderLayout.SOUTH);
-        add(center, BorderLayout.CENTER);
 
         JPanel right = new JPanel(new BorderLayout(8, 8));
-        right.setBorder(BorderFactory.createTitledBorder("Players"));
+        right.setBackground(PANEL_BG);
+        right.setBorder(createTitledBorder("Players"));
         playersPanel.setLayout(new GridLayout(state.getPlayers().size(), 1, 8, 8));
+        playersPanel.setBackground(PANEL_BG);
 
         for (Player player : state.getPlayers()) {
             JPanel panel = new JPanel(new BorderLayout());
-            panel.setBorder(BorderFactory.createTitledBorder(player.getName()));
+            panel.setBackground(PANEL_BG_ALT);
+            panel.setBorder(createTitledBorder(player.getName()));
             JEditorPane area = new JEditorPane();
             area.setContentType("text/html");
             area.setEditable(false);
             area.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-            panel.add(new JScrollPane(area), BorderLayout.CENTER);
+            area.setBackground(PANEL_BG_ALT);
+            area.setForeground(TEXT_PRIMARY);
+            JScrollPane areaScroll = new JScrollPane(area);
+            styleScrollPane(areaScroll, PANEL_BG_ALT);
+            panel.add(areaScroll, BorderLayout.CENTER);
             playerCardPanels.put(player, panel);
             playerCardAreas.put(player, area);
             playersPanel.add(panel);
         }
-        right.add(new JScrollPane(playersPanel), BorderLayout.CENTER);
+        JScrollPane playersScroll = new JScrollPane(playersPanel);
+        styleScrollPane(playersScroll, PANEL_BG);
+        right.add(playersScroll, BorderLayout.CENTER);
 
         reservedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        reservedList.setBackground(PANEL_BG_ALT);
+        reservedList.setForeground(TEXT_PRIMARY);
+        reservedList.setSelectionBackground(SELECTED_BG);
+        reservedList.setSelectionForeground(TEXT_PRIMARY);
         JPanel reservedPanel = new JPanel(new BorderLayout(4, 4));
+        reservedPanel.setBackground(PANEL_BG);
+        reservedLabel.setForeground(TEXT_PRIMARY);
         reservedPanel.add(reservedLabel, BorderLayout.NORTH);
         JScrollPane reservedScroll = new JScrollPane(reservedList);
+        styleScrollPane(reservedScroll, PANEL_BG_ALT);
         reservedScroll.setPreferredSize(new Dimension(320, 210));
         reservedPanel.add(reservedScroll, BorderLayout.CENTER);
         right.add(reservedPanel, BorderLayout.SOUTH);
@@ -234,7 +297,9 @@ public class SwingSplendorApp extends JFrame {
         add(right, BorderLayout.EAST);
 
         JPanel bottom = new JPanel(new BorderLayout(8, 8));
+        bottom.setBackground(PANEL_BG);
         JPanel actions = new JPanel(new GridLayout(1, 6, 6, 6));
+        actions.setBackground(PANEL_BG);
         actions.add(actionTakeThree);
         actions.add(actionTakeTwo);
         actions.add(actionReserve);
@@ -242,22 +307,47 @@ public class SwingSplendorApp extends JFrame {
         actions.add(actionCancel);
         actions.add(actionConfirm);
         bottom.add(actions, BorderLayout.NORTH);
+        styleActionButton(actionTakeThree);
+        styleActionButton(actionTakeTwo);
+        styleActionButton(actionReserve);
+        styleActionButton(actionBuy);
+        styleActionButton(actionCancel);
+        styleActionButton(actionConfirm);
 
         helpArea.setEditable(false);
         helpArea.setRows(3);
         helpArea.setLineWrap(true);
         helpArea.setWrapStyleWord(true);
-        helpArea.setBorder(BorderFactory.createTitledBorder("Prompt"));
+        helpArea.setBackground(PANEL_BG_ALT);
+        helpArea.setForeground(TEXT_PRIMARY);
+        helpArea.setCaretColor(TEXT_PRIMARY);
+        helpArea.setBorder(createTitledBorder("Prompt"));
         bottom.add(helpArea, BorderLayout.CENTER);
 
-        latestComputerMoveLabel.setBorder(BorderFactory.createTitledBorder("Computer Move"));
+        latestComputerMoveLabel.setOpaque(true);
+        latestComputerMoveLabel.setBackground(PANEL_BG_ALT);
+        latestComputerMoveLabel.setForeground(TEXT_PRIMARY);
+        latestComputerMoveLabel.setBorder(createTitledBorder("Computer Move"));
         bottom.add(latestComputerMoveLabel, BorderLayout.WEST);
 
         logArea.setEditable(false);
         logArea.setRows(7);
-        bottom.add(new JScrollPane(logArea), BorderLayout.SOUTH);
-        bottom.setBorder(BorderFactory.createTitledBorder("Actions & Log"));
-        add(bottom, BorderLayout.SOUTH);
+        logArea.setBackground(PANEL_BG_ALT);
+        logArea.setForeground(TEXT_PRIMARY);
+        logArea.setCaretColor(TEXT_PRIMARY);
+        JScrollPane logScroll = new JScrollPane(logArea);
+        styleScrollPane(logScroll, PANEL_BG_ALT);
+        bottom.add(logScroll, BorderLayout.SOUTH);
+        bottom.setBorder(createTitledBorder("Actions & Log"));
+
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, center, bottom);
+        centerSplit.setBackground(APP_BG);
+        centerSplit.setBorder(BorderFactory.createEmptyBorder());
+        centerSplit.setResizeWeight(0.8);
+        centerSplit.setOneTouchExpandable(true);
+        centerSplit.setContinuousLayout(true);
+        centerSplit.setDividerLocation(650);
+        add(centerSplit, BorderLayout.CENTER);
     }
 
     private void bindActions() {
@@ -289,7 +379,7 @@ public class SwingSplendorApp extends JFrame {
     private void rebuildMarketButtons() {
         marketPanel.removeAll();
         cardButtons.clear();
-        for (int tier = 1; tier <= 3; tier++) {
+        for (int tier = 3; tier >= 1; tier--) {
             List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
             for (int col = 0; col < 4; col++) {
                 char colChar = (char) ('a' + col);
@@ -299,6 +389,7 @@ public class SwingSplendorApp extends JFrame {
                 btn.setOpaque(true);
                 btn.setHorizontalAlignment(SwingConstants.CENTER);
                 btn.setVerticalAlignment(SwingConstants.CENTER);
+                btn.setPreferredSize(new Dimension(DEV_CARD_BUTTON_WIDTH, DEV_CARD_BUTTON_HEIGHT));
                 btn.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6)); // 6px margin for top/bottom/left/right
                 if (col < cards.size()) {
                     DevelopmentCard card = cards.get(col);
@@ -307,7 +398,7 @@ public class SwingSplendorApp extends JFrame {
                         btn.setIcon(icon);
                         btn.setDisabledIcon(icon); // Ensure icon is colored even if button is disabled
                         btn.setText("");
-                        btn.setBackground(new Color(250, 244, 230)); // Match noble background color
+                        btn.setBackground(SURFACE_BG);
                         btn.setContentAreaFilled(true); // Fill background
                         btn.setOpaque(true); // Opaque for proper rendering
                         btn.setEnabled(true); // Ensure button is enabled
@@ -318,7 +409,8 @@ public class SwingSplendorApp extends JFrame {
                         btn.setOpaque(true);
                     }
                     btn.setToolTipText(cardTooltip(key, card));
-                    btn.setBorder(new LineBorder(new Color(120, 120, 120), 2));
+                    btn.setForeground(TEXT_PRIMARY);
+                    btn.setBorder(new LineBorder(BORDER_COLOR, 2));
                     btn.addActionListener(e -> {
                         selectedBoardCard = card;
                         selectedReservedCard = null;
@@ -327,7 +419,8 @@ public class SwingSplendorApp extends JFrame {
                     });
                 } else {
                     btn.setText("<html><b>" + key + "</b><br/>Empty</html>");
-                    btn.setBackground(new Color(230, 230, 230));
+                    btn.setBackground(EMPTY_BG);
+                    btn.setForeground(TEXT_MUTED);
                     btn.setEnabled(false);
                     btn.setContentAreaFilled(true);
                     btn.setOpaque(true);
@@ -522,6 +615,7 @@ public class SwingSplendorApp extends JFrame {
         for (GemColor color : GemColor.values()) {
             JLabel label = bankLabels.computeIfAbsent(color, c -> {
                 JLabel created = new JLabel();
+                created.setForeground(TEXT_PRIMARY);
                 bankCountPanel.add(created);
                 return created;
             });
@@ -543,11 +637,12 @@ public class SwingSplendorApp extends JFrame {
             if (panel != null) {
                 if (player == current) {
                     panel.setBorder(BorderFactory.createTitledBorder(
-                            new LineBorder(new Color(36, 92, 194), 2),
+                            new LineBorder(ACCENT_BLUE, 2),
                             player.getName() + " (Active)"
                     ));
+                    styleTitledBorder((TitledBorder) panel.getBorder());
                 } else {
-                    panel.setBorder(BorderFactory.createTitledBorder(player.getName()));
+                    panel.setBorder(createTitledBorder(player.getName()));
                 }
             }
         }
@@ -569,10 +664,11 @@ public class SwingSplendorApp extends JFrame {
                         + " | Cost " + value.getCost());
             }
             cell.setOpaque(true);
+            cell.setForeground(TEXT_PRIMARY);
             if (isSelected) {
-                cell.setBackground(new Color(207, 229, 255));
+                cell.setBackground(SELECTED_BG);
             } else {
-                cell.setBackground(Color.WHITE);
+                cell.setBackground(PANEL_BG_ALT);
             }
             return cell;
         });
@@ -646,20 +742,20 @@ public class SwingSplendorApp extends JFrame {
                         boolean legal = validator.validate(state, current, move) == null;
                         btn.setEnabled(legal);
                         if (selectedBoardCard == card) {
-                            btn.setBorder(new LineBorder(new Color(36, 92, 194), 4));
+                            btn.setBorder(new LineBorder(ACCENT_BLUE, 4));
                         } else if (mode == Mode.BUY && legal) {
-                            btn.setBorder(new LineBorder(new Color(22, 140, 67), 3));
+                            btn.setBorder(new LineBorder(ACCENT_GREEN, 3));
                         } else if (mode == Mode.BUY) {
-                            btn.setBorder(new LineBorder(new Color(140, 32, 32), 2));
+                            btn.setBorder(new LineBorder(ACCENT_RED, 2));
                         } else {
-                            btn.setBorder(new LineBorder(new Color(120, 120, 120), 2));
+                            btn.setBorder(new LineBorder(BORDER_COLOR, 2));
                         }
                     }
                 }
             }
         } else {
             for (JButton btn : cardButtons.values()) {
-                btn.setBorder(new LineBorder(new Color(120, 120, 120), 2));
+                btn.setBorder(new LineBorder(BORDER_COLOR, 2));
             }
         }
 
@@ -720,7 +816,7 @@ public class SwingSplendorApp extends JFrame {
 
     private String buildPlayerHtml(Player player) {
         StringBuilder html = new StringBuilder();
-        html.append("<html><body style='font-family:sans-serif;font-size:12px;'>");
+        html.append("<html><body style='font-family:sans-serif;font-size:12px;color:#E8ECF1;'>");
         html.append("<b>Prestige:</b> ").append(player.getPrestigePoints()).append("<br/>");
         html.append("<b>Tokens + Bonuses</b><br/>");
 
@@ -782,8 +878,9 @@ public class SwingSplendorApp extends JFrame {
         List<NobleTile> nobles = state.getBoard().getAvailableNobles();
         for (int i = 0; i < 5; i++) {
             JPanel nobleCard = new JPanel(new BorderLayout());
-            nobleCard.setBorder(new LineBorder(new Color(120, 120, 120), 2));
-            nobleCard.setBackground(new Color(250, 244, 230));
+            nobleCard.setBorder(new LineBorder(BORDER_COLOR, 2));
+            nobleCard.setBackground(SURFACE_BG);
+            nobleCard.setPreferredSize(new Dimension(NOBLE_CARD_WIDTH, NOBLE_CARD_HEIGHT));
 
             if (i < nobles.size()) {
                 NobleTile noble = nobles.get(i);
@@ -791,20 +888,25 @@ public class SwingSplendorApp extends JFrame {
                 JLabel label;
                 if (icon != null) {
                     label = new JLabel(icon);
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                    label.setVerticalAlignment(SwingConstants.CENTER);
                 } else {
                     label = new JLabel(
                             "<html><b>N" + (i + 1) + "</b><br/>P:" + noble.getPrestigePoints()
                                     + "<br/>Req:" + noble.getRequirement().asMap() + "</html>"
                     );
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
                 }
                 label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+                label.setForeground(TEXT_PRIMARY);
                 nobleCard.add(label, BorderLayout.CENTER);
                 nobleCard.setToolTipText("Noble " + (i + 1) + " | Prestige " + noble.getPrestigePoints()
                         + " | Requirements " + noble.getRequirement().asMap());
             } else {
                 JLabel label = new JLabel("<html><b>Empty</b></html>", SwingConstants.CENTER);
+                label.setForeground(TEXT_MUTED);
                 nobleCard.add(label, BorderLayout.CENTER);
-                nobleCard.setBackground(new Color(235, 235, 235));
+                nobleCard.setBackground(EMPTY_BG);
             }
             noblesPanel.add(nobleCard);
         }
@@ -853,7 +955,7 @@ public class SwingSplendorApp extends JFrame {
 
         for (Path candidate : candidates) {
             if (Files.exists(candidate)) {
-                return loadScaledIcon(candidate);
+                return loadCircularIcon(candidate, TOKEN_ICON_SIZE);
             }
         }
 
@@ -878,7 +980,7 @@ public class SwingSplendorApp extends JFrame {
                     case GOLD -> 5;
                 };
                 if (idx >= 0 && idx < pngs.size()) {
-                    return loadScaledIcon(pngs.get(idx));
+                    return loadCircularIcon(pngs.get(idx), TOKEN_ICON_SIZE);
                 }
             }
         } catch (Exception ignored) {
@@ -891,7 +993,7 @@ public class SwingSplendorApp extends JFrame {
         String filename = "card_" + card.getId() + ".png";
         Path path = Path.of("media", "devLevel" + card.getLevel(), filename);
         if (Files.exists(path)) {
-            return loadScaledIcon(path);
+            return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
         }
         return null;
     }
@@ -900,21 +1002,19 @@ public class SwingSplendorApp extends JFrame {
         String filename = "card_" + noble.getId() + ".png";
         Path path = Path.of("media", "nobles", filename);
         if (Files.exists(path)) {
-            return loadScaledIcon(path);
+            return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
         }
         return null;
     }
 
-    private ImageIcon loadScaledIcon(Path imagePath) {
+    private ImageIcon loadScaledIcon(Path imagePath, int targetW, int targetH) {
         ImageIcon icon = new ImageIcon(imagePath.toString());
         Image src = icon.getImage();
-        int targetW = 120;
-        int targetH = 120;
         int imgW = src.getWidth(null);
         int imgH = src.getHeight(null);
         if (imgW <= 0 || imgH <= 0) {
-            // fallback to square
-            imgW = imgH = 1;
+            imgW = 1;
+            imgH = 1;
         }
         double scale = Math.min((double)targetW / imgW, (double)targetH / imgH);
         int newW = (int)(imgW * scale);
@@ -929,6 +1029,33 @@ public class SwingSplendorApp extends JFrame {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setBackground(new Color(0,0,0,0));
         g2.clearRect(0, 0, targetW, targetH);
+        g2.drawImage(src, x, y, newW, newH, null);
+        g2.dispose();
+        return new ImageIcon(out);
+    }
+
+    private ImageIcon loadCircularIcon(Path imagePath, int diameter) {
+        ImageIcon icon = new ImageIcon(imagePath.toString());
+        Image src = icon.getImage();
+        int imgW = src.getWidth(null);
+        int imgH = src.getHeight(null);
+        if (imgW <= 0 || imgH <= 0) {
+            imgW = 1;
+            imgH = 1;
+        }
+
+        double scale = Math.max((double) diameter / imgW, (double) diameter / imgH);
+        int newW = (int) Math.ceil(imgW * scale);
+        int newH = (int) Math.ceil(imgH * scale);
+        int x = (diameter - newW) / 2;
+        int y = (diameter - newH) / 2;
+
+        BufferedImage out = new BufferedImage(diameter, diameter, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = out.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setClip(new Ellipse2D.Double(0, 0, diameter, diameter));
         g2.drawImage(src, x, y, newW, newH, null);
         g2.dispose();
         return new ImageIcon(out);
@@ -1001,11 +1128,33 @@ public class SwingSplendorApp extends JFrame {
             }
 
             if (selected > 0) {
-                button.setBorder(new LineBorder(new Color(36, 92, 194), 3));
+                button.setBorder(new LineBorder(ACCENT_BLUE, 2, true));
             } else {
-                button.setBorder(new LineBorder(new Color(120, 120, 120), 1));
+                button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
             }
         }
+    }
+
+    private TitledBorder createTitledBorder(String title) {
+        TitledBorder border = BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR, 1), title);
+        styleTitledBorder(border);
+        return border;
+    }
+
+    private void styleTitledBorder(TitledBorder border) {
+        border.setTitleColor(TEXT_PRIMARY);
+    }
+
+    private void styleActionButton(JButton button) {
+        button.setBackground(SURFACE_BG);
+        button.setForeground(TEXT_PRIMARY);
+        button.setOpaque(true);
+        button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
+    }
+
+    private void styleScrollPane(JScrollPane scrollPane, Color viewportColor) {
+        scrollPane.setBorder(new LineBorder(BORDER_COLOR, 1));
+        scrollPane.getViewport().setBackground(viewportColor);
     }
 
     private String helpTextForMode() {
