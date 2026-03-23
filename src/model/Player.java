@@ -1,5 +1,6 @@
 package model;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -12,7 +13,7 @@ import java.util.*;
  * - Tracks nobles claimed to the player (contribute prestige)
  * - Computes prestige points and bonus counts per Splendor rules
  */
-public class Player {
+public class Player implements Serializable {
     
     private String name;
     private Map<GemColor, Integer> tokens;

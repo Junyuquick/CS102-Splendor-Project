@@ -1,10 +1,11 @@
 package model;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-public class NobleTile {
+public class NobleTile implements Serializable {
 
     private final int id;
     private final int prestigePoints;

@@ -1,10 +1,9 @@
 package model;
-
-import java.util.Collections;
+import java.io.Serializable;import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-public class DevelopmentCard {
+public class DevelopmentCard implements Serializable {
 
     private final int id;
     private final int level;
@@ -64,5 +63,21 @@ public class DevelopmentCard {
                ", Points: " + prestigePoints +
                ", Bonus: " + bonusColor +
                ", Cost: " + cost;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof DevelopmentCard other)) return false;
+        return id == other.id
+                && level == other.level
+                && prestigePoints == other.prestigePoints
+                && bonusColor == other.bonusColor
+                && Objects.equals(cost, other.cost);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, level, prestigePoints, bonusColor, cost);
     }
 }

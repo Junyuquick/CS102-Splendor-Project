@@ -2,12 +2,13 @@
 
 package model;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class Cost {
+public class Cost implements Serializable {
 
     private final EnumMap<GemColor, Integer> amounts;
 
@@ -74,5 +75,17 @@ public class Cost {
     @Override
     public String toString() {
         return amounts.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Cost other)) return false;
+        return amounts.equals(other.amounts);
+    }
+
+    @Override
+    public int hashCode() {
+        return amounts.hashCode();
     }
 }
