@@ -76,4 +76,16 @@ public class Cost implements Serializable {
     public String toString() {
         return amounts.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Cost other)) return false;
+        return amounts.equals(other.amounts);
+    }
+
+    @Override
+    public int hashCode() {
+        return amounts.hashCode();
+    }
 }

@@ -64,4 +64,20 @@ public class DevelopmentCard implements Serializable {
                ", Bonus: " + bonusColor +
                ", Cost: " + cost;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof DevelopmentCard other)) return false;
+        return id == other.id
+                && level == other.level
+                && prestigePoints == other.prestigePoints
+                && bonusColor == other.bonusColor
+                && Objects.equals(cost, other.cost);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, level, prestigePoints, bonusColor, cost);
+    }
 }

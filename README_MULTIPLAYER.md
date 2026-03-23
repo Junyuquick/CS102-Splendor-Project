@@ -6,27 +6,30 @@ This project now supports multiplayer networking for the Splendor board game.
 
 1. On the host machine, run the server:
    ```
-   ./runServer.sh [port]
+   javac -d classes $(find src -name '*.java')
+   java -cp classes network.GameServer [port]
    ```
    Default port is 12345.
 
 2. The server will wait for players to join.
+3. The server creator joins as the host and can press `Start Game` once at least 2 players are in the lobby.
 
 ## How to Join a Game
 
 1. On each client machine, run the client:
    ```
-   ./runClient.sh
+   javac -d classes $(find src -name '*.java')
+   java -cp classes network.ClientMain
    ```
 
 2. Enter the host IP address, port (default 12345), and your player name.
 
-3. Wait for the game to start (requires at least 2 players).
+3. Wait in the lobby for the host to start the game (requires at least 2 players).
 
 ## Testing on the Same Machine
 
-- Start the server in one terminal: `./runServer.sh`
-- Start two clients in separate terminals: `./runClient.sh`
+- Start the server in one terminal: `java -cp classes network.GameServer`
+- Start two clients in separate terminals: `java -cp classes network.ClientMain`
 - Use "localhost" as the host IP.
 
 ## Testing Across Different Machines
@@ -51,8 +54,6 @@ This project now supports multiplayer networking for the Splendor board game.
 - `src/network/GameClient.java` - Client networking logic
 - `src/network/ClientMain.java` - Client entry point with connection dialog
 - `src/ui/swing/MultiplayerSwingApp.java` - Multiplayer client UI
-- `runServer.sh` - Script to start server
-- `runClient.sh` - Script to start client
 
 ### Modified Files:
 - All model classes (`GameState.java`, `Player.java`, etc.) - Added `implements Serializable`
@@ -61,6 +62,7 @@ This project now supports multiplayer networking for the Splendor board game.
 ## Limitations
 
 - Supports 2-4 players joining before game starts.
+- Only the host/server creator can start the match from the lobby.
 - No reconnection support.
 - Simple error handling.
 - UI refresh methods in MultiplayerSwingApp are stubs (need implementation for full functionality).

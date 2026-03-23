@@ -16,45 +16,11 @@ import java.util.Random;
 public class GreedyStrategy {
     private final Random random = new Random();
 
-    public Move chooseMove(GameState state, Player player, MoveValidator validator, AiController.Level level) {
-        if (level == AiController.Level.LOW) {
-            return chooseLowLevelMove(state, player, validator);
-        }
-        return chooseHighLevelMove(state, player, validator);
+    public Move chooseMove(GameState state, Player player, MoveValidator validator) {
+        return chooseEasyMove(state, player, validator);
     }
 
-    private Move chooseHighLevelMove(GameState state, Player player, MoveValidator validator) {
-        Move buy = bestBuyMove(state, player, validator);
-        if (buy != null) {
-            return buy;
-        }
-
-        Move takeTwo = bestTakeTwoSame(state, player, validator);
-        if (takeTwo != null) {
-            return takeTwo;
-        }
-
-        Move takeThree = bestTakeThreeDifferent(state, player, validator);
-        if (takeThree != null) {
-            return takeThree;
-        }
-
-        Move reserve = bestReserveMove(state, player, validator);
-        if (reserve != null) {
-            return reserve;
-        }
-
-        // Final fallback: return first legal reserve/take move discovered.
-        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            Move move = Move.reserveFaceUp(card);
-            if (validator.validate(state, player, move) == null) {
-                return move;
-            }
-        }
-        throw new IllegalStateException("No legal moves available for AI");
-    }
-
-    private Move chooseLowLevelMove(GameState state, Player player, MoveValidator validator) {
+    private Move chooseEasyMove(GameState state, Player player, MoveValidator validator) {
         List<Move> buyMoves = new ArrayList<>();
         List<Move> reserveMoves = new ArrayList<>();
         List<Move> takeMoves = new ArrayList<>();
@@ -140,31 +106,6 @@ public class GreedyStrategy {
             }
         }
 
-        return best;
-    }
-
-    private Move bestReserveMove(GameState state, Player player, MoveValidator validator) {
-        Move best = null;
-        int bestPoints = Integer.MIN_VALUE;
-        int bestCost = Integer.MIN_VALUE;
-
-        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            // High-level AI reserves only strong targets to avoid wasting reserve slots.
-            if (card.getPrestigePoints() < 2) {
-                continue;
-            }
-            Move move = Move.reserveFaceUp(card);
-            if (validator.validate(state, player, move) != null) {
-                continue;
-            }
-            int points = card.getPrestigePoints();
-            int cost = totalCost(card.getCost());
-            if (points > bestPoints || (points == bestPoints && cost > bestCost)) {
-                best = move;
-                bestPoints = points;
-                bestCost = cost;
-            }
-        }
         return best;
     }
 

@@ -1,8 +1,8 @@
 package ui.swing;
 
-import ai.AiController;
 import ai.GreedyStrategy;
 import config.Config;
+import config.ConfigLoader;
 import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
@@ -10,6 +10,7 @@ import engine.NobleAssigner;
 import engine.TurnManager;
 import engine.WinnerChecker;
 import io.CardLoader;
+import io.NobleLoader;
 import model.Board;
 import model.DevelopmentCard;
 import model.GameState;
@@ -127,7 +128,6 @@ public class SwingSplendorApp extends JFrame {
     private DevelopmentCard selectedReservedCard;
     private boolean finalGameOver = false;
     private boolean computerThinking = false;
-    private AiController.Level aiLevel = AiController.Level.HIGH;
     private final Set<Player> computerPlayers = new HashSet<>();
 
     public SwingSplendorApp() {
@@ -147,24 +147,14 @@ public class SwingSplendorApp extends JFrame {
 
     private GameState createInitialState() {
         String p1 = promptName("Enter Player 1 name:");
-        List<Player> players;
-
-        boolean vsComputer = askYesNo("Play against computer?");
-        if (vsComputer) {
-            boolean humanFirst = askYesNo("Do you want to go first?");
-            aiLevel = askAiLevel();
-            Player human = new Player(p1);
-            Player computer = new Player("Computer");
+        int computerCount = askComputerCount();
+        List<Player> players = new ArrayList<>();
+        Player human = new Player(p1);
+        players.add(human);
+        for (int i = 1; i <= computerCount; i++) {
+            Player computer = new Player(i == 1 ? "Computer" : "Computer " + i);
             computerPlayers.add(computer);
-            players = humanFirst ? List.of(human, computer) : List.of(computer, human);
-        } else {
-            int playerCount = askPlayerCount();
-            List<Player> humanPlayers = new ArrayList<>();
-            humanPlayers.add(new Player(p1));
-            for (int i = 2; i <= playerCount; i++) {
-                humanPlayers.add(new Player(promptName("Enter Player " + i + " name:")));
-            }
-            players = humanPlayers;
+            players.add(computer);
         }
 
         GemBank bank = new GemBank();
@@ -609,7 +599,7 @@ public class SwingSplendorApp extends JFrame {
         rebuildMarketButtons();
         rebuildNobleCards();
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("Current Player: " + current.getName());
+        statusLabel.setText("You: " + state.getPlayer(0).getName());
         reservedLabel.setText(current.getName() + " Reserved Cards");
 
         for (GemColor color : GemColor.values()) {
@@ -684,8 +674,8 @@ public class SwingSplendorApp extends JFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("Current Player: " + current.getName());
-        phaseLabel.setText("Phase: " + mode.name().replace('_', ' '));
+        statusLabel.setText("You: " + state.getPlayer(0).getName());
+        phaseLabel.setText("Turn: " + current.getName() + " | Phase: " + mode.name().replace('_', ' '));
         helpArea.setText(helpTextForMode());
 
         actionTakeThree.setEnabled(hasAnyLegalTakeThree(current));
@@ -947,6 +937,7 @@ public class SwingSplendorApp extends JFrame {
         };
 
         Path[] candidates = new Path[]{
+                config.getTokenImageDir().resolve(filename),
                 Path.of("assets", "tokens", filename),
                 Path.of("resources", "tokens", filename),
                 Path.of("src", "assets", "tokens", filename),
@@ -991,18 +982,29 @@ public class SwingSplendorApp extends JFrame {
 
     private ImageIcon loadCardIcon(DevelopmentCard card) {
         String filename = "card_" + card.getId() + ".png";
-        Path path = Path.of("media", "devLevel" + card.getLevel(), filename);
-        if (Files.exists(path)) {
-            return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
+        Path[] candidates = new Path[]{
+                config.getCardImageDir().resolve("devLevel" + card.getLevel()).resolve(filename),
+                config.getCardImageDir().resolve(filename),
+                Path.of("media", "devLevel" + card.getLevel(), filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
+            }
         }
         return null;
     }
 
     private ImageIcon loadNobleIcon(NobleTile noble) {
         String filename = "card_" + noble.getId() + ".png";
-        Path path = Path.of("media", "nobles", filename);
-        if (Files.exists(path)) {
-            return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
+        Path[] candidates = new Path[]{
+                config.getNobleImageDir().resolve(filename),
+                Path.of("media", "nobles", filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
+            }
         }
         return null;
     }
@@ -1229,59 +1231,36 @@ public class SwingSplendorApp extends JFrame {
         return name.trim();
     }
 
-    private boolean askYesNo(String prompt) {
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                prompt,
-                "Game Setup",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
-        return result == JOptionPane.YES_OPTION;
-    }
-
-    private AiController.Level askAiLevel() {
+    private int askComputerCount() {
         Object choice = JOptionPane.showInputDialog(
                 this,
-                "Choose computer level",
-                "Computer Difficulty",
+                "How many computers do you want to play with?",
+                "Computer Count",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                new Object[]{"HIGH", "LOW"},
-                "HIGH"
+                new Object[]{"1", "2", "3"},
+                "1"
         );
         if (choice == null) {
-            return AiController.Level.HIGH;
-        }
-        return "LOW".equalsIgnoreCase(choice.toString())
-                ? AiController.Level.LOW
-                : AiController.Level.HIGH;
-    }
-
-    private int askPlayerCount() {
-        Object choice = JOptionPane.showInputDialog(
-                this,
-                "How many human players?",
-                "Player Count",
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                new Object[]{"2", "3", "4"},
-                "2"
-        );
-        if (choice == null) {
-            return 2;
+            return 1;
         }
         try {
             int count = Integer.parseInt(choice.toString());
-            if (count < 2) return 2;
-            if (count > 4) return 4;
+            if (count < 1) return 1;
+            if (count > 3) return 3;
             return count;
         } catch (NumberFormatException e) {
-            return 2;
+            return 1;
         }
     }
 
     private Config buildConfig() {
+        try {
+            return new ConfigLoader().load(Path.of("config.properties"));
+        } catch (IOException | IllegalArgumentException e) {
+            log("Failed to load config.properties. Falling back to defaults. Reason: " + e.getMessage());
+        }
+
         java.nio.file.Path here = java.nio.file.Path.of(".");
         return new Config(
                 15, 10, 3, 1, 2, 4, 3, 4,
@@ -1294,7 +1273,7 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private Map<Integer, List<DevelopmentCard>> buildDecks() {
-        Path csv = Path.of("data");
+        Path csv = config.getCardsPath(1).getParent();
         try {
             return new CardLoader().load(csv);
         } catch (IOException | IllegalArgumentException e) {
@@ -1331,35 +1310,9 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private List<NobleTile> buildNobles() {
-        Path csv = Path.of("data", "nobles.csv");
+        Path csv = config.getNoblesPath();
         try {
-            List<String> lines = Files.readAllLines(csv);
-            List<NobleTile> nobles = new ArrayList<>();
-            // Skip header
-            for (int i = 1; i < lines.size(); i++) {
-                String raw = lines.get(i).trim();
-                if (raw.isEmpty()) continue;
-                String[] cols = raw.split(",");
-                if (cols.length < 7) {
-                    throw new IllegalArgumentException("Invalid noble row at line " + (i + 1) + ": " + raw);
-                }
-                int id = i; // Use row number as id
-                int points = Integer.parseInt(cols[1].trim());
-                int reqWhite = Integer.parseInt(cols[2].trim());
-                int reqBlue = Integer.parseInt(cols[3].trim());
-                int reqGreen = Integer.parseInt(cols[4].trim());
-                int reqRed = Integer.parseInt(cols[5].trim());
-                int reqBlack = Integer.parseInt(cols[6].trim());
-                Map<GemColor, Integer> reqs = Map.of(
-                        GemColor.WHITE, reqWhite,
-                        GemColor.BLUE, reqBlue,
-                        GemColor.GREEN, reqGreen,
-                        GemColor.RED, reqRed,
-                        GemColor.BLACK, reqBlack
-                );
-                nobles.add(noble(id, points, reqs));
-            }
-            return nobles;
+            return new NobleLoader().load(csv);
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Failed to load nobles from " + csv + ". Falling back to sample nobles. Reason: " + e.getMessage());
         }
@@ -1436,7 +1389,7 @@ public class SwingSplendorApp extends JFrame {
 
         Player current = state.getCurrentPlayer();
         try {
-            Move move = aiStrategy.chooseMove(state, current, validator, aiLevel);
+            Move move = aiStrategy.chooseMove(state, current, validator);
             String err = validator.validate(state, current, move);
             if (err != null) {
                 log("Computer produced illegal move: " + err);
@@ -1444,7 +1397,7 @@ public class SwingSplendorApp extends JFrame {
             }
 
             executor.execute(state, current, move);
-            String moveSummary = current.getName() + " (Computer-" + aiLevel + ") played: " + summarizeMove(move);
+            String moveSummary = current.getName() + " (Computer-EASY) played: " + summarizeMove(move);
             latestComputerMoveLabel.setText("Latest Computer Move: " + moveSummary);
             log(moveSummary);
             JOptionPane.showMessageDialog(

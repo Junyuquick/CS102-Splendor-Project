@@ -70,6 +70,17 @@ public class GameClient {
         }
     }
 
+    public void sendStartRequest() {
+        if (!connected) return;
+        try {
+            out.writeObject(NetworkMessage.startRequest());
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to send start request: " + e.getMessage());
+            connected = false;
+        }
+    }
+
     public NetworkMessage receiveMessage() {
         if (!connected) return null;
         try {
@@ -91,6 +102,10 @@ public class GameClient {
 
     public int getMyPlayerIndex() {
         return myPlayerIndex;
+    }
+
+    public String getPlayerName() {
+        return playerName;
     }
 
     public void setCurrentState(GameState state) {

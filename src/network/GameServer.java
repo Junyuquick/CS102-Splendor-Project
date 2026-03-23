@@ -1,6 +1,7 @@
 package network;
 
 import config.Config;
+import config.ConfigLoader;
 import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
@@ -8,6 +9,7 @@ import engine.NobleAssigner;
 import engine.TurnManager;
 import engine.WinnerChecker;
 import io.CardLoader;
+import io.NobleLoader;
 import model.Board;
 import model.Cost;
 import model.DevelopmentCard;
@@ -35,15 +37,17 @@ import java.util.concurrent.Executors;
  * Manages game state, client connections, and game flow.
  */
 public class GameServer {
+    private static final int MIN_PLAYERS = 2;
+    private final Config config = buildConfig();
     private final int port;
     private ServerSocket serverSocket;
     private final List<ClientHandler> clients = new ArrayList<>();
     private GameState gameState;
     private boolean gameStarted = false;
-    private final MoveValidator validator = new MoveValidator(buildConfig());
-    private final MoveExecutor executor = new MoveExecutor(buildConfig());
+    private final MoveValidator validator = new MoveValidator(config);
+    private final MoveExecutor executor = new MoveExecutor(config);
     private final NobleAssigner nobleAssigner = new NobleAssigner();
-    private final WinnerChecker winnerChecker = new WinnerChecker(buildConfig());
+    private final WinnerChecker winnerChecker = new WinnerChecker(config);
     private final TurnManager turnManager = new TurnManager();
 
     public GameServer(int port) {
@@ -51,6 +55,12 @@ public class GameServer {
     }
 
     private static Config buildConfig() {
+        try {
+            return new ConfigLoader().load(Path.of("config.properties"));
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Failed to load config.properties. Falling back to defaults. Reason: " + e.getMessage());
+        }
+
         Path here = Path.of(".");
         return new Config(
                 15, // pointsToWin
@@ -108,8 +118,9 @@ public class GameServer {
 
         // Initialize game state
         try {
-            Board board = createBoard();
-            GemBank bank = createBank();
+            int playerCount = players.size();
+            GemBank bank = createBank(playerCount);
+            Board board = createBoard(playerCount, bank);
             gameState = new GameState(players, board, bank);
         } catch (IOException e) {
             System.err.println("Failed to initialize game: " + e.getMessage());
@@ -127,32 +138,28 @@ public class GameServer {
         System.out.println("Game started!");
     }
 
-    private Board createBoard() throws IOException {
-        Map<Integer, List<DevelopmentCard>> decks = buildDecks();
-        List<NobleTile> nobles = buildNobles();
+    private Board createBoard(int playerCount, GemBank bank) throws IOException {
+        Map<Integer, List<DevelopmentCard>> decks = buildDecks(config);
+        List<NobleTile> nobles = buildNobles(playerCount);
 
         Map<GemColor, Integer> initialGems = new EnumMap<>(GemColor.class);
         for (GemColor color : GemColor.values()) {
             int amount = color == GemColor.GOLD
-                    ? 5
-                    : 7;
+                    ? config.getInitialGoldGemCount(playerCount)
+                    : config.getInitialNormalGemCount(playerCount);
             initialGems.put(color, amount);
         }
 
-        GemBank bank = new GemBank();
-        for (Map.Entry<GemColor, Integer> entry : initialGems.entrySet()) {
-            bank.addGems(entry.getKey(), entry.getValue());
-        }
-
-        return new Board(decks, nobles, initialGems, bank, 4);
+        return new Board(decks, nobles, initialGems, bank, config.getOpenCardsPerLevel());
     }
 
-    private GemBank createBank() {
+    private GemBank createBank(int playerCount) {
         GemBank bank = new GemBank();
-        // Add initial tokens
         for (GemColor color : GemColor.values()) {
             Map<GemColor, Integer> delta = new EnumMap<>(GemColor.class);
-            int amount = color == GemColor.GOLD ? 5 : 7;
+            int amount = color == GemColor.GOLD
+                    ? config.getInitialGoldGemCount(playerCount)
+                    : config.getInitialNormalGemCount(playerCount);
             delta.put(color, amount);
             bank.addTokens(delta);
         }
@@ -165,18 +172,25 @@ public class GameServer {
             return;
         }
 
-        if (clients.size() < 2) {
-            client.sendMessage(NetworkMessage.error("Need at least 2 players to start"));
-            return;
-        }
-
         if (clients.isEmpty() || clients.get(0) != client) {
             client.sendMessage(NetworkMessage.error("Only host can start the game"));
             return;
         }
 
+        if (clients.size() < MIN_PLAYERS) {
+            client.sendMessage(NetworkMessage.error("Need at least 2 players to start"));
+            broadcastLobbyState();
+            return;
+        }
+
         System.out.println("Host requested start. Starting game...");
         startGame();
+    }
+
+    public synchronized void handleJoin(ClientHandler client) {
+        int lobbyIndex = clients.indexOf(client);
+        client.sendMessage(NetworkMessage.joinAck(lobbyIndex));
+        broadcastLobbyState();
     }
 
     public synchronized void handleMove(ClientHandler client, Move move) {
@@ -236,6 +250,9 @@ public class GameServer {
     public synchronized void removeClient(ClientHandler client) {
         clients.remove(client);
         System.out.println("Client disconnected. Remaining: " + clients.size());
+        if (!gameStarted) {
+            broadcastLobbyState();
+        }
         if (clients.isEmpty()) {
             System.out.println("All clients disconnected. Shutting down.");
             try {
@@ -243,6 +260,22 @@ public class GameServer {
             } catch (IOException e) {
                 // ignore
             }
+        }
+    }
+
+    private void broadcastLobbyState() {
+        List<String> playerNames = new ArrayList<>();
+        for (int i = 0; i < clients.size(); i++) {
+            String name = clients.get(i).getPlayerName();
+            if (name == null || name.isBlank()) {
+                name = "Player " + (i + 1);
+            }
+            playerNames.add(name);
+        }
+
+        NetworkMessage message = NetworkMessage.lobbyUpdate(playerNames, 0, MIN_PLAYERS);
+        for (ClientHandler client : clients) {
+            client.sendMessage(message);
         }
     }
 
@@ -265,8 +298,8 @@ public class GameServer {
         }
     }
 
-    private static Map<Integer, List<DevelopmentCard>> buildDecks() {
-        Path csv = Path.of("data");
+    private static Map<Integer, List<DevelopmentCard>> buildDecks(Config config) {
+        Path csv = config.getCardsPath(1).getParent();
         try {
             return new CardLoader().load(csv);
         } catch (IOException | IllegalArgumentException e) {
@@ -306,13 +339,26 @@ public class GameServer {
         return decks;
     }
 
-    private static List<NobleTile> buildNobles() {
-        return List.of(
+    private List<NobleTile> buildNobles(int playerCount) {
+        Path csv = config.getNoblesPath();
+        try {
+            List<NobleTile> nobles = new NobleLoader().load(csv);
+            Collections.shuffle(nobles);
+            int nobleCount = Math.min(config.getNoblesCount(playerCount), nobles.size());
+            return new ArrayList<>(nobles.subList(0, nobleCount));
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Failed to load nobles from " + csv + ". Falling back to sample nobles. Reason: " + e.getMessage());
+        }
+
+        List<NobleTile> fallback = new ArrayList<>(List.of(
                 noble(1, 3, mapCost(3, 3, 3, 0, 0)),
                 noble(2, 3, mapCost(0, 3, 3, 3, 0)),
                 noble(3, 3, mapCost(0, 0, 3, 3, 3)),
                 noble(4, 3, mapCost(3, 0, 0, 3, 3))
-        );
+        ));
+        Collections.shuffle(fallback);
+        int nobleCount = Math.min(config.getNoblesCount(playerCount), fallback.size());
+        return new ArrayList<>(fallback.subList(0, nobleCount));
     }
 
     private static DevelopmentCard card(int level, int points, GemColor bonus, Map<GemColor, Integer> costs) {

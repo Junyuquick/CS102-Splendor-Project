@@ -1,14 +1,9 @@
 package ui.swing;
 
-import ai.AiController;
-import ai.GreedyStrategy;
 import config.Config;
+import config.ConfigLoader;
 import engine.Move;
-import engine.MoveExecutor;
 import engine.MoveValidator;
-import engine.NobleAssigner;
-import engine.TurnManager;
-import engine.WinnerChecker;
 import model.Board;
 import model.DevelopmentCard;
 import model.GameState;
@@ -23,8 +18,6 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -68,23 +61,18 @@ public class MultiplayerSwingApp extends JFrame {
     private GameState state;
     private final GameClient client;
     private final MoveValidator validator;
-    private final NobleAssigner nobleAssigner;
-    private final WinnerChecker winnerChecker;
 
     private final JLabel statusLabel = new JLabel("", SwingConstants.LEFT);
     private final JLabel phaseLabel = new JLabel("", SwingConstants.RIGHT);
+    private final JLabel lobbyStatusLabel = new JLabel("", SwingConstants.CENTER);
     private final JPanel marketPanel = new JPanel(new GridLayout(3, 4, 10, 10));
     private final JPanel noblesPanel = new JPanel(new GridLayout(1, 5, 8, 8));
     private final JTextArea logArea = new JTextArea();
     private final JPanel playersPanel = new JPanel();
-    private final Map<Player, JPanel> playerCardPanels = new LinkedHashMap<>();
-    private final Map<Player, JEditorPane> playerCardAreas = new LinkedHashMap<>();
     private final JTextArea helpArea = new JTextArea();
     private final JLabel latestComputerMoveLabel = new JLabel("Latest Computer Move: -");
     private final JPanel bankCountPanel = new JPanel(new GridLayout(6, 1, 4, 4));
-    private final Map<GemColor, JLabel> bankLabels = new EnumMap<>(GemColor.class);
     private final Map<GemColor, JButton> tokenButtons = new EnumMap<>(GemColor.class);
-    private final Map<GemColor, ImageIcon> tokenIcons = new EnumMap<>(GemColor.class);
     private final Map<GemColor, Integer> selectedTokenCounts = new EnumMap<>(GemColor.class);
     private final Map<String, JButton> cardButtons = new LinkedHashMap<>();
     private final JButton actionTakeThree = new JButton("Take 3 Different");
@@ -93,6 +81,7 @@ public class MultiplayerSwingApp extends JFrame {
     private final JButton actionBuy = new JButton("Buy");
     private final JButton actionCancel = new JButton("Cancel");
     private final JButton actionConfirm = new JButton("Confirm");
+    private final JButton startGameButton = new JButton("Start Game");
     private final DefaultListModel<DevelopmentCard> reservedModel = new DefaultListModel<>();
     private final JList<DevelopmentCard> reservedList = new JList<>(reservedModel);
     private final JLabel reservedLabel = new JLabel("Your Reserved Cards");
@@ -100,15 +89,15 @@ public class MultiplayerSwingApp extends JFrame {
     private Mode mode = Mode.IDLE;
     private DevelopmentCard selectedBoardCard;
     private DevelopmentCard selectedReservedCard;
-    private boolean finalGameOver = false;
     private int myPlayerIndex = -1;
+    private int hostPlayerIndex = 0;
+    private int minPlayersToStart = 2;
+    private List<String> lobbyPlayers = new ArrayList<>();
 
     public MultiplayerSwingApp(GameClient client) {
         super("Splendor Multiplayer");
         this.client = client;
         this.validator = new MoveValidator(config);
-        this.nobleAssigner = new NobleAssigner();
-        this.winnerChecker = new WinnerChecker(config);
 
         buildUi();
         bindActions();
@@ -118,6 +107,12 @@ public class MultiplayerSwingApp extends JFrame {
     }
 
     private static Config buildConfig() {
+        try {
+            return new ConfigLoader().load(Path.of("config.properties"));
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Failed to load config.properties. Falling back to defaults. Reason: " + e.getMessage());
+        }
+
         Path here = Path.of(".");
         return new Config(
                 15, // pointsToWin
@@ -160,6 +155,18 @@ public class MultiplayerSwingApp extends JFrame {
 
     private void handleMessage(NetworkMessage msg) {
         switch (msg.getType()) {
+            case JOIN_ACK:
+                this.myPlayerIndex = msg.getPlayerIndex() == null ? -1 : msg.getPlayerIndex();
+                refreshStatus();
+                updateLegalUi();
+                break;
+            case LOBBY_UPDATE:
+                this.lobbyPlayers = msg.getPlayerNames() == null ? new ArrayList<>() : new ArrayList<>(msg.getPlayerNames());
+                this.hostPlayerIndex = msg.getHostIndex() == null ? 0 : msg.getHostIndex();
+                this.minPlayersToStart = msg.getMinPlayers() == null ? 2 : msg.getMinPlayers();
+                log("Lobby updated: " + lobbyPlayers.size() + " player(s) connected.");
+                refreshAll();
+                break;
             case GAME_START:
                 this.state = msg.getGameState();
                 this.myPlayerIndex = msg.getPlayerIndex();
@@ -176,9 +183,6 @@ public class MultiplayerSwingApp extends JFrame {
         }
     }
 
-    // Most of the UI building code is the same as SwingSplendorApp
-    // I'll copy the relevant methods, but modify for multiplayer
-
     private void buildUi() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1500, 1020);
@@ -192,11 +196,19 @@ public class MultiplayerSwingApp extends JFrame {
         statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         statusLabel.setFont(statusLabel.getFont().deriveFont(Font.BOLD, 16f));
         statusLabel.setForeground(TEXT_PRIMARY);
+        lobbyStatusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        lobbyStatusLabel.setForeground(TEXT_MUTED);
         phaseLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         phaseLabel.setFont(phaseLabel.getFont().deriveFont(Font.BOLD, 14f));
         phaseLabel.setForeground(TEXT_MUTED);
+        styleActionButton(startGameButton);
+        JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        topRight.setBackground(APP_BG);
+        topRight.add(phaseLabel);
+        topRight.add(startGameButton);
         topBar.add(statusLabel, BorderLayout.WEST);
-        topBar.add(phaseLabel, BorderLayout.EAST);
+        topBar.add(lobbyStatusLabel, BorderLayout.CENTER);
+        topBar.add(topRight, BorderLayout.EAST);
         add(topBar, BorderLayout.NORTH);
 
         JPanel leftBank = new JPanel(new BorderLayout(8, 8));
@@ -347,37 +359,46 @@ public class MultiplayerSwingApp extends JFrame {
     }
 
     private void bindActions() {
-        actionTakeThree.addActionListener(e -> setMode(Mode.TAKE_THREE));
-        actionTakeTwo.addActionListener(e -> setMode(Mode.TAKE_TWO));
-        actionReserve.addActionListener(e -> setMode(Mode.RESERVE));
-        actionBuy.addActionListener(e -> setMode(Mode.BUY));
-        actionCancel.addActionListener(e -> clearSelection());
+        actionTakeThree.addActionListener(e -> switchMode(Mode.TAKE_THREE));
+        actionTakeTwo.addActionListener(e -> switchMode(Mode.TAKE_TWO));
+        actionReserve.addActionListener(e -> switchMode(Mode.RESERVE));
+        actionBuy.addActionListener(e -> switchMode(Mode.BUY));
+        actionCancel.addActionListener(e -> switchMode(Mode.IDLE));
         actionConfirm.addActionListener(e -> onConfirm());
+        startGameButton.addActionListener(e -> onStartGame());
 
         for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
             GemColor color = entry.getKey();
             JButton button = entry.getValue();
-            button.addActionListener(e -> onTokenButtonClicked(color));
+            button.addActionListener(e -> {
+                onTokenButtonClicked(color);
+                updateLegalUi();
+            });
         }
 
         reservedList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                selectedReservedCard = reservedList.getSelectedValue();
-                if (selectedReservedCard != null) {
-                    selectedBoardCard = null;
-                    updateLegalUi();
-                }
+            selectedReservedCard = reservedList.getSelectedValue();
+            if (selectedReservedCard != null) {
+                selectedBoardCard = null;
             }
+            updateLegalUi();
         });
     }
 
-    private void setMode(Mode newMode) {
-        if (state == null || myPlayerIndex != state.getCurrentPlayerIndex()) {
+    private void switchMode(Mode newMode) {
+        if (state == null) {
+            log("Game has not started yet");
+            return;
+        }
+        if (myPlayerIndex != state.getCurrentPlayerIndex()) {
             log("Not your turn");
             return;
         }
         mode = newMode;
-        clearSelection();
+        selectedBoardCard = null;
+        selectedReservedCard = null;
+        reservedList.clearSelection();
+        clearTokenSelection();
         updateLegalUi();
         log("Mode: " + newMode);
     }
@@ -414,7 +435,7 @@ public class MultiplayerSwingApp extends JFrame {
             if (count > 0) {
                 btn.setBackground(SELECTED_BG);
             } else {
-                btn.setBackground(EMPTY_BG);
+                btn.setBackground(tokenColor(color));
             }
         }
     }
@@ -423,16 +444,124 @@ public class MultiplayerSwingApp extends JFrame {
         mode = Mode.IDLE;
         selectedBoardCard = null;
         selectedReservedCard = null;
-        for (GemColor color : selectedTokenCounts.keySet()) {
-            selectedTokenCounts.put(color, 0);
-        }
-        updateTokenButtons();
+        reservedList.clearSelection();
+        clearTokenSelection();
         updateLegalUi();
     }
 
+    private void clearTokenSelection() {
+        for (GemColor color : GemColor.values()) {
+            selectedTokenCounts.put(color, 0);
+        }
+        refreshTokenButtonLabels();
+    }
+
     private void updateLegalUi() {
-        // Similar to original, but simplified for multiplayer
-        actionConfirm.setEnabled(mode != Mode.IDLE && state != null && myPlayerIndex == state.getCurrentPlayerIndex());
+        boolean gameStarted = state != null;
+        boolean myTurn = gameStarted && myPlayerIndex == state.getCurrentPlayerIndex();
+        boolean hostCanStart = !gameStarted && isHost() && lobbyPlayers.size() >= minPlayersToStart;
+
+        startGameButton.setEnabled(hostCanStart);
+        startGameButton.setVisible(!gameStarted);
+
+        if (!gameStarted) {
+            actionTakeThree.setEnabled(false);
+            actionTakeTwo.setEnabled(false);
+            actionReserve.setEnabled(false);
+            actionBuy.setEnabled(false);
+            actionCancel.setEnabled(false);
+            actionConfirm.setEnabled(false);
+            for (JButton button : tokenButtons.values()) {
+                button.setEnabled(false);
+            }
+            for (JButton btn : cardButtons.values()) {
+                btn.setEnabled(false);
+                btn.setBorder(new LineBorder(BORDER_COLOR, 2));
+            }
+            reservedList.setEnabled(false);
+            helpArea.setText(isHost()
+                    ? "Wait for at least 2 players, then press Start Game."
+                    : "Waiting for the host to start the game.");
+            return;
+        }
+
+        Player current = state.getCurrentPlayer();
+        boolean myActiveTurn = myTurn;
+
+        statusLabel.setText("You: " + client.getPlayerName() +
+                (myTurn ? " (Your Turn)" : ""));
+        phaseLabel.setText("Phase: " + mode.name().replace('_', ' '));
+        helpArea.setText(helpTextForMode());
+
+        actionTakeThree.setEnabled(myActiveTurn && hasAnyLegalTakeThree(current));
+        actionTakeTwo.setEnabled(myActiveTurn && hasAnyLegalTakeTwo(current));
+        actionReserve.setEnabled(myActiveTurn && hasAnyLegalReserve(current));
+        actionBuy.setEnabled(myActiveTurn && hasAnyLegalBuy(current));
+        actionCancel.setEnabled(myActiveTurn && mode != Mode.IDLE);
+
+        boolean takeMode = mode == Mode.TAKE_THREE || mode == Mode.TAKE_TWO;
+        boolean cardMode = mode == Mode.RESERVE || mode == Mode.BUY;
+
+        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
+            GemColor color = entry.getKey();
+            JButton button = entry.getValue();
+            button.setEnabled(myActiveTurn && takeMode && color != GemColor.GOLD);
+        }
+
+        reservedList.setEnabled(myActiveTurn && mode == Mode.BUY);
+
+        for (JButton btn : cardButtons.values()) {
+            btn.setEnabled(false);
+            btn.setBorder(new LineBorder(BORDER_COLOR, 2));
+        }
+
+        if (myActiveTurn && cardMode) {
+            for (int tier = 1; tier <= 3; tier++) {
+                List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
+                for (int col = 0; col < cards.size(); col++) {
+                    DevelopmentCard card = cards.get(col);
+                    Move move = mode == Mode.RESERVE
+                            ? Move.reserveFaceUp(card)
+                            : Move.buy(card, computePaymentTokens(current, card.getCost()), false);
+                    String key = "" + (char) ('a' + col) + tier;
+                    JButton btn = cardButtons.get(key);
+                    if (btn != null) {
+                        boolean legal = validator.validate(state, current, move) == null;
+                        btn.setEnabled(legal);
+                        if (selectedBoardCard == card) {
+                            btn.setBorder(new LineBorder(ACCENT_BLUE, 4));
+                        } else if (mode == Mode.BUY && legal) {
+                            btn.setBorder(new LineBorder(ACCENT_GREEN, 3));
+                        } else if (mode == Mode.BUY) {
+                            btn.setBorder(new LineBorder(ACCENT_RED, 2));
+                        } else {
+                            btn.setBorder(new LineBorder(BORDER_COLOR, 2));
+                        }
+                    }
+                }
+            }
+        }
+
+        applyTokenModeRules(current, myActiveTurn);
+        Move pending = myActiveTurn ? buildPendingMove() : null;
+        actionConfirm.setEnabled(myActiveTurn && mode != Mode.IDLE && pending != null
+                && validator.validate(state, current, pending) == null);
+    }
+
+    private void onStartGame() {
+        if (state != null) {
+            return;
+        }
+        if (!isHost()) {
+            log("Only the server creator can start the game.");
+            return;
+        }
+        if (lobbyPlayers.size() < minPlayersToStart) {
+            log("Need at least " + minPlayersToStart + " players to start.");
+            return;
+        }
+        client.sendStartRequest();
+        log("Start request sent.");
     }
 
     private void onConfirm() {
@@ -489,15 +618,33 @@ public class MultiplayerSwingApp extends JFrame {
     }
 
     private void refreshAll() {
-        if (state == null) return;
-
-        refreshMarket();
-        refreshNobles();
+        if (state != null) {
+            refreshMarket();
+            refreshNobles();
+            refreshBank();
+            refreshReserved();
+        } else {
+            clearPreGamePanels();
+        }
         refreshPlayers();
-        refreshBank();
-        refreshReserved();
         refreshStatus();
         updateLegalUi();
+    }
+
+    private void clearPreGamePanels() {
+        marketPanel.removeAll();
+        marketPanel.revalidate();
+        marketPanel.repaint();
+
+        noblesPanel.removeAll();
+        noblesPanel.revalidate();
+        noblesPanel.repaint();
+
+        bankCountPanel.removeAll();
+        bankCountPanel.revalidate();
+        bankCountPanel.repaint();
+
+        reservedModel.clear();
     }
 
     private void refreshMarket() {
@@ -520,6 +667,7 @@ public class MultiplayerSwingApp extends JFrame {
                     ImageIcon icon = loadCardIcon(card);
                     if (icon != null) {
                         btn.setIcon(icon);
+                        btn.setDisabledIcon(icon);
                         btn.setText("");
                         btn.setHorizontalTextPosition(SwingConstants.CENTER);
                         btn.setVerticalTextPosition(SwingConstants.BOTTOM);
@@ -581,9 +729,29 @@ public class MultiplayerSwingApp extends JFrame {
 
     private void refreshPlayers() {
         playersPanel.removeAll();
-        playerCardPanels.clear();
-        playerCardAreas.clear();
         if (state == null) {
+            for (int i = 0; i < lobbyPlayers.size(); i++) {
+                JPanel panel = new JPanel(new BorderLayout());
+                panel.setBackground(PANEL_BG_ALT);
+                String title = lobbyPlayers.get(i);
+                if (i == hostPlayerIndex) {
+                    title += " (Host)";
+                }
+                if (i == myPlayerIndex) {
+                    title += " (You)";
+                }
+                panel.setBorder(createPlayerBorder(title, false));
+
+                JTextArea area = new JTextArea();
+                area.setEditable(false);
+                area.setOpaque(false);
+                area.setForeground(TEXT_PRIMARY);
+                area.setText(i == hostPlayerIndex
+                        ? "Can start the match when at least " + minPlayersToStart + " players are connected."
+                        : "Waiting in lobby for the host to start the match.");
+                panel.add(area, BorderLayout.CENTER);
+                playersPanel.add(panel);
+            }
             playersPanel.revalidate();
             playersPanel.repaint();
             return;
@@ -592,8 +760,9 @@ public class MultiplayerSwingApp extends JFrame {
         for (int i = 0; i < state.getPlayers().size(); i++) {
             Player player = state.getPlayer(i);
             JPanel panel = new JPanel(new BorderLayout());
-            panel.setBackground(PANEL_BG);
-            panel.setBorder(BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR), (i == state.getCurrentPlayerIndex() ? "* " : "") + player.getName()));
+            panel.setBackground(PANEL_BG_ALT);
+            String title = (i == state.getCurrentPlayerIndex() ? "* " : "") + player.getName();
+            panel.setBorder(createPlayerBorder(title, i == state.getCurrentPlayerIndex()));
 
             StringBuilder sb = new StringBuilder();
             sb.append("Prestige: ").append(player.getPrestigePoints()).append("\n");
@@ -606,14 +775,11 @@ public class MultiplayerSwingApp extends JFrame {
             JEditorPane area = new JEditorPane();
             area.setEditable(false);
             area.setText(sb.toString());
-            area.setBackground(PANEL_BG);
+            area.setBackground(PANEL_BG_ALT);
             area.setForeground(TEXT_PRIMARY);
 
             panel.add(area, BorderLayout.CENTER);
-
             playersPanel.add(panel);
-            playerCardPanels.put(player, panel);
-            playerCardAreas.put(player, area);
         }
         playersPanel.revalidate();
         playersPanel.repaint();
@@ -642,7 +808,6 @@ public class MultiplayerSwingApp extends JFrame {
             JLabel label = new JLabel(text);
             label.setForeground(TEXT_PRIMARY);
             bankCountPanel.add(label);
-            bankLabels.put(color, label);
         }
         bankCountPanel.revalidate();
         bankCountPanel.repaint();
@@ -670,14 +835,48 @@ public class MultiplayerSwingApp extends JFrame {
         for (DevelopmentCard card : me.getReservedCards()) {
             reservedModel.addElement(card);
         }
+        reservedList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            ImageIcon icon = loadCardIcon(value);
+            JLabel cell;
+            if (icon != null) {
+                cell = new JLabel(icon);
+                cell.setText("r" + (index + 1));
+                cell.setHorizontalTextPosition(JLabel.CENTER);
+                cell.setVerticalTextPosition(JLabel.BOTTOM);
+            } else {
+                cell = new JLabel("r" + (index + 1) + " | P:" + value.getPrestigePoints() + " " + value.getBonusColor()
+                        + " | Cost " + value.getCost());
+            }
+            cell.setOpaque(true);
+            cell.setForeground(TEXT_PRIMARY);
+            cell.setBackground(isSelected ? SELECTED_BG : PANEL_BG_ALT);
+            return cell;
+        });
     }
 
     private void refreshStatus() {
-        if (state == null) return;
+        if (state == null) {
+            int needed = Math.max(0, minPlayersToStart - lobbyPlayers.size());
+            statusLabel.setText(isHost()
+                    ? "Lobby: you are the host"
+                    : "Lobby: waiting for host");
+            if (needed == 0) {
+                phaseLabel.setText("Ready to start");
+            } else {
+                phaseLabel.setText("Need " + needed + " more player" + (needed == 1 ? "" : "s"));
+            }
+            lobbyStatusLabel.setText("Players connected: " + lobbyPlayers.size() + " / " + minPlayersToStart + "+");
+            return;
+        }
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("Current Player: " + current.getName() +
+        statusLabel.setText("You: " + client.getPlayerName() +
             (myPlayerIndex == state.getCurrentPlayerIndex() ? " (Your Turn)" : ""));
         phaseLabel.setText("Round: " + (state.isFinalRound() ? "Final" : "Normal"));
+        lobbyStatusLabel.setText("Turn: " + current.getName());
+    }
+
+    private boolean isHost() {
+        return myPlayerIndex >= 0 && myPlayerIndex == hostPlayerIndex;
     }
 
     private void log(String message) {
@@ -696,6 +895,7 @@ public class MultiplayerSwingApp extends JFrame {
         };
 
         Path[] candidates = new Path[]{
+                config.getTokenImageDir().resolve(filename),
                 Path.of("assets", "tokens", filename),
                 Path.of("resources", "tokens", filename),
                 Path.of("src", "assets", "tokens", filename),
@@ -738,18 +938,29 @@ public class MultiplayerSwingApp extends JFrame {
 
     private ImageIcon loadCardIcon(DevelopmentCard card) {
         String filename = "card_" + card.getId() + ".png";
-        Path path = Path.of("media", "devLevel" + card.getLevel(), filename);
-        if (Files.exists(path)) {
-            return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
+        Path[] candidates = new Path[]{
+                config.getCardImageDir().resolve("devLevel" + card.getLevel()).resolve(filename),
+                config.getCardImageDir().resolve(filename),
+                Path.of("media", "devLevel" + card.getLevel(), filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
+            }
         }
         return null;
     }
 
     private ImageIcon loadNobleIcon(NobleTile noble) {
         String filename = "card_" + noble.getId() + ".png";
-        Path path = Path.of("media", "nobles", filename);
-        if (Files.exists(path)) {
-            return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
+        Path[] candidates = new Path[]{
+                config.getNobleImageDir().resolve(filename),
+                Path.of("media", "nobles", filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
+            }
         }
         return null;
     }
@@ -843,14 +1054,141 @@ public class MultiplayerSwingApp extends JFrame {
         return payment;
     }
 
+    private void refreshTokenButtonLabels() {
+        for (GemColor color : GemColor.values()) {
+            JButton button = tokenButtons.get(color);
+            if (button == null) {
+                continue;
+            }
+            int count = selectedTokenCounts.getOrDefault(color, 0);
+            button.setBackground(count > 0 ? SELECTED_BG : tokenColor(color));
+        }
+    }
+
+    private void applyTokenModeRules(Player current, boolean myActiveTurn) {
+        Map<GemColor, Integer> selected = selectedTokens();
+        int totalSelected = selected.values().stream().mapToInt(Integer::intValue).sum();
+
+        for (GemColor color : GemColor.values()) {
+            JButton button = tokenButtons.get(color);
+            if (button == null || color == GemColor.GOLD) {
+                continue;
+            }
+
+            boolean enabled = false;
+            if (myActiveTurn && mode == Mode.TAKE_THREE) {
+                enabled = state.getBank().getTokenCount(color) > 0
+                        && (selectedTokenCounts.getOrDefault(color, 0) > 0 || totalSelected < 3);
+            } else if (myActiveTurn && mode == Mode.TAKE_TWO) {
+                Map<GemColor, Integer> preview = new EnumMap<>(GemColor.class);
+                preview.put(color, 2);
+                enabled = validator.validate(state, current, Move.takeSame(preview)) == null;
+            }
+
+            button.setEnabled(enabled);
+        }
+        refreshTokenButtonLabels();
+    }
+
+    private boolean hasAnyLegalTakeThree(Player current) {
+        List<GemColor> colors = new ArrayList<>();
+        for (GemColor color : GemColor.values()) {
+            if (color != GemColor.GOLD && state.getBank().getTokenCount(color) > 0) {
+                colors.add(color);
+            }
+        }
+        for (int i = 0; i < colors.size(); i++) {
+            for (int j = i + 1; j < colors.size(); j++) {
+                for (int k = j + 1; k < colors.size(); k++) {
+                    Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+                    tokens.put(colors.get(i), 1);
+                    tokens.put(colors.get(j), 1);
+                    tokens.put(colors.get(k), 1);
+                    if (validator.validate(state, current, Move.takeDifferent(tokens)) == null) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnyLegalTakeTwo(Player current) {
+        for (GemColor color : GemColor.values()) {
+            if (color == GemColor.GOLD) continue;
+            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            tokens.put(color, 2);
+            if (validator.validate(state, current, Move.takeSame(tokens)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnyLegalReserve(Player current) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            if (validator.validate(state, current, Move.reserveFaceUp(card)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnyLegalBuy(Player current) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            Move move = Move.buy(card, computePaymentTokens(current, card.getCost()), false);
+            if (validator.validate(state, current, move) == null) {
+                return true;
+            }
+        }
+        for (DevelopmentCard card : current.getReservedCards()) {
+            Move move = Move.buy(card, computePaymentTokens(current, card.getCost()), true);
+            if (validator.validate(state, current, move) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String helpTextForMode() {
+        if (state == null) {
+            return isHost()
+                    ? "Wait for at least 2 players, then press Start Game."
+                    : "Waiting for the host to start the game.";
+        }
+        if (myPlayerIndex != state.getCurrentPlayerIndex()) {
+            return "Wait for the other player to finish their turn.";
+        }
+
+        return switch (mode) {
+            case IDLE -> "Choose an action. Take tokens, reserve a face-up card, or buy a card.";
+            case TAKE_THREE -> "Select 3 different colored tokens, then confirm.";
+            case TAKE_TWO -> "Select 1 color to take 2 tokens, then confirm.";
+            case RESERVE -> "Select a face-up card to reserve, then confirm.";
+            case BUY -> "Select a face-up or reserved card you can afford, then confirm.";
+        };
+    }
+
     private TitledBorder createTitledBorder(String title) {
+        return createStyledBorder(title, BORDER_COLOR, TEXT_PRIMARY, 12);
+    }
+
+    private TitledBorder createPlayerBorder(String title, boolean active) {
+        return createStyledBorder(title, active ? ACCENT_BLUE : BORDER_COLOR, active ? ACCENT_BLUE : TEXT_PRIMARY, 15);
+    }
+
+    private TitledBorder createStyledBorder(String title, Color borderColor, Color titleColor, int fontSize) {
         return BorderFactory.createTitledBorder(
-            new LineBorder(BORDER_COLOR),
-            title,
-            TitledBorder.DEFAULT_JUSTIFICATION,
-            TitledBorder.DEFAULT_POSITION,
-            new Font("Arial", Font.BOLD, 12),
-            TEXT_PRIMARY
+                new LineBorder(borderColor, activeBorderWidth(borderColor)),
+                title,
+                TitledBorder.DEFAULT_JUSTIFICATION,
+                TitledBorder.DEFAULT_POSITION,
+                new Font("Arial", Font.BOLD, fontSize),
+                titleColor
         );
+    }
+
+    private int activeBorderWidth(Color borderColor) {
+        return borderColor.equals(ACCENT_BLUE) ? 2 : 1;
     }
 }

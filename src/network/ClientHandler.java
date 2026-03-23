@@ -30,6 +30,7 @@ public class ClientHandler implements Runnable {
             if (msg.getType() == NetworkMessage.Type.JOIN) {
                 playerName = msg.getPlayerName();
                 System.out.println("Player joined: " + playerName);
+                server.handleJoin(this);
             } else {
                 sendMessage(NetworkMessage.error("Expected JOIN message"));
                 return;
@@ -67,6 +68,9 @@ public class ClientHandler implements Runnable {
 
     public void sendMessage(NetworkMessage msg) {
         try {
+            // ObjectOutputStream caches object identities; reset so each update sends
+            // the latest mutable game state instead of back-references to stale data.
+            out.reset();
             out.writeObject(msg);
             out.flush();
         } catch (IOException e) {
