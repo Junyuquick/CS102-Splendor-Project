@@ -2,12 +2,13 @@
 
 package model;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class Cost {
+public class Cost implements Serializable {
 
     private final EnumMap<GemColor, Integer> amounts;
 

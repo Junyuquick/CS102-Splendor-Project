@@ -1,6 +1,7 @@
 package engine;
 
 import model.*;
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -13,7 +14,7 @@ import java.util.*;
  * Consumed by MoveValidator and MoveExecutor.
  * Categorized by MoveType.
  */
-public class Move {
+public class Move implements Serializable {
     
     private final MoveType type;
     private final Map<GemColor, Integer> tokens;           // For TAKE_THREE_DIFFERENT, TAKE_TWO_SAME

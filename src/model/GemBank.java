@@ -1,8 +1,9 @@
 package model;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class GemBank {
+public class GemBank implements Serializable {
     // Maps each color to the number of gems currently held
     private final Map<GemColor, Integer> inventory;
 

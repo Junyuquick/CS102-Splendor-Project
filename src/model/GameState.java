@@ -1,5 +1,6 @@
 package model;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -15,7 +16,7 @@ import java.util.*;
  * - Current player turn
  * - Final round flag
  */
-public class GameState {
+public class GameState implements Serializable {
     
     private final List<Player> players;
     private final Board board;
