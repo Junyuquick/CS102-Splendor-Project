@@ -1,7 +1,7 @@
 package network;
 
 import config.Config;
-import config.ConfigLoader;
+import config.ConfigSupport;
 import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
@@ -20,6 +20,7 @@ import model.NobleTile;
 import model.Player;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
@@ -37,7 +38,6 @@ import java.util.concurrent.Executors;
  * Manages game state, client connections, and game flow.
  */
 public class GameServer {
-    private static final int MIN_PLAYERS = 2;
     private final Config config = buildConfig();
     private final int port;
     private ServerSocket serverSocket;
@@ -55,36 +55,7 @@ public class GameServer {
     }
 
     private static Config buildConfig() {
-        try {
-            return new ConfigLoader().load(Path.of("config.properties"));
-        } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load config.properties. Falling back to defaults. Reason: " + e.getMessage());
-        }
-
-        Path here = Path.of(".");
-        return new Config(
-                15, // pointsToWin
-                10, // maxTokensPerPlayer
-                3,  // maxReservedCards
-                1,  // maxNoblesPerTurn
-                2,  // minPlayers
-                4,  // maxPlayers
-                3,  // numLevels
-                4,  // openCardsPerLevel
-                3,  // noblesCount2p
-                4,  // noblesCount3p
-                5,  // noblesCount4p
-                4,  // bankNormal2p
-                5,  // bankNormal3p
-                7,  // bankNormal4p
-                5,  // bankGold
-                3,  // takeDifferentCount
-                2,  // takeSameCount
-                2,  // takeSameMinRemainingInBank
-                1,  // reserveGoldBonus
-                here, here, here, here,
-                here, here, here
-        );
+        return ConfigSupport.loadDefaultConfig();
     }
 
     public void start() throws IOException {
@@ -96,6 +67,10 @@ public class GameServer {
         ExecutorService executor = Executors.newCachedThreadPool();
         while (!gameStarted) {
             Socket clientSocket = serverSocket.accept();
+            if (clients.size() >= config.getMaxPlayers()) {
+                rejectConnection(clientSocket, "Lobby is full (max " + config.getMaxPlayers() + " players)");
+                continue;
+            }
             ClientHandler handler = new ClientHandler(clientSocket, this);
             clients.add(handler);
             executor.submit(handler);
@@ -177,8 +152,8 @@ public class GameServer {
             return;
         }
 
-        if (clients.size() < MIN_PLAYERS) {
-            client.sendMessage(NetworkMessage.error("Need at least 2 players to start"));
+        if (clients.size() < config.getMinPlayers()) {
+            client.sendMessage(NetworkMessage.error("Need at least " + config.getMinPlayers() + " players to start"));
             broadcastLobbyState();
             return;
         }
@@ -189,6 +164,9 @@ public class GameServer {
 
     public synchronized void handleJoin(ClientHandler client) {
         int lobbyIndex = clients.indexOf(client);
+        if (lobbyIndex < 0) {
+            return;
+        }
         client.sendMessage(NetworkMessage.joinAck(lobbyIndex));
         broadcastLobbyState();
     }
@@ -214,13 +192,10 @@ public class GameServer {
 
         // Execute the move
         executor.execute(gameState, currentPlayer, move);
+        resolveTokenCapIfNeeded(currentPlayer);
 
         // Handle noble assignment
-        List<NobleTile> eligibleNobles = nobleAssigner.findEligibleNobles(gameState, currentPlayer);
-        if (eligibleNobles.size() == 1) {
-            nobleAssigner.assignNoble(gameState, currentPlayer, eligibleNobles.get(0));
-        }
-        // For multiple nobles, we could send a choice request, but for simplicity, skip or auto-assign first
+        assignConfiguredNobles(currentPlayer);
 
         // Check for final round
         if (winnerChecker.shouldTriggerFinalRound(gameState)) {
@@ -234,6 +209,13 @@ public class GameServer {
         if (turnManager.hasFinalRoundCompleted(gameState)) {
             Player winner = winnerChecker.determineWinner(gameState);
             System.out.println("Game over! Winner: " + winner.getName());
+            broadcastState();
+            broadcastGameOver("Game over! Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");
+            gameStarted = false;
+            gameState = null;
+            turnManager.resetFinalRound();
+            broadcastLobbyState();
+            return;
         }
 
         // Broadcast updated state to all clients
@@ -244,6 +226,13 @@ public class GameServer {
         NetworkMessage msg = NetworkMessage.stateUpdate(gameState);
         for (ClientHandler c : clients) {
             c.sendMessage(msg);
+        }
+    }
+
+    private void broadcastGameOver(String message) {
+        NetworkMessage msg = NetworkMessage.gameOver(message);
+        for (ClientHandler client : clients) {
+            client.sendMessage(msg);
         }
     }
 
@@ -273,9 +262,18 @@ public class GameServer {
             playerNames.add(name);
         }
 
-        NetworkMessage message = NetworkMessage.lobbyUpdate(playerNames, 0, MIN_PLAYERS);
+        NetworkMessage message = NetworkMessage.lobbyUpdate(playerNames, 0, config.getMinPlayers());
         for (ClientHandler client : clients) {
             client.sendMessage(message);
+        }
+    }
+
+    private void rejectConnection(Socket socket, String message) {
+        try (socket; ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
+            out.writeObject(NetworkMessage.error(message));
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to reject connection cleanly: " + e.getMessage());
         }
     }
 
@@ -299,11 +297,14 @@ public class GameServer {
     }
 
     private static Map<Integer, List<DevelopmentCard>> buildDecks(Config config) {
-        Path csv = config.getCardsPath(1).getParent();
         try {
-            return new CardLoader().load(csv);
+            return new CardLoader().load(
+                    config.getCardsPath(1),
+                    config.getCardsPath(2),
+                    config.getCardsPath(3)
+            );
         } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load cards from " + csv + ". Falling back to sample deck. Reason: " + e.getMessage());
+            System.err.println("Failed to load cards from configured CSV paths. Falling back to sample deck. Reason: " + e.getMessage());
         }
 
         Map<Integer, List<DevelopmentCard>> decks = new HashMap<>();
@@ -391,5 +392,62 @@ public class GameServer {
         List<DevelopmentCard> copy = new ArrayList<>(cards);
         Collections.shuffle(copy);
         return copy;
+    }
+
+    private void resolveTokenCapIfNeeded(Player player) {
+        int maxTokens = config.getMaxTokensPerPlayer();
+        while (player.getTotalTokens() > maxTokens) {
+            int excess = player.getTotalTokens() - maxTokens;
+            Map<GemColor, Integer> discard = autoDiscard(player, excess);
+            player.removeTokens(discard);
+            gameState.getBank().addTokens(discard);
+        }
+    }
+
+    private Map<GemColor, Integer> autoDiscard(Player player, int excess) {
+        Map<GemColor, Integer> discard = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> working = new EnumMap<>(GemColor.class);
+        working.putAll(player.getTokens());
+        while (excess > 0) {
+            GemColor candidate = null;
+            int max = 0;
+            for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
+                if (entry.getValue() > max) {
+                    max = entry.getValue();
+                    candidate = entry.getKey();
+                }
+            }
+            if (candidate == null || max == 0) {
+                break;
+            }
+            discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
+            working.put(candidate, max - 1);
+            excess--;
+        }
+        return discard;
+    }
+
+    private void assignConfiguredNobles(Player player) {
+        List<NobleTile> eligibleNobles = new ArrayList<>(nobleAssigner.findEligibleNobles(gameState, player));
+        int noblesThisTurn = Math.min(config.getMaxNoblesPerTurn(), eligibleNobles.size());
+        for (int i = 0; i < noblesThisTurn; i++) {
+            NobleTile chosen = chooseBestNoble(eligibleNobles);
+            nobleAssigner.assignNoble(gameState, player, chosen);
+            eligibleNobles.remove(chosen);
+        }
+    }
+
+    private NobleTile chooseBestNoble(List<NobleTile> eligibleNobles) {
+        return eligibleNobles.stream()
+                .max((a, b) -> {
+                    int points = Integer.compare(a.getPrestigePoints(), b.getPrestigePoints());
+                    if (points != 0) {
+                        return points;
+                    }
+                    int aReq = a.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
+                    int bReq = b.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
+                    return Integer.compare(bReq, aReq);
+                })
+                .orElse(eligibleNobles.get(0));
     }
 }

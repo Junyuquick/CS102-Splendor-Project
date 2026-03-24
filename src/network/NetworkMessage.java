@@ -20,6 +20,7 @@ public class NetworkMessage implements Serializable {
         STATE_UPDATE,   // Server sending updated game state
         ERROR,          // Server sending error message
         GAME_START,     // Server notifying game has started
+        GAME_OVER,      // Server notifying clients that the match ended
         DISCONNECT      // Client disconnecting
     }
 
@@ -83,6 +84,10 @@ public class NetworkMessage implements Serializable {
 
     public static NetworkMessage gameStart(GameState initialState, int playerIndex) {
         return new NetworkMessage(Type.GAME_START, null, null, initialState, null, playerIndex, null, null, null);
+    }
+
+    public static NetworkMessage gameOver(String message) {
+        return new NetworkMessage(Type.GAME_OVER, null, null, null, message, null, null, null, null);
     }
 
     public static NetworkMessage startRequest() {
