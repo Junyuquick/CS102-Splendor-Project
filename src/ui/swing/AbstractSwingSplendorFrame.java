@@ -1,0 +1,793 @@
+package ui.swing;
+
+import config.Config;
+import engine.Move;
+import engine.MoveValidator;
+import model.DevelopmentCard;
+import model.GameState;
+import model.GemColor;
+import model.NobleTile;
+import model.Player;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JEditorPane;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+abstract class AbstractSwingSplendorFrame extends JFrame {
+    protected final Config config;
+    protected GameState state;
+    protected final MoveValidator validator;
+    protected final SwingAssetLoader assetLoader;
+
+    protected final JLabel statusLabel = new JLabel("", SwingConstants.LEFT);
+    protected final JLabel phaseLabel = new JLabel("", SwingConstants.RIGHT);
+    protected final JLabel lobbyStatusLabel = new JLabel("", SwingConstants.CENTER);
+    protected final JPanel marketPanel = new JPanel();
+    protected final JPanel noblesPanel = new JPanel();
+    protected final JTextArea logArea = new JTextArea();
+    protected final JPanel playersPanel = new JPanel();
+    protected final JTextArea helpArea = new JTextArea();
+    protected final JLabel latestComputerMoveLabel = new JLabel("Latest Computer Move: -");
+    protected final JPanel bankCountPanel = new JPanel(new GridLayout(6, 1, 4, 4));
+    protected final Map<GemColor, JLabel> bankLabels = new EnumMap<>(GemColor.class);
+    protected final Map<GemColor, JButton> tokenButtons = new EnumMap<>(GemColor.class);
+    protected final Map<GemColor, ImageIcon> tokenIcons = new EnumMap<>(GemColor.class);
+    protected final Map<GemColor, Integer> selectedTokenCounts = new EnumMap<>(GemColor.class);
+    protected final Map<String, JButton> cardButtons = new LinkedHashMap<>();
+    protected final JButton actionTakeThree = new JButton("Take 3 Different");
+    protected final JButton actionTakeTwo = new JButton("Take 2 Same");
+    protected final JButton actionReserve = new JButton("Reserve");
+    protected final JButton actionBuy = new JButton("Buy");
+    protected final JButton actionCancel = new JButton("Cancel");
+    protected final JButton actionConfirm = new JButton("Confirm");
+    protected final JButton startGameButton = new JButton("Start Game");
+    protected final DefaultListModel<DevelopmentCard> reservedModel = new DefaultListModel<>();
+    protected final JList<DevelopmentCard> reservedList = new JList<>(reservedModel);
+    protected final JLabel reservedLabel = new JLabel();
+
+    protected SwingGameMode mode = SwingGameMode.IDLE;
+    protected DevelopmentCard selectedBoardCard;
+    protected DevelopmentCard selectedReservedCard;
+
+    protected AbstractSwingSplendorFrame(String title, Config config, GameState state, MoveValidator validator) {
+        super(title);
+        this.config = config;
+        this.state = state;
+        this.validator = validator;
+        this.assetLoader = new SwingAssetLoader(config);
+    }
+
+    protected final void buildSharedUi(boolean showLobbyCenter, boolean showStartButton, int playerRows) {
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1500, 1020);
+        setMinimumSize(new Dimension(1450, 980));
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(SwingUiTheme.APP_BG);
+        marketPanel.setLayout(new GridLayout(config.getNumLevels(), config.getOpenCardsPerLevel(), 10, 10));
+        noblesPanel.setLayout(new GridLayout(1, Math.max(1, config.getNoblesCount(config.getMaxPlayers())), 8, 8));
+
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(SwingUiTheme.APP_BG);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        statusLabel.setFont(statusLabel.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+        statusLabel.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        phaseLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        phaseLabel.setFont(phaseLabel.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        phaseLabel.setForeground(SwingUiTheme.TEXT_MUTED);
+        lobbyStatusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        lobbyStatusLabel.setForeground(SwingUiTheme.TEXT_MUTED);
+        SwingUiTheme.styleActionButton(startGameButton);
+        startGameButton.setVisible(showStartButton);
+
+        JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        topRight.setBackground(SwingUiTheme.APP_BG);
+        topRight.add(phaseLabel);
+        if (showStartButton) {
+            topRight.add(startGameButton);
+        }
+
+        topBar.add(statusLabel, BorderLayout.WEST);
+        if (showLobbyCenter) {
+            topBar.add(lobbyStatusLabel, BorderLayout.CENTER);
+        }
+        topBar.add(topRight, BorderLayout.EAST);
+        add(topBar, BorderLayout.NORTH);
+
+        JPanel leftBank = new JPanel(new BorderLayout(8, 8));
+        leftBank.setBackground(SwingUiTheme.PANEL_BG);
+        leftBank.setBorder(SwingUiTheme.createTitledBorder("Bank"));
+        bankCountPanel.setBackground(SwingUiTheme.PANEL_BG);
+        leftBank.add(bankCountPanel, BorderLayout.NORTH);
+        JPanel tokenPanel = new JPanel(new GridLayout(3, 2, 6, 6));
+        tokenPanel.setBackground(SwingUiTheme.PANEL_BG);
+        for (GemColor color : GemColor.values()) {
+            JButton button = new JButton(color.name());
+            button.setBackground(SwingUiTheme.tokenColor(color));
+            button.setContentAreaFilled(true);
+            button.setOpaque(true);
+            button.setForeground(color == GemColor.BLACK ? SwingUiTheme.TEXT_PRIMARY : new java.awt.Color(20, 20, 20));
+            button.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 1, true));
+            button.setPreferredSize(new Dimension(SwingUiTheme.TOKEN_BUTTON_SIZE, SwingUiTheme.TOKEN_BUTTON_SIZE));
+            button.setMargin(new Insets(0, 0, 0, 0));
+            button.setToolTipText("Click to select " + color.name() + " token(s)");
+            ImageIcon icon = assetLoader.loadTokenIcon(color);
+            if (icon != null) {
+                button.setIcon(icon);
+                button.setText("");
+                tokenIcons.put(color, icon);
+            }
+            tokenButtons.put(color, button);
+            selectedTokenCounts.put(color, 0);
+            tokenPanel.add(button);
+        }
+        leftBank.add(tokenPanel, BorderLayout.CENTER);
+        leftBank.setPreferredSize(new Dimension(260, 400));
+        add(leftBank, BorderLayout.WEST);
+
+        JPanel center = new JPanel(new BorderLayout(8, 8));
+        center.setBackground(SwingUiTheme.PANEL_BG);
+        center.setBorder(SwingUiTheme.createTitledBorder("Market"));
+        marketPanel.setBackground(SwingUiTheme.PANEL_BG);
+        marketPanel.setPreferredSize(new Dimension(
+                (SwingUiTheme.DEV_CARD_BUTTON_WIDTH * 4) + (10 * 3),
+                (SwingUiTheme.DEV_CARD_BUTTON_HEIGHT * 3) + (10 * 2)
+        ));
+        JPanel marketWrapper = new JPanel(new GridBagLayout());
+        marketWrapper.setBackground(SwingUiTheme.PANEL_BG);
+        marketWrapper.add(marketPanel);
+        center.add(marketWrapper, BorderLayout.CENTER);
+
+        JPanel nobleWrap = new JPanel(new BorderLayout());
+        nobleWrap.setBackground(SwingUiTheme.PANEL_BG);
+        nobleWrap.setBorder(SwingUiTheme.createTitledBorder("Nobles"));
+        noblesPanel.setBackground(SwingUiTheme.PANEL_BG);
+        nobleWrap.add(noblesPanel, BorderLayout.CENTER);
+        center.add(nobleWrap, BorderLayout.SOUTH);
+
+        JPanel right = new JPanel(new BorderLayout(8, 8));
+        right.setBackground(SwingUiTheme.PANEL_BG);
+        right.setBorder(SwingUiTheme.createTitledBorder("Players"));
+        playersPanel.setLayout(new GridLayout(Math.max(1, playerRows), 1, 8, 8));
+        playersPanel.setBackground(SwingUiTheme.PANEL_BG);
+        JScrollPane playersScroll = new JScrollPane(playersPanel);
+        SwingUiTheme.styleScrollPane(playersScroll, SwingUiTheme.PANEL_BG);
+        playersScroll.setPreferredSize(new Dimension(420, 400));
+        right.add(playersScroll, BorderLayout.CENTER);
+
+        reservedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        reservedList.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        reservedList.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        reservedList.setSelectionBackground(SwingUiTheme.SELECTED_BG);
+        reservedList.setSelectionForeground(SwingUiTheme.TEXT_PRIMARY);
+
+        JPanel reservedPanel = new JPanel(new BorderLayout(4, 4));
+        reservedPanel.setBackground(SwingUiTheme.PANEL_BG);
+        reservedLabel.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        reservedPanel.add(reservedLabel, BorderLayout.NORTH);
+        JScrollPane reservedScroll = new JScrollPane(reservedList);
+        SwingUiTheme.styleScrollPane(reservedScroll, SwingUiTheme.PANEL_BG_ALT);
+        reservedScroll.setPreferredSize(new Dimension(320, 210));
+        reservedPanel.add(reservedScroll, BorderLayout.CENTER);
+        right.add(reservedPanel, BorderLayout.SOUTH);
+        right.setPreferredSize(new Dimension(360, 400));
+        add(right, BorderLayout.EAST);
+
+        JPanel bottom = new JPanel(new BorderLayout(8, 8));
+        bottom.setBackground(SwingUiTheme.PANEL_BG);
+        JPanel actions = new JPanel(new GridLayout(1, 6, 6, 6));
+        actions.setBackground(SwingUiTheme.PANEL_BG);
+        actionTakeThree.setText("Take " + config.getTakeDifferentCount() + " Different");
+        actionTakeTwo.setText("Take " + config.getTakeSameCount() + " Same");
+        actions.add(actionTakeThree);
+        actions.add(actionTakeTwo);
+        actions.add(actionReserve);
+        actions.add(actionBuy);
+        actions.add(actionCancel);
+        actions.add(actionConfirm);
+        bottom.add(actions, BorderLayout.NORTH);
+        SwingUiTheme.styleActionButton(actionTakeThree);
+        SwingUiTheme.styleActionButton(actionTakeTwo);
+        SwingUiTheme.styleActionButton(actionReserve);
+        SwingUiTheme.styleActionButton(actionBuy);
+        SwingUiTheme.styleActionButton(actionCancel);
+        SwingUiTheme.styleActionButton(actionConfirm);
+
+        helpArea.setEditable(false);
+        helpArea.setRows(3);
+        helpArea.setLineWrap(true);
+        helpArea.setWrapStyleWord(true);
+        helpArea.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        helpArea.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        helpArea.setCaretColor(SwingUiTheme.TEXT_PRIMARY);
+        helpArea.setBorder(SwingUiTheme.createTitledBorder("Prompt"));
+        bottom.add(helpArea, BorderLayout.CENTER);
+
+        latestComputerMoveLabel.setOpaque(true);
+        latestComputerMoveLabel.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        latestComputerMoveLabel.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        latestComputerMoveLabel.setBorder(SwingUiTheme.createTitledBorder("Computer Move"));
+        bottom.add(latestComputerMoveLabel, BorderLayout.WEST);
+
+        logArea.setEditable(false);
+        logArea.setRows(7);
+        logArea.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        logArea.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        logArea.setCaretColor(SwingUiTheme.TEXT_PRIMARY);
+        JScrollPane logScroll = new JScrollPane(logArea);
+        SwingUiTheme.styleScrollPane(logScroll, SwingUiTheme.PANEL_BG_ALT);
+        bottom.add(logScroll, BorderLayout.SOUTH);
+        bottom.setBorder(SwingUiTheme.createTitledBorder("Actions & Log"));
+
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, center, bottom);
+        centerSplit.setBackground(SwingUiTheme.APP_BG);
+        centerSplit.setBorder(BorderFactory.createEmptyBorder());
+        centerSplit.setResizeWeight(0.8);
+        centerSplit.setOneTouchExpandable(true);
+        centerSplit.setContinuousLayout(true);
+        centerSplit.setDividerLocation(650);
+        add(centerSplit, BorderLayout.CENTER);
+    }
+
+    protected final void bindSharedActions() {
+        actionTakeThree.addActionListener(e -> switchMode(SwingGameMode.TAKE_THREE));
+        actionTakeTwo.addActionListener(e -> switchMode(SwingGameMode.TAKE_TWO));
+        actionReserve.addActionListener(e -> switchMode(SwingGameMode.RESERVE));
+        actionBuy.addActionListener(e -> switchMode(SwingGameMode.BUY));
+        actionCancel.addActionListener(e -> switchMode(SwingGameMode.IDLE));
+        actionConfirm.addActionListener(e -> handleConfirmAction());
+
+        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
+            GemColor color = entry.getKey();
+            JButton button = entry.getValue();
+            button.addActionListener(e -> {
+                onTokenButtonClicked(color);
+                updateLegalUi();
+            });
+        }
+
+        reservedList.addListSelectionListener(e -> {
+            selectedReservedCard = reservedList.getSelectedValue();
+            if (selectedReservedCard != null) {
+                selectedBoardCard = null;
+            }
+            updateLegalUi();
+        });
+    }
+
+    protected void switchMode(SwingGameMode newMode) {
+        if (!canSwitchMode(newMode)) {
+            onModeSwitchRejected(newMode);
+            return;
+        }
+        setMode(newMode);
+        updateLegalUi();
+    }
+
+    protected boolean canSwitchMode(SwingGameMode newMode) {
+        return true;
+    }
+
+    protected void onModeSwitchRejected(SwingGameMode newMode) {
+    }
+
+    protected final void clearSelection() {
+        setMode(SwingGameMode.IDLE);
+        updateLegalUi();
+    }
+
+    private void setMode(SwingGameMode newMode) {
+        mode = newMode;
+        selectedBoardCard = null;
+        selectedReservedCard = null;
+        reservedList.clearSelection();
+        clearTokenSelection();
+    }
+
+    protected void onTokenButtonClicked(GemColor color) {
+        if (color == GemColor.GOLD) {
+            return;
+        }
+        if (mode != SwingGameMode.TAKE_THREE && mode != SwingGameMode.TAKE_TWO) {
+            return;
+        }
+
+        int current = selectedTokenCounts.getOrDefault(color, 0);
+        if (current > 0) {
+            selectedTokenCounts.put(color, 0);
+        } else if (mode == SwingGameMode.TAKE_TWO) {
+            for (GemColor gemColor : selectedTokenCounts.keySet()) {
+                selectedTokenCounts.put(gemColor, 0);
+            }
+            selectedTokenCounts.put(color, config.getTakeSameCount());
+        } else {
+            int selectedCount = (int) selectedTokenCounts.values().stream().filter(value -> value > 0).count();
+            if (selectedCount < config.getTakeDifferentCount()) {
+                selectedTokenCounts.put(color, 1);
+            }
+        }
+        refreshTokenButtonLabels();
+    }
+
+    protected Move buildPendingMove() {
+        if (state == null) {
+            return null;
+        }
+        Player current = state.getCurrentPlayer();
+        if (mode == SwingGameMode.TAKE_THREE) {
+            Map<GemColor, Integer> tokens = selectedTokens();
+            return tokens.isEmpty() ? null : Move.takeDifferent(tokens);
+        }
+        if (mode == SwingGameMode.TAKE_TWO) {
+            Map<GemColor, Integer> selected = selectedTokens();
+            if (selected.size() != 1) {
+                return null;
+            }
+            GemColor color = selected.keySet().iterator().next();
+            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            tokens.put(color, config.getTakeSameCount());
+            return Move.takeSame(tokens);
+        }
+        if (mode == SwingGameMode.RESERVE) {
+            return selectedBoardCard == null ? null : Move.reserveFaceUp(selectedBoardCard);
+        }
+        if (mode == SwingGameMode.BUY) {
+            if (selectedBoardCard != null) {
+                return Move.buy(selectedBoardCard, computePaymentTokens(current, selectedBoardCard.getCost()), false);
+            }
+            if (selectedReservedCard != null) {
+                return Move.buy(selectedReservedCard, computePaymentTokens(current, selectedReservedCard.getCost()), true);
+            }
+        }
+        return null;
+    }
+
+    protected Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
+        Map<GemColor, Integer> payment = new EnumMap<>(GemColor.class);
+        int goldNeeded = 0;
+
+        for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {
+            GemColor color = entry.getKey();
+            int remaining = Math.max(0, entry.getValue() - player.getBonusCount(color));
+            if (remaining == 0) {
+                continue;
+            }
+            int useColor = Math.min(player.getTokenCount(color), remaining);
+            if (useColor > 0) {
+                payment.put(color, useColor);
+            }
+            goldNeeded += remaining - useColor;
+        }
+
+        if (goldNeeded > 0) {
+            payment.put(GemColor.GOLD, goldNeeded);
+        }
+        return payment;
+    }
+
+    protected Map<GemColor, Integer> selectedTokens() {
+        Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+        for (Map.Entry<GemColor, Integer> entry : selectedTokenCounts.entrySet()) {
+            if (entry.getValue() > 0) {
+                tokens.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return tokens;
+    }
+
+    protected void refreshBankCounts() {
+        if (state == null) {
+            clearBankCounts();
+            return;
+        }
+        for (GemColor color : GemColor.values()) {
+            JLabel label = bankLabels.computeIfAbsent(color, ignored -> {
+                JLabel created = new JLabel();
+                created.setForeground(SwingUiTheme.TEXT_PRIMARY);
+                bankCountPanel.add(created);
+                return created;
+            });
+            label.setText(color.name() + ": " + state.getBank().getTokenCount(color));
+        }
+        bankCountPanel.revalidate();
+        bankCountPanel.repaint();
+    }
+
+    protected void clearBankCounts() {
+        bankCountPanel.removeAll();
+        bankLabels.clear();
+        bankCountPanel.revalidate();
+        bankCountPanel.repaint();
+    }
+
+    protected void refreshReservedCards(Player player) {
+        reservedModel.clear();
+        if (player == null) {
+            return;
+        }
+        for (DevelopmentCard card : player.getReservedCards()) {
+            reservedModel.addElement(card);
+        }
+        reservedList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            ImageIcon icon = assetLoader.loadCardIcon(value);
+            JLabel cell;
+            if (icon != null) {
+                cell = new JLabel(icon);
+                cell.setText("r" + (index + 1));
+                cell.setHorizontalTextPosition(JLabel.CENTER);
+                cell.setVerticalTextPosition(JLabel.BOTTOM);
+            } else {
+                cell = new JLabel("r" + (index + 1) + " | P:" + value.getPrestigePoints() + " " + value.getBonusColor()
+                        + " | Cost " + value.getCost());
+            }
+            cell.setOpaque(true);
+            cell.setForeground(SwingUiTheme.TEXT_PRIMARY);
+            cell.setBackground(isSelected ? SwingUiTheme.SELECTED_BG : SwingUiTheme.PANEL_BG_ALT);
+            return cell;
+        });
+    }
+
+    protected void rebuildMarketButtons() {
+        if (state == null) {
+            marketPanel.removeAll();
+            cardButtons.clear();
+            marketPanel.revalidate();
+            marketPanel.repaint();
+            return;
+        }
+
+        marketPanel.removeAll();
+        cardButtons.clear();
+        int levels = config.getNumLevels();
+        int openCards = config.getOpenCardsPerLevel();
+        marketPanel.setLayout(new GridLayout(levels, openCards, 10, 10));
+        for (int tier = levels; tier >= 1; tier--) {
+            List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
+            for (int col = 0; col < openCards; col++) {
+                String key = "" + (char) ('a' + col) + tier;
+                JButton button = new JButton();
+                button.setFocusPainted(false);
+                button.setOpaque(true);
+                button.setHorizontalAlignment(SwingConstants.CENTER);
+                button.setVerticalAlignment(SwingConstants.CENTER);
+                button.setPreferredSize(new Dimension(SwingUiTheme.DEV_CARD_BUTTON_WIDTH, SwingUiTheme.DEV_CARD_BUTTON_HEIGHT));
+                button.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+                if (col < cards.size()) {
+                    DevelopmentCard card = cards.get(col);
+                    ImageIcon icon = assetLoader.loadCardIcon(card);
+                    if (icon != null) {
+                        button.setIcon(icon);
+                        button.setDisabledIcon(icon);
+                        button.setText("");
+                        button.setBackground(SwingUiTheme.SURFACE_BG);
+                    } else {
+                        button.setText(buildCardHtml(card));
+                        button.setBackground(SwingUiTheme.colorForBonus(card.getBonusColor()));
+                    }
+                    button.setContentAreaFilled(true);
+                    button.setForeground(SwingUiTheme.TEXT_PRIMARY);
+                    button.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 2));
+                    button.setToolTipText(buildCardTooltip(key, card));
+                    button.addActionListener(e -> {
+                        selectedBoardCard = card;
+                        selectedReservedCard = null;
+                        reservedList.clearSelection();
+                        updateLegalUi();
+                    });
+                } else {
+                    button.setText("<html><b>" + key + "</b><br/>Empty</html>");
+                    button.setBackground(SwingUiTheme.EMPTY_BG);
+                    button.setForeground(SwingUiTheme.TEXT_MUTED);
+                    button.setEnabled(false);
+                    button.setContentAreaFilled(true);
+                }
+                cardButtons.put(key, button);
+                marketPanel.add(button);
+            }
+        }
+        marketPanel.revalidate();
+        marketPanel.repaint();
+    }
+
+    protected void rebuildNobleCards() {
+        noblesPanel.removeAll();
+        if (state == null) {
+            noblesPanel.revalidate();
+            noblesPanel.repaint();
+            return;
+        }
+        List<NobleTile> nobles = state.getBoard().getAvailableNobles();
+        noblesPanel.setLayout(new GridLayout(1, Math.max(1, nobles.size()), 8, 8));
+        if (nobles.isEmpty()) {
+            JPanel nobleCard = new JPanel(new BorderLayout());
+            nobleCard.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 2));
+            nobleCard.setBackground(SwingUiTheme.EMPTY_BG);
+            JLabel label = new JLabel("<html><b>Empty</b></html>", SwingConstants.CENTER);
+            label.setForeground(SwingUiTheme.TEXT_MUTED);
+            nobleCard.add(label, BorderLayout.CENTER);
+            noblesPanel.add(nobleCard);
+        }
+        for (int i = 0; i < nobles.size(); i++) {
+            JPanel nobleCard = new JPanel(new BorderLayout());
+            nobleCard.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 2));
+            nobleCard.setBackground(SwingUiTheme.SURFACE_BG);
+            nobleCard.setPreferredSize(new Dimension(SwingUiTheme.NOBLE_CARD_WIDTH, SwingUiTheme.NOBLE_CARD_HEIGHT));
+
+            NobleTile noble = nobles.get(i);
+            ImageIcon icon = assetLoader.loadNobleIcon(noble);
+            JLabel label;
+            if (icon != null) {
+                label = new JLabel(icon);
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setVerticalAlignment(SwingConstants.CENTER);
+            } else {
+                label = new JLabel("<html><b>N" + (i + 1) + "</b><br/>P:" + noble.getPrestigePoints()
+                        + "<br/>Req:" + noble.getRequirement().asMap() + "</html>");
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+            }
+            label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+            label.setForeground(SwingUiTheme.TEXT_PRIMARY);
+            nobleCard.add(label, BorderLayout.CENTER);
+            nobleCard.setToolTipText("Noble " + (i + 1) + " | Prestige " + noble.getPrestigePoints()
+                    + " | Requirements " + noble.getRequirement().asMap());
+            noblesPanel.add(nobleCard);
+        }
+        noblesPanel.revalidate();
+        noblesPanel.repaint();
+    }
+
+    protected void clearPreGamePanels() {
+        marketPanel.removeAll();
+        marketPanel.revalidate();
+        marketPanel.repaint();
+        noblesPanel.removeAll();
+        noblesPanel.revalidate();
+        noblesPanel.repaint();
+        clearBankCounts();
+        reservedModel.clear();
+    }
+
+    protected void updateCardSelectionState(Player current, boolean allowInteractions, boolean cardMode) {
+        for (JButton button : cardButtons.values()) {
+            button.setEnabled(false);
+            button.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 2));
+        }
+
+        if (!allowInteractions || !cardMode || state == null || current == null) {
+            return;
+        }
+
+        for (int tier = 1; tier <= config.getNumLevels(); tier++) {
+            List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
+            for (int col = 0; col < cards.size(); col++) {
+                DevelopmentCard card = cards.get(col);
+                Move move = mode == SwingGameMode.RESERVE
+                        ? Move.reserveFaceUp(card)
+                        : Move.buy(card, computePaymentTokens(current, card.getCost()), false);
+                String key = "" + (char) ('a' + col) + tier;
+                JButton button = cardButtons.get(key);
+                if (button == null) {
+                    continue;
+                }
+                boolean legal = validator.validate(state, current, move) == null;
+                button.setEnabled(legal);
+                if (selectedBoardCard == card) {
+                    button.setBorder(new LineBorder(SwingUiTheme.ACCENT_BLUE, 4));
+                } else if (mode == SwingGameMode.BUY && legal) {
+                    button.setBorder(new LineBorder(SwingUiTheme.ACCENT_GREEN, 3));
+                } else if (mode == SwingGameMode.BUY) {
+                    button.setBorder(new LineBorder(SwingUiTheme.ACCENT_RED, 2));
+                }
+            }
+        }
+    }
+
+    protected void applyTokenModeRules(Player current, boolean allowInteractions) {
+        Map<GemColor, Integer> selected = selectedTokens();
+        int totalSelected = selected.values().stream().mapToInt(Integer::intValue).sum();
+
+        for (GemColor color : GemColor.values()) {
+            JButton button = tokenButtons.get(color);
+            if (button == null) {
+                continue;
+            }
+            boolean enabled = false;
+            if (allowInteractions && color != GemColor.GOLD && mode == SwingGameMode.TAKE_THREE && state != null) {
+                enabled = state.getBank().getTokenCount(color) > 0
+                        && (selectedTokenCounts.getOrDefault(color, 0) > 0 || totalSelected < config.getTakeDifferentCount());
+            } else if (allowInteractions && color != GemColor.GOLD && mode == SwingGameMode.TAKE_TWO && state != null && current != null) {
+                Map<GemColor, Integer> preview = new EnumMap<>(GemColor.class);
+                preview.put(color, config.getTakeSameCount());
+                enabled = validator.validate(state, current, Move.takeSame(preview)) == null;
+            }
+            button.setEnabled(enabled);
+        }
+        refreshTokenButtonLabels();
+    }
+
+    protected void refreshTokenButtonLabels() {
+        for (GemColor color : GemColor.values()) {
+            JButton button = tokenButtons.get(color);
+            if (button == null) {
+                continue;
+            }
+            int selected = selectedTokenCounts.getOrDefault(color, 0);
+            int bank = state == null ? 0 : state.getBank().getTokenCount(color);
+            if (showTokenBankCountsOnButtons() && !tokenIcons.containsKey(color)) {
+                button.setText(color.name() + " (" + bank + ")" + (selected > 0 ? " x" + selected : ""));
+            } else if (tokenIcons.containsKey(color)) {
+                button.setText("");
+            }
+            button.setToolTipText(color.name() + " | bank: " + bank + " | selected: " + selected);
+            button.setBackground(selected > 0 ? SwingUiTheme.SELECTED_BG : SwingUiTheme.tokenColor(color));
+            button.setBorder(new LineBorder(selected > 0 ? SwingUiTheme.ACCENT_BLUE : SwingUiTheme.BORDER_COLOR, selected > 0 ? 2 : 1, true));
+        }
+    }
+
+    protected boolean showTokenBankCountsOnButtons() {
+        return false;
+    }
+
+    protected void clearTokenSelection() {
+        for (GemColor color : GemColor.values()) {
+            selectedTokenCounts.put(color, 0);
+        }
+        refreshTokenButtonLabels();
+    }
+
+    protected boolean hasAnyLegalTakeThree(Player player) {
+        List<GemColor> colors = List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK);
+        return hasAnyLegalTakeDifferentCombination(player, colors, 0, config.getTakeDifferentCount(), new EnumMap<>(GemColor.class));
+    }
+
+    protected boolean hasAnyLegalTakeTwo(Player player) {
+        for (GemColor color : List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK)) {
+            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            tokens.put(color, config.getTakeSameCount());
+            if (validator.validate(state, player, Move.takeSame(tokens)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected boolean hasAnyLegalReserve(Player player) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            if (validator.validate(state, player, Move.reserveFaceUp(card)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected boolean hasAnyLegalBuy(Player player) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            Move move = Move.buy(card, computePaymentTokens(player, card.getCost()), false);
+            if (validator.validate(state, player, move) == null) {
+                return true;
+            }
+        }
+        for (DevelopmentCard card : player.getReservedCards()) {
+            Move move = Move.buy(card, computePaymentTokens(player, card.getCost()), true);
+            if (validator.validate(state, player, move) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected JPanel createPlayerPanel(String title, boolean active) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        panel.setBorder(SwingUiTheme.createPlayerBorder(title, active));
+        return panel;
+    }
+
+    protected JEditorPane createPlayerHtmlArea() {
+        JEditorPane area = new JEditorPane();
+        area.setContentType("text/html");
+        area.setEditable(false);
+        area.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        area.setBackground(SwingUiTheme.PANEL_BG_ALT);
+        area.setForeground(SwingUiTheme.TEXT_PRIMARY);
+        return area;
+    }
+
+    protected String activeTurnHelpText() {
+        return switch (mode) {
+            case IDLE -> "Choose an action. Take tokens, reserve a face-up card, or buy a card.";
+            case TAKE_THREE -> "Select " + config.getTakeDifferentCount() + " different colored tokens, then confirm.";
+            case TAKE_TWO -> "Select 1 color to take " + config.getTakeSameCount() + " tokens, then confirm.";
+            case RESERVE -> "Select a face-up card to reserve, then confirm.";
+            case BUY -> "Select a face-up or reserved card you can afford, then confirm.";
+        };
+    }
+
+    private boolean hasAnyLegalTakeDifferentCombination(
+            Player player,
+            List<GemColor> colors,
+            int startIndex,
+            int remaining,
+            Map<GemColor, Integer> selected
+    ) {
+        if (remaining == 0) {
+            return validator.validate(state, player, Move.takeDifferent(selected)) == null;
+        }
+
+        for (int i = startIndex; i <= colors.size() - remaining; i++) {
+            GemColor color = colors.get(i);
+            selected.put(color, 1);
+            if (hasAnyLegalTakeDifferentCombination(player, colors, i + 1, remaining - 1, selected)) {
+                return true;
+            }
+            selected.remove(color);
+        }
+        return false;
+    }
+
+    protected String buildCardHtml(DevelopmentCard card) {
+        StringBuilder cost = new StringBuilder();
+        for (Map.Entry<GemColor, Integer> entry : card.getCost().entrySet()) {
+            if (cost.length() > 0) {
+                cost.append(", ");
+            }
+            cost.append(entry.getValue()).append(" ").append(entry.getKey().name());
+        }
+        return "<html><b>Card</b><br/>P:" + card.getPrestigePoints()
+                + " Bonus:" + card.getBonusColor().name()
+                + "<br/>Cost: " + cost + "</html>";
+    }
+
+    protected String buildCardTooltip(String key, DevelopmentCard card) {
+        return key + " | Bonus " + card.getBonusColor() + " | Prestige " + card.getPrestigePoints()
+                + " | Cost " + card.getCost();
+    }
+
+    protected void disableAllInputs() {
+        actionTakeThree.setEnabled(false);
+        actionTakeTwo.setEnabled(false);
+        actionReserve.setEnabled(false);
+        actionBuy.setEnabled(false);
+        actionCancel.setEnabled(false);
+        actionConfirm.setEnabled(false);
+        for (JButton button : tokenButtons.values()) {
+            button.setEnabled(false);
+        }
+        for (JButton button : cardButtons.values()) {
+            button.setEnabled(false);
+        }
+        reservedList.setEnabled(false);
+    }
+
+    protected void log(String message) {
+        logArea.append(message + "\n");
+        logArea.setCaretPosition(logArea.getDocument().getLength());
+    }
+
+    protected abstract void handleConfirmAction();
+
+    protected abstract void updateLegalUi();
+}

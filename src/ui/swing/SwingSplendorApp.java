@@ -1,8 +1,6 @@
 package ui.swing;
 
 import ai.GreedyStrategy;
-import config.Config;
-import config.ConfigLoader;
 import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
@@ -12,6 +10,7 @@ import engine.WinnerChecker;
 import io.CardLoader;
 import io.NobleLoader;
 import model.Board;
+import model.Cost;
 import model.DevelopmentCard;
 import model.GameState;
 import model.GemBank;
@@ -20,136 +19,67 @@ import model.NobleTile;
 import model.Player;
 
 import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JList;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JEditorPane;
-import javax.swing.JTextArea;
 import javax.swing.Timer;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
-import javax.swing.ImageIcon;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 
-public class SwingSplendorApp extends JFrame {
-    private static final int DEV_CARD_ICON_WIDTH = 96;
-    private static final int DEV_CARD_ICON_HEIGHT = 134;
-    private static final int DEV_CARD_BUTTON_WIDTH = 108;
-    private static final int DEV_CARD_BUTTON_HEIGHT = 146;
-    private static final int NOBLE_ICON_SIZE = 110;
-    private static final int TOKEN_BUTTON_SIZE = 60;
-    private static final int TOKEN_ICON_SIZE = 48;
-    private static final int NOBLE_CARD_WIDTH = 122;
-    private static final int NOBLE_CARD_HEIGHT = 122;
-    private static final Color APP_BG = new Color(24, 27, 31);
-    private static final Color PANEL_BG = new Color(31, 36, 42);
-    private static final Color PANEL_BG_ALT = new Color(39, 45, 52);
-    private static final Color SURFACE_BG = new Color(46, 53, 61);
-    private static final Color EMPTY_BG = new Color(58, 63, 70);
-    private static final Color TEXT_PRIMARY = new Color(232, 236, 241);
-    private static final Color TEXT_MUTED = new Color(182, 190, 200);
-    private static final Color BORDER_COLOR = new Color(92, 102, 114);
-    private static final Color ACCENT_BLUE = new Color(78, 144, 255);
-    private static final Color ACCENT_GREEN = new Color(60, 179, 113);
-    private static final Color ACCENT_RED = new Color(212, 88, 88);
-    private static final Color SELECTED_BG = new Color(52, 71, 96);
-
-    private enum Mode {
-        IDLE, TAKE_THREE, TAKE_TWO, RESERVE, BUY
-    }
-
-    private final Config config;
-    private final GameState state;
-    private final MoveValidator validator;
+public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     private final MoveExecutor executor;
     private final NobleAssigner nobleAssigner;
     private final WinnerChecker winnerChecker;
     private final TurnManager turnManager;
-    private final GreedyStrategy aiStrategy = new GreedyStrategy();
-
-    private final JLabel statusLabel = new JLabel("", SwingConstants.LEFT);
-    private final JLabel phaseLabel = new JLabel("", SwingConstants.RIGHT);
-    private final JPanel marketPanel = new JPanel(new GridLayout(3, 4, 10, 10));
-    private final JPanel noblesPanel = new JPanel(new GridLayout(1, 5, 8, 8));
-    private final JTextArea logArea = new JTextArea();
-    private final JPanel playersPanel = new JPanel();
+    private final GreedyStrategy aiStrategy;
     private final Map<Player, JPanel> playerCardPanels = new LinkedHashMap<>();
-    private final Map<Player, JEditorPane> playerCardAreas = new LinkedHashMap<>();
-    private final JTextArea helpArea = new JTextArea();
-    private final JLabel latestComputerMoveLabel = new JLabel("Latest Computer Move: -");
-    private final JPanel bankCountPanel = new JPanel(new GridLayout(6, 1, 4, 4));
-    private final Map<GemColor, JLabel> bankLabels = new EnumMap<>(GemColor.class);
-    private final Map<GemColor, JButton> tokenButtons = new EnumMap<>(GemColor.class);
-    private final Map<GemColor, ImageIcon> tokenIcons = new EnumMap<>(GemColor.class);
-    private final Map<GemColor, Integer> selectedTokenCounts = new EnumMap<>(GemColor.class);
-    private final Map<String, JButton> cardButtons = new LinkedHashMap<>();
-    private final JButton actionTakeThree = new JButton("Take 3 Different");
-    private final JButton actionTakeTwo = new JButton("Take 2 Same");
-    private final JButton actionReserve = new JButton("Reserve");
-    private final JButton actionBuy = new JButton("Buy");
-    private final JButton actionCancel = new JButton("Cancel");
-    private final JButton actionConfirm = new JButton("Confirm");
-    private final DefaultListModel<DevelopmentCard> reservedModel = new DefaultListModel<>();
-    private final JList<DevelopmentCard> reservedList = new JList<>(reservedModel);
-    private final JLabel reservedLabel = new JLabel("Active Player Reserved Cards");
-
-    private Mode mode = Mode.IDLE;
-    private DevelopmentCard selectedBoardCard;
-    private DevelopmentCard selectedReservedCard;
-    private boolean finalGameOver = false;
-    private boolean computerThinking = false;
+    private final Map<Player, javax.swing.JEditorPane> playerCardAreas = new LinkedHashMap<>();
     private final Set<Player> computerPlayers = new HashSet<>();
 
+    private boolean finalGameOver = false;
+    private boolean computerThinking = false;
+
     public SwingSplendorApp() {
-        super("Splendor (Swing)");
-        this.config = buildConfig();
+        this(SwingConfigSupport.loadConfig());
+    }
+
+    private SwingSplendorApp(config.Config config) {
+        super(
+                "Splendor (Swing)",
+                config,
+                null,
+                new MoveValidator(config)
+        );
         this.state = createInitialState();
-        this.validator = new MoveValidator(config);
         this.executor = new MoveExecutor(config);
         this.nobleAssigner = new NobleAssigner();
         this.winnerChecker = new WinnerChecker(config);
         this.turnManager = new TurnManager();
+        this.aiStrategy = new GreedyStrategy(config);
 
-        buildUi();
-        bindActions();
+        buildSharedUi(false, false, state.getPlayers().size());
+        initialisePlayerPanels();
+        bindSharedActions();
         refreshAll();
     }
 
     private GameState createInitialState() {
-        String p1 = promptName("Enter Player 1 name:");
+        String playerName = promptName("Enter Player 1 name:");
         int computerCount = askComputerCount();
         List<Player> players = new ArrayList<>();
-        Player human = new Player(p1);
+        Player human = new Player(playerName);
         players.add(human);
         for (int i = 1; i <= computerCount; i++) {
             Player computer = new Player(i == 1 ? "Computer" : "Computer " + i);
@@ -167,275 +97,69 @@ public class SwingSplendorApp extends JFrame {
             bank.addGems(color, amount);
         }
 
-        Board board = new Board(buildDecks(), buildNobles(), initialGems, bank, config.getOpenCardsPerLevel());
+        Board board = new Board(buildDecks(), buildNobles(players.size()), initialGems, bank, config.getOpenCardsPerLevel());
         return new GameState(new ArrayList<>(players), board, bank);
     }
 
-    private void buildUi() {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1500, 1020);
-        setMinimumSize(new Dimension(1450, 980));
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
-        getContentPane().setBackground(APP_BG);
-
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBackground(APP_BG);
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
-        statusLabel.setFont(statusLabel.getFont().deriveFont(Font.BOLD, 16f));
-        statusLabel.setForeground(TEXT_PRIMARY);
-        phaseLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
-        phaseLabel.setFont(phaseLabel.getFont().deriveFont(Font.BOLD, 14f));
-        phaseLabel.setForeground(TEXT_MUTED);
-        topBar.add(statusLabel, BorderLayout.WEST);
-        topBar.add(phaseLabel, BorderLayout.EAST);
-        add(topBar, BorderLayout.NORTH);
-
-        JPanel leftBank = new JPanel(new BorderLayout(8, 8));
-        leftBank.setBackground(PANEL_BG);
-        leftBank.setBorder(createTitledBorder("Bank"));
-        bankCountPanel.setBackground(PANEL_BG);
-        leftBank.add(bankCountPanel, BorderLayout.NORTH);
-        JPanel tokenPanel = new JPanel(new GridLayout(3, 2, 6, 6));
-        tokenPanel.setBackground(PANEL_BG);
-        for (GemColor color : GemColor.values()) {
-            JButton button = new JButton(color.name());
-            button.setFocusPainted(false);
-            button.setBackground(tokenColor(color));
-            button.setContentAreaFilled(true);
-            button.setOpaque(true);
-            button.setForeground(color == GemColor.BLACK ? TEXT_PRIMARY : new Color(20, 20, 20));
-            button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
-            button.setPreferredSize(new Dimension(TOKEN_BUTTON_SIZE, TOKEN_BUTTON_SIZE));
-            button.setMargin(new Insets(0, 0, 0, 0));
-            button.setToolTipText("Click to select " + color.name() + " token(s)");
-            ImageIcon icon = loadTokenIcon(color);
-            if (icon != null) {
-                button.setIcon(icon);
-                button.setText("");
-                tokenIcons.put(color, icon);
-            }
-            tokenButtons.put(color, button);
-            selectedTokenCounts.put(color, 0);
-            tokenPanel.add(button);
-        }
-        leftBank.add(tokenPanel, BorderLayout.CENTER);
-        leftBank.setPreferredSize(new Dimension(260, 400));
-        add(leftBank, BorderLayout.WEST);
-
-        JPanel center = new JPanel(new BorderLayout(8, 8));
-        center.setBackground(PANEL_BG);
-        center.setBorder(createTitledBorder("Market"));
-        marketPanel.setBackground(PANEL_BG);
-        marketPanel.setPreferredSize(new Dimension(
-                (DEV_CARD_BUTTON_WIDTH * 4) + (10 * 3),
-                (DEV_CARD_BUTTON_HEIGHT * 3) + (10 * 2)
-        ));
-        JPanel marketWrapper = new JPanel(new GridBagLayout());
-        marketWrapper.setBackground(PANEL_BG);
-        marketWrapper.add(marketPanel);
-        center.add(marketWrapper, BorderLayout.CENTER);
-        JPanel nobleWrap = new JPanel(new BorderLayout());
-        nobleWrap.setBackground(PANEL_BG);
-        nobleWrap.setBorder(createTitledBorder("Nobles"));
-        noblesPanel.setBackground(PANEL_BG);
-        nobleWrap.add(noblesPanel, BorderLayout.CENTER);
-        center.add(nobleWrap, BorderLayout.SOUTH);
-
-        JPanel right = new JPanel(new BorderLayout(8, 8));
-        right.setBackground(PANEL_BG);
-        right.setBorder(createTitledBorder("Players"));
-        playersPanel.setLayout(new GridLayout(state.getPlayers().size(), 1, 8, 8));
-        playersPanel.setBackground(PANEL_BG);
+    private void initialisePlayerPanels() {
+        playersPanel.removeAll();
+        playerCardPanels.clear();
+        playerCardAreas.clear();
+        playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8));
 
         for (Player player : state.getPlayers()) {
-            JPanel panel = new JPanel(new BorderLayout());
-            panel.setBackground(PANEL_BG_ALT);
-            panel.setBorder(createTitledBorder(player.getName()));
-            JEditorPane area = new JEditorPane();
-            area.setContentType("text/html");
-            area.setEditable(false);
-            area.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-            area.setBackground(PANEL_BG_ALT);
-            area.setForeground(TEXT_PRIMARY);
+            JPanel panel = createPlayerPanel(player.getName(), false);
+            javax.swing.JEditorPane area = createPlayerHtmlArea();
             JScrollPane areaScroll = new JScrollPane(area);
-            styleScrollPane(areaScroll, PANEL_BG_ALT);
+            SwingUiTheme.styleScrollPane(areaScroll, SwingUiTheme.PANEL_BG_ALT);
             panel.add(areaScroll, BorderLayout.CENTER);
             playerCardPanels.put(player, panel);
             playerCardAreas.put(player, area);
             playersPanel.add(panel);
         }
-        JScrollPane playersScroll = new JScrollPane(playersPanel);
-        styleScrollPane(playersScroll, PANEL_BG);
-        right.add(playersScroll, BorderLayout.CENTER);
-
-        reservedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        reservedList.setBackground(PANEL_BG_ALT);
-        reservedList.setForeground(TEXT_PRIMARY);
-        reservedList.setSelectionBackground(SELECTED_BG);
-        reservedList.setSelectionForeground(TEXT_PRIMARY);
-        JPanel reservedPanel = new JPanel(new BorderLayout(4, 4));
-        reservedPanel.setBackground(PANEL_BG);
-        reservedLabel.setForeground(TEXT_PRIMARY);
-        reservedPanel.add(reservedLabel, BorderLayout.NORTH);
-        JScrollPane reservedScroll = new JScrollPane(reservedList);
-        styleScrollPane(reservedScroll, PANEL_BG_ALT);
-        reservedScroll.setPreferredSize(new Dimension(320, 210));
-        reservedPanel.add(reservedScroll, BorderLayout.CENTER);
-        right.add(reservedPanel, BorderLayout.SOUTH);
-        right.setPreferredSize(new Dimension(360, 400));
-        add(right, BorderLayout.EAST);
-
-        JPanel bottom = new JPanel(new BorderLayout(8, 8));
-        bottom.setBackground(PANEL_BG);
-        JPanel actions = new JPanel(new GridLayout(1, 6, 6, 6));
-        actions.setBackground(PANEL_BG);
-        actions.add(actionTakeThree);
-        actions.add(actionTakeTwo);
-        actions.add(actionReserve);
-        actions.add(actionBuy);
-        actions.add(actionCancel);
-        actions.add(actionConfirm);
-        bottom.add(actions, BorderLayout.NORTH);
-        styleActionButton(actionTakeThree);
-        styleActionButton(actionTakeTwo);
-        styleActionButton(actionReserve);
-        styleActionButton(actionBuy);
-        styleActionButton(actionCancel);
-        styleActionButton(actionConfirm);
-
-        helpArea.setEditable(false);
-        helpArea.setRows(3);
-        helpArea.setLineWrap(true);
-        helpArea.setWrapStyleWord(true);
-        helpArea.setBackground(PANEL_BG_ALT);
-        helpArea.setForeground(TEXT_PRIMARY);
-        helpArea.setCaretColor(TEXT_PRIMARY);
-        helpArea.setBorder(createTitledBorder("Prompt"));
-        bottom.add(helpArea, BorderLayout.CENTER);
-
-        latestComputerMoveLabel.setOpaque(true);
-        latestComputerMoveLabel.setBackground(PANEL_BG_ALT);
-        latestComputerMoveLabel.setForeground(TEXT_PRIMARY);
-        latestComputerMoveLabel.setBorder(createTitledBorder("Computer Move"));
-        bottom.add(latestComputerMoveLabel, BorderLayout.WEST);
-
-        logArea.setEditable(false);
-        logArea.setRows(7);
-        logArea.setBackground(PANEL_BG_ALT);
-        logArea.setForeground(TEXT_PRIMARY);
-        logArea.setCaretColor(TEXT_PRIMARY);
-        JScrollPane logScroll = new JScrollPane(logArea);
-        styleScrollPane(logScroll, PANEL_BG_ALT);
-        bottom.add(logScroll, BorderLayout.SOUTH);
-        bottom.setBorder(createTitledBorder("Actions & Log"));
-
-        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, center, bottom);
-        centerSplit.setBackground(APP_BG);
-        centerSplit.setBorder(BorderFactory.createEmptyBorder());
-        centerSplit.setResizeWeight(0.8);
-        centerSplit.setOneTouchExpandable(true);
-        centerSplit.setContinuousLayout(true);
-        centerSplit.setDividerLocation(650);
-        add(centerSplit, BorderLayout.CENTER);
     }
 
-    private void bindActions() {
-        actionTakeThree.addActionListener(e -> switchMode(Mode.TAKE_THREE));
-        actionTakeTwo.addActionListener(e -> switchMode(Mode.TAKE_TWO));
-        actionReserve.addActionListener(e -> switchMode(Mode.RESERVE));
-        actionBuy.addActionListener(e -> switchMode(Mode.BUY));
-        actionCancel.addActionListener(e -> switchMode(Mode.IDLE));
-        actionConfirm.addActionListener(e -> onConfirm());
+    private void refreshAll() {
+        rebuildMarketButtons();
+        rebuildNobleCards();
+        refreshBankCounts();
 
-        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
-            GemColor color = entry.getKey();
-            JButton button = entry.getValue();
-            button.addActionListener(e -> {
-                onTokenButtonClicked(color);
-                updateLegalUi();
-            });
-        }
+        Player current = state.getCurrentPlayer();
+        statusLabel.setText("You: " + state.getPlayer(0).getName());
+        reservedLabel.setText(current.getName() + " Reserved Cards");
 
-        reservedList.addListSelectionListener(e -> {
-            selectedReservedCard = reservedList.getSelectedValue();
-            if (selectedReservedCard != null) {
-                selectedBoardCard = null;
+        for (Player player : state.getPlayers()) {
+            javax.swing.JEditorPane area = playerCardAreas.get(player);
+            if (area != null) {
+                area.setText(SwingPlayerSummaryFormatter.buildRichHtml(player, config));
+                area.setCaretPosition(0);
             }
-            updateLegalUi();
-        });
-    }
 
-    private void rebuildMarketButtons() {
-        marketPanel.removeAll();
-        cardButtons.clear();
-        for (int tier = 3; tier >= 1; tier--) {
-            List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
-            for (int col = 0; col < 4; col++) {
-                char colChar = (char) ('a' + col);
-                String key = "" + colChar + tier;
-                JButton btn = new JButton();
-                btn.setFocusPainted(false);
-                btn.setOpaque(true);
-                btn.setHorizontalAlignment(SwingConstants.CENTER);
-                btn.setVerticalAlignment(SwingConstants.CENTER);
-                btn.setPreferredSize(new Dimension(DEV_CARD_BUTTON_WIDTH, DEV_CARD_BUTTON_HEIGHT));
-                btn.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6)); // 6px margin for top/bottom/left/right
-                if (col < cards.size()) {
-                    DevelopmentCard card = cards.get(col);
-                    ImageIcon icon = loadCardIcon(card);
-                    if (icon != null) {
-                        btn.setIcon(icon);
-                        btn.setDisabledIcon(icon); // Ensure icon is colored even if button is disabled
-                        btn.setText("");
-                        btn.setBackground(SURFACE_BG);
-                        btn.setContentAreaFilled(true); // Fill background
-                        btn.setOpaque(true); // Opaque for proper rendering
-                        btn.setEnabled(true); // Ensure button is enabled
-                    } else {
-                        btn.setText(cardHtml(key, card));
-                        btn.setBackground(colorForBonus(card.getBonusColor()));
-                        btn.setContentAreaFilled(true);
-                        btn.setOpaque(true);
-                    }
-                    btn.setToolTipText(cardTooltip(key, card));
-                    btn.setForeground(TEXT_PRIMARY);
-                    btn.setBorder(new LineBorder(BORDER_COLOR, 2));
-                    btn.addActionListener(e -> {
-                        selectedBoardCard = card;
-                        selectedReservedCard = null;
-                        reservedList.clearSelection();
-                        updateLegalUi();
-                    });
+            JPanel panel = playerCardPanels.get(player);
+            if (panel != null) {
+                if (player == current) {
+                    panel.setBorder(BorderFactory.createTitledBorder(
+                            new LineBorder(SwingUiTheme.ACCENT_BLUE, 2),
+                            player.getName() + " (Active)"
+                    ));
+                    SwingUiTheme.styleTitledBorder((TitledBorder) panel.getBorder());
                 } else {
-                    btn.setText("<html><b>" + key + "</b><br/>Empty</html>");
-                    btn.setBackground(EMPTY_BG);
-                    btn.setForeground(TEXT_MUTED);
-                    btn.setEnabled(false);
-                    btn.setContentAreaFilled(true);
-                    btn.setOpaque(true);
+                    panel.setBorder(SwingUiTheme.createTitledBorder(player.getName()));
                 }
-                cardButtons.put(key, btn);
-                marketPanel.add(btn);
             }
         }
-        marketPanel.revalidate();
-        marketPanel.repaint();
-    }
 
-    private void switchMode(Mode newMode) {
-        this.mode = newMode;
-        this.selectedBoardCard = null;
-        this.selectedReservedCard = null;
-        reservedList.clearSelection();
-        clearTokenSelection();
+        refreshReservedCards(current);
         updateLegalUi();
+        scheduleComputerTurnIfNeeded();
     }
 
-    private void onConfirm() {
+    @Override
+    protected void handleConfirmAction() {
         if (finalGameOver) {
             return;
         }
+
         Move move = buildPendingMove();
         if (move == null) {
             log("No valid selection to confirm.");
@@ -443,9 +167,9 @@ public class SwingSplendorApp extends JFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        String err = validator.validate(state, current, move);
-        if (err != null) {
-            log("Illegal move: " + err);
+        String error = validator.validate(state, current, move);
+        if (error != null) {
+            log("Illegal move: " + error);
             updateLegalUi();
             return;
         }
@@ -465,68 +189,52 @@ public class SwingSplendorApp extends JFrame {
             Player winner = winnerChecker.determineWinner(state);
             finalGameOver = true;
             log("Game over. Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");
-            JOptionPane.showMessageDialog(this,
-                    "Game over.\nWinner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)",
-                    "Winner",
-                    JOptionPane.INFORMATION_MESSAGE);
+            showSinglePlayerGameOverDialog(winner);
+            return;
         }
 
-        switchMode(Mode.IDLE);
+        clearSelection();
         refreshAll();
     }
 
-    private Move buildPendingMove() {
+    @Override
+    protected void updateLegalUi() {
+        if (finalGameOver) {
+            disableAllInputs();
+            return;
+        }
+
         Player current = state.getCurrentPlayer();
-        if (mode == Mode.TAKE_THREE) {
-            Map<GemColor, Integer> tokens = selectedTokens();
-            if (tokens.isEmpty()) return null;
-            return Move.takeDifferent(tokens);
+        statusLabel.setText("You: " + state.getPlayer(0).getName());
+        phaseLabel.setText("Turn: " + current.getName() + " | Phase: " + mode.name().replace('_', ' '));
+
+        if (isComputerTurn() || computerThinking) {
+            helpArea.setText("Computer is thinking...");
+            disableAllInputs();
+            return;
         }
-        if (mode == Mode.TAKE_TWO) {
-            Map<GemColor, Integer> selected = selectedTokens();
-            if (selected.size() != 1) return null;
-            GemColor color = selected.keySet().iterator().next();
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-            tokens.put(color, 2);
-            return Move.takeSame(tokens);
-        }
-        if (mode == Mode.RESERVE) {
-            if (selectedBoardCard == null) return null;
-            return Move.reserveFaceUp(selectedBoardCard);
-        }
-        if (mode == Mode.BUY) {
-            if (selectedBoardCard != null) {
-                return Move.buy(selectedBoardCard, computePaymentTokens(current, selectedBoardCard.getCost()), false);
-            }
-            if (selectedReservedCard != null) {
-                return Move.buy(selectedReservedCard, computePaymentTokens(current, selectedReservedCard.getCost()), true);
-            }
-        }
-        return null;
+
+        helpArea.setText(activeTurnHelpText());
+        actionTakeThree.setEnabled(hasAnyLegalTakeThree(current));
+        actionTakeTwo.setEnabled(hasAnyLegalTakeTwo(current));
+        actionReserve.setEnabled(hasAnyLegalReserve(current));
+        actionBuy.setEnabled(hasAnyLegalBuy(current));
+        actionCancel.setEnabled(mode != SwingGameMode.IDLE);
+        reservedList.setEnabled(mode == SwingGameMode.BUY);
+
+        boolean cardMode = mode == SwingGameMode.RESERVE || mode == SwingGameMode.BUY;
+        updateCardSelectionState(current, true, cardMode);
+        applyTokenModeRules(current, true);
+
+        Move pending = buildPendingMove();
+        actionConfirm.setEnabled(mode != SwingGameMode.IDLE
+                && pending != null
+                && validator.validate(state, current, pending) == null);
     }
 
-    private Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
-        Map<GemColor, Integer> payment = new EnumMap<>(GemColor.class);
-        int goldNeeded = 0;
-
-        for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {
-            GemColor color = entry.getKey();
-            int required = entry.getValue();
-            int remaining = Math.max(0, required - player.getBonusCount(color));
-            if (remaining == 0) continue;
-
-            int availableColor = player.getTokenCount(color);
-            int useColor = Math.min(availableColor, remaining);
-            if (useColor > 0) {
-                payment.put(color, useColor);
-            }
-            goldNeeded += (remaining - useColor);
-        }
-
-        if (goldNeeded > 0) {
-            payment.put(GemColor.GOLD, goldNeeded);
-        }
-        return payment;
+    @Override
+    protected boolean showTokenBankCountsOnButtons() {
+        return true;
     }
 
     private void resolveTokenCapIfNeeded(Player player) {
@@ -547,13 +255,15 @@ public class SwingSplendorApp extends JFrame {
         while (excess > 0) {
             GemColor candidate = null;
             int max = 0;
-            for (Map.Entry<GemColor, Integer> e : working.entrySet()) {
-                if (e.getValue() > max) {
-                    max = e.getValue();
-                    candidate = e.getKey();
+            for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
+                if (entry.getValue() > max) {
+                    max = entry.getValue();
+                    candidate = entry.getKey();
                 }
             }
-            if (candidate == null || max == 0) break;
+            if (candidate == null || max == 0) {
+                break;
+            }
             discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
             working.put(candidate, max - 1);
             excess--;
@@ -562,665 +272,46 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private void resolveNobleAttraction(Player player, boolean automaticChoice) {
-        List<NobleTile> eligible = nobleAssigner.findEligibleNobles(state, player);
-        if (eligible.isEmpty()) {
+        List<NobleTile> eligible = new ArrayList<>(nobleAssigner.findEligibleNobles(state, player));
+        if (eligible.isEmpty() || config.getMaxNoblesPerTurn() <= 0) {
             return;
         }
-        NobleTile chosen;
+        int noblesToAssign = Math.min(config.getMaxNoblesPerTurn(), eligible.size());
+        for (int i = 0; i < noblesToAssign; i++) {
+            NobleTile chosen = chooseNoble(eligible, automaticChoice);
+            nobleAssigner.assignNoble(state, player, chosen);
+            eligible.remove(chosen);
+            log(player.getName() + " attracted noble: " + chosen);
+        }
+    }
+
+    private NobleTile chooseNoble(List<NobleTile> eligible, boolean automaticChoice) {
         if (eligible.size() == 1) {
-            chosen = eligible.get(0);
-        } else if (automaticChoice) {
-            chosen = eligible.stream()
+            return eligible.get(0);
+        }
+        if (automaticChoice) {
+            return eligible.stream()
                     .max((a, b) -> {
                         int points = Integer.compare(a.getPrestigePoints(), b.getPrestigePoints());
-                        if (points != 0) return points;
+                        if (points != 0) {
+                            return points;
+                        }
                         int aReq = a.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
                         int bReq = b.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
                         return Integer.compare(bReq, aReq);
                     })
                     .orElse(eligible.get(0));
-        } else {
-            Object pick = JOptionPane.showInputDialog(
-                    this,
-                    "Choose a noble",
-                    "Noble Choice",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    eligible.toArray(),
-                    eligible.get(0)
-            );
-            chosen = pick instanceof NobleTile ? (NobleTile) pick : eligible.get(0);
         }
-        nobleAssigner.assignNoble(state, player, chosen);
-        log(player.getName() + " attracted noble: " + chosen);
-    }
-
-    private void refreshAll() {
-        rebuildMarketButtons();
-        rebuildNobleCards();
-        Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + state.getPlayer(0).getName());
-        reservedLabel.setText(current.getName() + " Reserved Cards");
-
-        for (GemColor color : GemColor.values()) {
-            JLabel label = bankLabels.computeIfAbsent(color, c -> {
-                JLabel created = new JLabel();
-                created.setForeground(TEXT_PRIMARY);
-                bankCountPanel.add(created);
-                return created;
-            });
-            label.setText(color.name() + ": " + state.getBank().getTokenCount(color));
-        }
-        bankCountPanel.revalidate();
-        bankCountPanel.repaint();
-
-        for (Player player : state.getPlayers()) {
-            JEditorPane area = playerCardAreas.get(player);
-            if (area == null) {
-                continue;
-            }
-
-            area.setText(buildPlayerHtml(player));
-            area.setCaretPosition(0);
-
-            JPanel panel = playerCardPanels.get(player);
-            if (panel != null) {
-                if (player == current) {
-                    panel.setBorder(BorderFactory.createTitledBorder(
-                            new LineBorder(ACCENT_BLUE, 2),
-                            player.getName() + " (Active)"
-                    ));
-                    styleTitledBorder((TitledBorder) panel.getBorder());
-                } else {
-                    panel.setBorder(createTitledBorder(player.getName()));
-                }
-            }
-        }
-
-        reservedModel.clear();
-        for (DevelopmentCard card : current.getReservedCards()) {
-            reservedModel.addElement(card);
-        }
-        reservedList.setCellRenderer((list, value, index1, isSelected, cellHasFocus) -> {
-            ImageIcon icon = loadCardIcon(value);
-            JLabel cell;
-            if (icon != null) {
-                cell = new JLabel(icon);
-                cell.setText("r" + (index1 + 1));
-                cell.setHorizontalTextPosition(JLabel.CENTER);
-                cell.setVerticalTextPosition(JLabel.BOTTOM);
-            } else {
-                cell = new JLabel("r" + (index1 + 1) + " | P:" + value.getPrestigePoints() + " " + value.getBonusColor()
-                        + " | Cost " + value.getCost());
-            }
-            cell.setOpaque(true);
-            cell.setForeground(TEXT_PRIMARY);
-            if (isSelected) {
-                cell.setBackground(SELECTED_BG);
-            } else {
-                cell.setBackground(PANEL_BG_ALT);
-            }
-            return cell;
-        });
-
-        updateLegalUi();
-        scheduleComputerTurnIfNeeded();
-    }
-
-    private void updateLegalUi() {
-        if (finalGameOver) {
-            disableAllInputs();
-            return;
-        }
-
-        Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + state.getPlayer(0).getName());
-        phaseLabel.setText("Turn: " + current.getName() + " | Phase: " + mode.name().replace('_', ' '));
-        helpArea.setText(helpTextForMode());
-
-        actionTakeThree.setEnabled(hasAnyLegalTakeThree(current));
-        actionTakeTwo.setEnabled(hasAnyLegalTakeTwo(current));
-        actionReserve.setEnabled(hasAnyLegalReserve(current));
-        actionBuy.setEnabled(hasAnyLegalBuy(current));
-
-        boolean takeMode = mode == Mode.TAKE_THREE || mode == Mode.TAKE_TWO;
-        boolean cardMode = mode == Mode.RESERVE || mode == Mode.BUY;
-
-        if (isComputerTurn() || computerThinking) {
-            helpArea.setText("Computer is thinking...");
-            actionTakeThree.setEnabled(false);
-            actionTakeTwo.setEnabled(false);
-            actionReserve.setEnabled(false);
-            actionBuy.setEnabled(false);
-            actionCancel.setEnabled(false);
-            actionConfirm.setEnabled(false);
-            for (JButton button : tokenButtons.values()) {
-                button.setEnabled(false);
-            }
-            for (JButton btn : cardButtons.values()) {
-                btn.setEnabled(false);
-            }
-            reservedList.setEnabled(false);
-            return;
-        }
-
-        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
-            GemColor color = entry.getKey();
-            JButton button = entry.getValue();
-            button.setEnabled(takeMode && color != GemColor.GOLD);
-        }
-
-        // Reserved list only for buy mode.
-        reservedList.setEnabled(mode == Mode.BUY);
-
-        // Disable all card buttons first.
-        for (JButton btn : cardButtons.values()) {
-            btn.setEnabled(false);
-        }
-
-        if (cardMode) {
-            for (int tier = 1; tier <= 3; tier++) {
-                List<DevelopmentCard> cards = state.getBoard().getFaceUpCards(tier);
-                for (int col = 0; col < cards.size(); col++) {
-                    DevelopmentCard card = cards.get(col);
-                    Move move = mode == Mode.RESERVE
-                            ? Move.reserveFaceUp(card)
-                            : Move.buy(card, computePaymentTokens(current, card.getCost()), false);
-                    String key = "" + (char) ('a' + col) + tier;
-                    JButton btn = cardButtons.get(key);
-                    if (btn != null) {
-                        boolean legal = validator.validate(state, current, move) == null;
-                        btn.setEnabled(legal);
-                        if (selectedBoardCard == card) {
-                            btn.setBorder(new LineBorder(ACCENT_BLUE, 4));
-                        } else if (mode == Mode.BUY && legal) {
-                            btn.setBorder(new LineBorder(ACCENT_GREEN, 3));
-                        } else if (mode == Mode.BUY) {
-                            btn.setBorder(new LineBorder(ACCENT_RED, 2));
-                        } else {
-                            btn.setBorder(new LineBorder(BORDER_COLOR, 2));
-                        }
-                    }
-                }
-            }
-        } else {
-            for (JButton btn : cardButtons.values()) {
-                btn.setBorder(new LineBorder(BORDER_COLOR, 2));
-            }
-        }
-
-        applyTokenModeRules();
-        Move pending = buildPendingMove();
-        actionConfirm.setEnabled(mode != Mode.IDLE && pending != null && validator.validate(state, current, pending) == null);
-    }
-
-    private void disableAllInputs() {
-        actionTakeThree.setEnabled(false);
-        actionTakeTwo.setEnabled(false);
-        actionReserve.setEnabled(false);
-        actionBuy.setEnabled(false);
-        actionCancel.setEnabled(false);
-        actionConfirm.setEnabled(false);
-        for (JButton button : tokenButtons.values()) {
-            button.setEnabled(false);
-        }
-        for (JButton b : cardButtons.values()) {
-            b.setEnabled(false);
-        }
-        reservedList.setEnabled(false);
-    }
-
-    private void clearTokenSelection() {
-        for (GemColor color : GemColor.values()) {
-            selectedTokenCounts.put(color, 0);
-        }
-        refreshTokenButtonLabels();
-    }
-
-    private Map<GemColor, Integer> selectedTokens() {
-        Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-        for (Map.Entry<GemColor, Integer> entry : selectedTokenCounts.entrySet()) {
-            int count = entry.getValue();
-            if (count > 0) {
-                tokens.put(entry.getKey(), count);
-            }
-        }
-        return tokens;
-    }
-
-    private String cardHtml(String key, DevelopmentCard card) {
-        StringBuilder cost = new StringBuilder();
-        for (Map.Entry<GemColor, Integer> e : card.getCost().entrySet()) {
-            if (cost.length() > 0) cost.append(", ");
-            cost.append(e.getValue()).append(" ").append(e.getKey().name());
-        }
-        return "<html><b>Card</b><br/>P:" + card.getPrestigePoints() +
-                " Bonus:" + card.getBonusColor().name() +
-                "<br/>Cost: " + cost + "</html>";
-    }
-
-    private String cardTooltip(String key, DevelopmentCard card) {
-        return "Bonus " + card.getBonusColor() + " | Prestige " + card.getPrestigePoints() +
-                " | Cost " + card.getCost();
-    }
-
-    private String buildPlayerHtml(Player player) {
-        StringBuilder html = new StringBuilder();
-        html.append("<html><body style='font-family:sans-serif;font-size:12px;color:#E8ECF1;'>");
-        html.append("<b>Prestige:</b> ").append(player.getPrestigePoints()).append("<br/>");
-        html.append("<b>Tokens + Bonuses</b><br/>");
-
-        GemColor[] order = {GemColor.RED, GemColor.BLUE, GemColor.GREEN, GemColor.WHITE, GemColor.BLACK, GemColor.GOLD};
-        for (GemColor color : order) {
-            int tokens = player.getTokenCount(color);
-            int bonus = color == GemColor.GOLD ? 0 : player.getBonusCount(color);
-            html.append(color.name().toLowerCase()).append(": ").append(tokens);
-            if (bonus > 0) {
-                html.append(" <span style='color:")
-                        .append(hexColor(color))
-                        .append(";font-weight:bold;'>+ ")
-                        .append(bonus)
-                        .append("</span>");
-            }
-            html.append("<br/>");
-        }
-
-        html.append("<b>Purchased:</b> ").append(player.getPurchasedCards().size())
-                .append(" | <b>Nobles:</b> ").append(player.getNobles().size())
-                .append(" | <b>Reserved:</b> ").append(player.getReservedCards().size())
-                .append("<br/>");
-        html.append("<b>Token cap:</b> ").append(player.getTotalTokens())
-                .append("/").append(config.getMaxTokensPerPlayer()).append("<br/>");
-        html.append("<b>Reserved cards:</b> ").append(compactReserved(player));
-        html.append("</body></html>");
-        return html.toString();
-    }
-
-    private String compactReserved(Player player) {
-        if (player.getReservedCards().isEmpty()) {
-            return "-";
-        }
-        StringBuilder sb = new StringBuilder();
-        int index = 1;
-        for (DevelopmentCard card : player.getReservedCards()) {
-            if (index > 1) sb.append(", ");
-            sb.append("r").append(index)
-                    .append("(P").append(card.getPrestigePoints())
-                    .append(" ").append(card.getBonusColor().name().toLowerCase()).append(")");
-            index++;
-        }
-        return sb.toString();
-    }
-
-    private String hexColor(GemColor color) {
-        return switch (color) {
-            case WHITE -> "#8A8A8A";
-            case BLUE -> "#1E5BB8";
-            case GREEN -> "#1E8C3A";
-            case RED -> "#B3261E";
-            case BLACK -> "#111111";
-            case GOLD -> "#B88700";
-        };
-    }
-
-    private void rebuildNobleCards() {
-        noblesPanel.removeAll();
-        List<NobleTile> nobles = state.getBoard().getAvailableNobles();
-        for (int i = 0; i < 5; i++) {
-            JPanel nobleCard = new JPanel(new BorderLayout());
-            nobleCard.setBorder(new LineBorder(BORDER_COLOR, 2));
-            nobleCard.setBackground(SURFACE_BG);
-            nobleCard.setPreferredSize(new Dimension(NOBLE_CARD_WIDTH, NOBLE_CARD_HEIGHT));
-
-            if (i < nobles.size()) {
-                NobleTile noble = nobles.get(i);
-                ImageIcon icon = loadNobleIcon(noble);
-                JLabel label;
-                if (icon != null) {
-                    label = new JLabel(icon);
-                    label.setHorizontalAlignment(SwingConstants.CENTER);
-                    label.setVerticalAlignment(SwingConstants.CENTER);
-                } else {
-                    label = new JLabel(
-                            "<html><b>N" + (i + 1) + "</b><br/>P:" + noble.getPrestigePoints()
-                                    + "<br/>Req:" + noble.getRequirement().asMap() + "</html>"
-                    );
-                    label.setHorizontalAlignment(SwingConstants.CENTER);
-                }
-                label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-                label.setForeground(TEXT_PRIMARY);
-                nobleCard.add(label, BorderLayout.CENTER);
-                nobleCard.setToolTipText("Noble " + (i + 1) + " | Prestige " + noble.getPrestigePoints()
-                        + " | Requirements " + noble.getRequirement().asMap());
-            } else {
-                JLabel label = new JLabel("<html><b>Empty</b></html>", SwingConstants.CENTER);
-                label.setForeground(TEXT_MUTED);
-                nobleCard.add(label, BorderLayout.CENTER);
-                nobleCard.setBackground(EMPTY_BG);
-            }
-            noblesPanel.add(nobleCard);
-        }
-        noblesPanel.revalidate();
-        noblesPanel.repaint();
-    }
-
-    private Color colorForBonus(GemColor color) {
-        return switch (color) {
-            case WHITE -> new Color(245, 245, 245);
-            case BLUE -> new Color(206, 225, 255);
-            case GREEN -> new Color(208, 242, 214);
-            case RED -> new Color(255, 214, 214);
-            case BLACK -> new Color(222, 222, 222);
-            case GOLD -> new Color(255, 244, 173);
-        };
-    }
-
-    private Color tokenColor(GemColor color) {
-        return switch (color) {
-            case WHITE -> new Color(240, 240, 240);
-            case BLUE -> new Color(66, 133, 244);
-            case GREEN -> new Color(52, 168, 83);
-            case RED -> new Color(234, 67, 53);
-            case BLACK -> new Color(60, 60, 60);
-            case GOLD -> new Color(251, 188, 5);
-        };
-    }
-
-    private ImageIcon loadTokenIcon(GemColor color) {
-        String filename = switch (color) {
-            case WHITE -> "white.png";
-            case BLUE -> "blue.png";
-            case GREEN -> "green.png";
-            case RED -> "red.png";
-            case BLACK -> "black.png";
-            case GOLD -> "gold.png";
-        };
-
-        Path[] candidates = new Path[]{
-                config.getTokenImageDir().resolve(filename),
-                Path.of("assets", "tokens", filename),
-                Path.of("resources", "tokens", filename),
-                Path.of("src", "assets", "tokens", filename),
-                Path.of("media", "tokens", filename)
-        };
-
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return loadCircularIcon(candidate, TOKEN_ICON_SIZE);
-            }
-        }
-
-        // Fallback: if token images were dropped as unnamed screenshots in media/tokens,
-        // map by file order to common colors used in this project.
-        try (var stream = Files.list(Path.of("media", "tokens"))) {
-            List<Path> pngs = stream
-                    .filter(p -> {
-                        String name = p.getFileName().toString().toLowerCase();
-                        return name.endsWith(".png");
-                    })
-                    .sorted()
-                    .toList();
-
-            if (!pngs.isEmpty()) {
-                int idx = switch (color) {
-                    case GREEN -> 0;
-                    case BLACK -> 1;
-                    case WHITE -> 2;
-                    case RED -> 3;
-                    case BLUE -> 4;
-                    case GOLD -> 5;
-                };
-                if (idx >= 0 && idx < pngs.size()) {
-                    return loadCircularIcon(pngs.get(idx), TOKEN_ICON_SIZE);
-                }
-            }
-        } catch (Exception ignored) {
-            // Fall through to colored button fallback.
-        }
-        return null;
-    }
-
-    private ImageIcon loadCardIcon(DevelopmentCard card) {
-        String filename = "card_" + card.getId() + ".png";
-        Path[] candidates = new Path[]{
-                config.getCardImageDir().resolve("devLevel" + card.getLevel()).resolve(filename),
-                config.getCardImageDir().resolve(filename),
-                Path.of("media", "devLevel" + card.getLevel(), filename)
-        };
-        for (Path path : candidates) {
-            if (Files.exists(path)) {
-                return loadScaledIcon(path, DEV_CARD_ICON_WIDTH, DEV_CARD_ICON_HEIGHT);
-            }
-        }
-        return null;
-    }
-
-    private ImageIcon loadNobleIcon(NobleTile noble) {
-        String filename = "card_" + noble.getId() + ".png";
-        Path[] candidates = new Path[]{
-                config.getNobleImageDir().resolve(filename),
-                Path.of("media", "nobles", filename)
-        };
-        for (Path path : candidates) {
-            if (Files.exists(path)) {
-                return loadScaledIcon(path, NOBLE_ICON_SIZE, NOBLE_ICON_SIZE);
-            }
-        }
-        return null;
-    }
-
-    private ImageIcon loadScaledIcon(Path imagePath, int targetW, int targetH) {
-        ImageIcon icon = new ImageIcon(imagePath.toString());
-        Image src = icon.getImage();
-        int imgW = src.getWidth(null);
-        int imgH = src.getHeight(null);
-        if (imgW <= 0 || imgH <= 0) {
-            imgW = 1;
-            imgH = 1;
-        }
-        double scale = Math.min((double)targetW / imgW, (double)targetH / imgH);
-        int newW = (int)(imgW * scale);
-        int newH = (int)(imgH * scale);
-        int x = (targetW - newW) / 2;
-        int y = (targetH - newH) / 2;
-
-        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = out.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setBackground(new Color(0,0,0,0));
-        g2.clearRect(0, 0, targetW, targetH);
-        g2.drawImage(src, x, y, newW, newH, null);
-        g2.dispose();
-        return new ImageIcon(out);
-    }
-
-    private ImageIcon loadCircularIcon(Path imagePath, int diameter) {
-        ImageIcon icon = new ImageIcon(imagePath.toString());
-        Image src = icon.getImage();
-        int imgW = src.getWidth(null);
-        int imgH = src.getHeight(null);
-        if (imgW <= 0 || imgH <= 0) {
-            imgW = 1;
-            imgH = 1;
-        }
-
-        double scale = Math.max((double) diameter / imgW, (double) diameter / imgH);
-        int newW = (int) Math.ceil(imgW * scale);
-        int newH = (int) Math.ceil(imgH * scale);
-        int x = (diameter - newW) / 2;
-        int y = (diameter - newH) / 2;
-
-        BufferedImage out = new BufferedImage(diameter, diameter, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = out.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setClip(new Ellipse2D.Double(0, 0, diameter, diameter));
-        g2.drawImage(src, x, y, newW, newH, null);
-        g2.dispose();
-        return new ImageIcon(out);
-    }
-
-    private void applyTokenModeRules() {
-        Map<GemColor, Integer> selected = selectedTokens();
-        int total = selected.values().stream().mapToInt(Integer::intValue).sum();
-
-        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
-            GemColor color = entry.getKey();
-            JButton button = entry.getValue();
-
-            if (mode == Mode.TAKE_THREE) {
-                boolean canUse = color != GemColor.GOLD && (selectedTokenCounts.get(color) > 0 || total < 3);
-                button.setEnabled(canUse);
-            } else if (mode == Mode.TAKE_TWO) {
-                GemColor chosen = selected.size() == 1 ? selected.keySet().iterator().next() : null;
-                boolean canUse = color != GemColor.GOLD && (chosen == null || chosen == color);
-                button.setEnabled(canUse);
-            } else {
-                button.setEnabled(false);
-            }
-        }
-        refreshTokenButtonLabels();
-    }
-
-    private void onTokenButtonClicked(GemColor color) {
-        if (color == GemColor.GOLD) {
-            return;
-        }
-
-        if (mode == Mode.TAKE_THREE) {
-            int current = selectedTokenCounts.getOrDefault(color, 0);
-            if (current == 0) {
-                int total = selectedTokenCounts.values().stream().mapToInt(Integer::intValue).sum();
-                if (total < 3) {
-                    selectedTokenCounts.put(color, 1);
-                }
-            } else {
-                selectedTokenCounts.put(color, 0);
-            }
-            return;
-        }
-
-        if (mode == Mode.TAKE_TWO) {
-            if (selectedTokenCounts.getOrDefault(color, 0) == 2) {
-                selectedTokenCounts.put(color, 0);
-            } else {
-                for (GemColor c : GemColor.values()) {
-                    selectedTokenCounts.put(c, 0);
-                }
-                selectedTokenCounts.put(color, 2);
-            }
-        }
-    }
-
-    private void refreshTokenButtonLabels() {
-        for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
-            GemColor color = entry.getKey();
-            JButton button = entry.getValue();
-            int selected = selectedTokenCounts.getOrDefault(color, 0);
-            int bank = state.getBank().getTokenCount(color);
-
-            if (tokenIcons.containsKey(color)) {
-                button.setText("");
-                button.setToolTipText(color.name() + " | bank: " + bank + " | selected: " + selected);
-            } else {
-                button.setText(color.name() + " (" + bank + ")" + (selected > 0 ? " x" + selected : ""));
-            }
-
-            if (selected > 0) {
-                button.setBorder(new LineBorder(ACCENT_BLUE, 2, true));
-            } else {
-                button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
-            }
-        }
-    }
-
-    private TitledBorder createTitledBorder(String title) {
-        TitledBorder border = BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR, 1), title);
-        styleTitledBorder(border);
-        return border;
-    }
-
-    private void styleTitledBorder(TitledBorder border) {
-        border.setTitleColor(TEXT_PRIMARY);
-    }
-
-    private void styleActionButton(JButton button) {
-        button.setBackground(SURFACE_BG);
-        button.setForeground(TEXT_PRIMARY);
-        button.setOpaque(true);
-        button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
-    }
-
-    private void styleScrollPane(JScrollPane scrollPane, Color viewportColor) {
-        scrollPane.setBorder(new LineBorder(BORDER_COLOR, 1));
-        scrollPane.getViewport().setBackground(viewportColor);
-    }
-
-    private String helpTextForMode() {
-        return switch (mode) {
-            case IDLE -> "Select an action to begin this turn. Legal options are enabled; illegal ones stay disabled.";
-            case TAKE_THREE -> "Pick exactly 3 different colors (1 each). Confirm will enable only when valid.";
-            case TAKE_TWO -> "Pick one color and set its spinner to 2. Confirm enables only if bank/rules allow.";
-            case RESERVE -> "Click a legal market card to reserve it. You receive gold if available.";
-            case BUY -> "Click a legal market card or choose a reserved card from the list. Green border means affordable.";
-        };
-    }
-
-    private boolean hasAnyLegalTakeThree(Player player) {
-        List<GemColor> normalColors = List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK);
-        for (int i = 0; i < normalColors.size(); i++) {
-            for (int j = i + 1; j < normalColors.size(); j++) {
-                for (int k = j + 1; k < normalColors.size(); k++) {
-                    Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-                    tokens.put(normalColors.get(i), 1);
-                    tokens.put(normalColors.get(j), 1);
-                    tokens.put(normalColors.get(k), 1);
-                    if (validator.validate(state, player, Move.takeDifferent(tokens)) == null) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean hasAnyLegalTakeTwo(Player player) {
-        for (GemColor color : List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK)) {
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-            tokens.put(color, 2);
-            if (validator.validate(state, player, Move.takeSame(tokens)) == null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean hasAnyLegalReserve(Player player) {
-        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            if (validator.validate(state, player, Move.reserveFaceUp(card)) == null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean hasAnyLegalBuy(Player player) {
-        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            Move move = Move.buy(card, computePaymentTokens(player, card.getCost()), false);
-            if (validator.validate(state, player, move) == null) {
-                return true;
-            }
-        }
-        for (DevelopmentCard card : player.getReservedCards()) {
-            Move move = Move.buy(card, computePaymentTokens(player, card.getCost()), true);
-            if (validator.validate(state, player, move) == null) {
-                return true;
-            }
-        }
-        return false;
+        Object pick = JOptionPane.showInputDialog(
+                this,
+                "Choose a noble",
+                "Noble Choice",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                eligible.toArray(),
+                eligible.get(0)
+        );
+        return pick instanceof NobleTile ? (NobleTile) pick : eligible.get(0);
     }
 
     private String promptName(String prompt) {
@@ -1232,55 +323,49 @@ public class SwingSplendorApp extends JFrame {
     }
 
     private int askComputerCount() {
+        int minComputers = Math.max(1, config.getMinPlayers() - 1);
+        int maxComputers = Math.max(minComputers, config.getMaxPlayers() - 1);
+        if (minComputers == maxComputers) {
+            return minComputers;
+        }
+
+        List<String> options = new ArrayList<>();
+        for (int i = minComputers; i <= maxComputers; i++) {
+            options.add(String.valueOf(i));
+        }
+
         Object choice = JOptionPane.showInputDialog(
                 this,
                 "How many computers do you want to play with?",
                 "Computer Count",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                new Object[]{"1", "2", "3"},
-                "1"
+                options.toArray(),
+                options.get(0)
         );
         if (choice == null) {
-            return 1;
+            return minComputers;
         }
         try {
             int count = Integer.parseInt(choice.toString());
-            if (count < 1) return 1;
-            if (count > 3) return 3;
-            return count;
+            return Math.max(minComputers, Math.min(maxComputers, count));
         } catch (NumberFormatException e) {
-            return 1;
+            return minComputers;
         }
-    }
-
-    private Config buildConfig() {
-        try {
-            return new ConfigLoader().load(Path.of("config.properties"));
-        } catch (IOException | IllegalArgumentException e) {
-            log("Failed to load config.properties. Falling back to defaults. Reason: " + e.getMessage());
-        }
-
-        java.nio.file.Path here = java.nio.file.Path.of(".");
-        return new Config(
-                15, 10, 3, 1, 2, 4, 3, 4,
-                3, 4, 5,
-                4, 5, 7, 5,
-                3, 2, 2, 1,
-                here, here, here, here,
-                here, here, here
-        );
     }
 
     private Map<Integer, List<DevelopmentCard>> buildDecks() {
-        Path csv = config.getCardsPath(1).getParent();
         try {
-            return new CardLoader().load(csv);
+            return new CardLoader().load(
+                    config.getCardsPath(1),
+                    config.getCardsPath(2),
+                    config.getCardsPath(3)
+            );
         } catch (IOException | IllegalArgumentException e) {
             log("Failed to load cards from CSV. Falling back to sample deck. Reason: " + e.getMessage());
         }
 
-        Map<Integer, List<DevelopmentCard>> decks = new java.util.HashMap<>();
+        Map<Integer, List<DevelopmentCard>> decks = new HashMap<>();
         decks.put(1, shuffled(List.of(
                 card(1, 0, GemColor.WHITE, mapCost(0, 1, 1, 1, 1)),
                 card(1, 0, GemColor.BLUE, mapCost(1, 0, 1, 1, 1)),
@@ -1309,61 +394,78 @@ public class SwingSplendorApp extends JFrame {
         return decks;
     }
 
-    private List<NobleTile> buildNobles() {
+    private List<NobleTile> buildNobles(int playerCount) {
         Path csv = config.getNoblesPath();
         try {
-            return new NobleLoader().load(csv);
+            List<NobleTile> nobles = new ArrayList<>(new NobleLoader().load(csv));
+            Collections.shuffle(nobles);
+            return new ArrayList<>(nobles.subList(0, Math.min(config.getNoblesCount(playerCount), nobles.size())));
         } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load nobles from " + csv + ". Falling back to sample nobles. Reason: " + e.getMessage());
+            log("Failed to load nobles from CSV. Falling back to sample nobles. Reason: " + e.getMessage());
         }
 
-        return List.of(
-                noble(1, 3, mapCost(3, 3, 3, 0, 0)),
-                noble(2, 3, mapCost(0, 3, 3, 3, 0)),
-                noble(3, 3, mapCost(0, 0, 3, 3, 3)),
-                noble(4, 3, mapCost(3, 0, 0, 3, 3))
-        );
+        List<NobleTile> fallback = shuffled(List.of(
+                noble(1, mapReq(3, 3, 0, 0, 0)),
+                noble(2, mapReq(0, 3, 3, 0, 0)),
+                noble(3, mapReq(0, 0, 3, 3, 0)),
+                noble(4, mapReq(0, 0, 0, 3, 3)),
+                noble(5, mapReq(3, 0, 0, 0, 3))
+        ));
+        return new ArrayList<>(fallback.subList(0, Math.min(config.getNoblesCount(playerCount), fallback.size())));
     }
 
-    private DevelopmentCard card(int level, int points, GemColor bonus, Map<GemColor, Integer> costs) {
-        model.Cost cost = new model.Cost();
-        for (Map.Entry<GemColor, Integer> entry : costs.entrySet()) {
-            cost.set(entry.getKey(), entry.getValue());
-        }
-        return new DevelopmentCard(0, level, points, bonus, cost);
-    }
-
-    private NobleTile noble(int id, int points, Map<GemColor, Integer> reqs) {
-        model.Cost cost = new model.Cost();
-        for (Map.Entry<GemColor, Integer> entry : reqs.entrySet()) {
-            cost.set(entry.getKey(), entry.getValue());
-        }
-        return new NobleTile(id, points, cost);
-    }
-
-    private Map<GemColor, Integer> mapCost(int w, int b, int g, int r, int k) {
-        Map<GemColor, Integer> m = new EnumMap<>(GemColor.class);
-        if (w > 0) m.put(GemColor.WHITE, w);
-        if (b > 0) m.put(GemColor.BLUE, b);
-        if (g > 0) m.put(GemColor.GREEN, g);
-        if (r > 0) m.put(GemColor.RED, r);
-        if (k > 0) m.put(GemColor.BLACK, k);
-        return m;
-    }
-
-    private List<DevelopmentCard> shuffled(List<DevelopmentCard> cards) {
-        List<DevelopmentCard> copy = new ArrayList<>(cards);
+    private <T> List<T> shuffled(List<T> items) {
+        List<T> copy = new ArrayList<>(items);
         Collections.shuffle(copy);
         return copy;
     }
 
-    private void log(String message) {
-        logArea.append(message + "\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+    private DevelopmentCard card(int level, int prestige, GemColor bonus, Map<GemColor, Integer> cost) {
+        return new DevelopmentCard(0, level, prestige, bonus, toCost(cost));
+    }
+
+    private NobleTile noble(int id, Map<GemColor, Integer> requirement) {
+        return new NobleTile(id, 3, toCost(requirement));
+    }
+
+    private Map<GemColor, Integer> mapCost(int white, int blue, int green, int red, int black) {
+        Map<GemColor, Integer> cost = new EnumMap<>(GemColor.class);
+        cost.put(GemColor.WHITE, white);
+        cost.put(GemColor.BLUE, blue);
+        cost.put(GemColor.GREEN, green);
+        cost.put(GemColor.RED, red);
+        cost.put(GemColor.BLACK, black);
+        return cost;
+    }
+
+    private Map<GemColor, Integer> mapReq(int white, int blue, int green, int red, int black) {
+        return mapCost(white, blue, green, red, black);
+    }
+
+    private Cost toCost(Map<GemColor, Integer> values) {
+        Cost cost = new Cost();
+        for (Map.Entry<GemColor, Integer> entry : values.entrySet()) {
+            cost.set(entry.getKey(), entry.getValue());
+        }
+        return cost;
     }
 
     private boolean isComputerTurn() {
         return computerPlayers.contains(state.getCurrentPlayer());
+    }
+
+    private void showSinglePlayerGameOverDialog(Player winner) {
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Game over.\nWinner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)\n\nPlay again?",
+                "Winner",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE
+        );
+        if (choice == JOptionPane.YES_OPTION) {
+            java.awt.EventQueue.invokeLater(() -> new SwingSplendorApp().setVisible(true));
+        }
+        dispose();
     }
 
     private void scheduleComputerTurnIfNeeded() {
@@ -1371,18 +473,18 @@ public class SwingSplendorApp extends JFrame {
             return;
         }
         computerThinking = true;
-        phaseLabel.setText("Phase: COMPUTER TURN");
+        updateLegalUi();
 
-        Timer timer = new Timer(600, e -> {
+        Timer timer = new Timer(700, e -> {
             ((Timer) e.getSource()).stop();
             computerThinking = false;
-            doComputerTurn();
+            runComputerTurn();
         });
         timer.setRepeats(false);
         timer.start();
     }
 
-    private void doComputerTurn() {
+    private void runComputerTurn() {
         if (finalGameOver || !isComputerTurn()) {
             return;
         }
@@ -1390,15 +492,20 @@ public class SwingSplendorApp extends JFrame {
         Player current = state.getCurrentPlayer();
         try {
             Move move = aiStrategy.chooseMove(state, current, validator);
-            String err = validator.validate(state, current, move);
-            if (err != null) {
-                log("Computer produced illegal move: " + err);
+            if (move == null) {
+                log(current.getName() + " could not find a legal move.");
+                return;
+            }
+            String error = validator.validate(state, current, move);
+            if (error != null) {
+                log("Computer produced illegal move: " + error);
                 return;
             }
 
             executor.execute(state, current, move);
-            String moveSummary = current.getName() + " (Computer-EASY) played: " + summarizeMove(move);
-            latestComputerMoveLabel.setText("Latest Computer Move: " + moveSummary);
+            resolveTokenCapIfNeeded(current);
+            String moveSummary = current.getName() + " played: " + move.getType();
+            latestComputerMoveLabel.setText(moveSummary);
             log(moveSummary);
             JOptionPane.showMessageDialog(
                     this,
@@ -1406,7 +513,6 @@ public class SwingSplendorApp extends JFrame {
                     "Computer Move",
                     JOptionPane.INFORMATION_MESSAGE
             );
-            resolveTokenCapIfNeeded(current);
             resolveNobleAttraction(current, true);
 
             if (winnerChecker.shouldTriggerFinalRound(state)) {
@@ -1419,25 +525,14 @@ public class SwingSplendorApp extends JFrame {
                 Player winner = winnerChecker.determineWinner(state);
                 finalGameOver = true;
                 log("Game over. Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");
-                JOptionPane.showMessageDialog(this,
-                        "Game over.\nWinner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)",
-                        "Winner",
-                        JOptionPane.INFORMATION_MESSAGE);
+                showSinglePlayerGameOverDialog(winner);
+                return;
             }
 
-            switchMode(Mode.IDLE);
+            clearSelection();
             refreshAll();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log("Computer move failed: " + ex.getMessage());
         }
-    }
-
-    private String summarizeMove(Move move) {
-        return switch (move.getType()) {
-            case TAKE_THREE_DIFFERENT -> "Take 3 different " + move.getTokens();
-            case TAKE_TWO_SAME -> "Take 2 same " + move.getTokens();
-            case RESERVE -> "Reserve card " + move.getCard();
-            case BUY -> "Buy card " + move.getCard() + (move.isFromReserved() ? " (reserved)" : " (market)");
-        };
     }
 }

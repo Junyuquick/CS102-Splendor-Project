@@ -1,5 +1,6 @@
 package ai;
 
+import config.Config;
 import engine.Move;
 import engine.MoveValidator;
 import model.DevelopmentCard;
@@ -14,7 +15,12 @@ import java.util.Map;
 import java.util.Random;
 
 public class GreedyStrategy {
+    private final Config config;
     private final Random random = new Random();
+
+    public GreedyStrategy(Config config) {
+        this.config = config;
+    }
 
     public Move chooseMove(GameState state, Player player, MoveValidator validator) {
         return chooseEasyMove(state, player, validator);
@@ -115,7 +121,7 @@ public class GreedyStrategy {
 
         for (GemColor color : normalColors()) {
             Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-            tokens.put(color, 2);
+            tokens.put(color, config.getTakeSameCount());
             Move move = Move.takeSame(tokens);
             if (validator.validate(state, player, move) != null) {
                 continue;
@@ -134,26 +140,50 @@ public class GreedyStrategy {
         Move best = null;
         int bestScore = Integer.MIN_VALUE;
 
-        for (int i = 0; i < colors.size(); i++) {
-            for (int j = i + 1; j < colors.size(); j++) {
-                for (int k = j + 1; k < colors.size(); k++) {
-                    Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-                    tokens.put(colors.get(i), 1);
-                    tokens.put(colors.get(j), 1);
-                    tokens.put(colors.get(k), 1);
-                    Move move = Move.takeDifferent(tokens);
-                    if (validator.validate(state, player, move) != null) {
-                        continue;
-                    }
-                    int score = neededForVisibleCards(state, player, colors.get(i))
-                            + neededForVisibleCards(state, player, colors.get(j))
-                            + neededForVisibleCards(state, player, colors.get(k));
-                    if (score > bestScore) {
-                        best = move;
-                        bestScore = score;
-                    }
+        return bestTakeThreeDifferent(state, player, validator, colors, 0, config.getTakeDifferentCount(), new ArrayList<>(), best, bestScore);
+    }
+
+    private Move bestTakeThreeDifferent(
+            GameState state,
+            Player player,
+            MoveValidator validator,
+            List<GemColor> colors,
+            int startIndex,
+            int remaining,
+            List<GemColor> chosen,
+            Move bestMove,
+            int bestScore
+    ) {
+        if (remaining == 0) {
+            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            int score = 0;
+            for (GemColor color : chosen) {
+                tokens.put(color, 1);
+                score += neededForVisibleCards(state, player, color);
+            }
+            Move move = Move.takeDifferent(tokens);
+            if (validator.validate(state, player, move) == null && score > bestScore) {
+                return move;
+            }
+            return bestMove;
+        }
+
+        Move best = bestMove;
+        int localBestScore = bestScore;
+        for (int i = startIndex; i <= colors.size() - remaining; i++) {
+            chosen.add(colors.get(i));
+            Move candidate = bestTakeThreeDifferent(state, player, validator, colors, i + 1, remaining - 1, chosen, best, localBestScore);
+            if (candidate != null) {
+                int candidateScore = 0;
+                for (GemColor color : candidate.getTokens().keySet()) {
+                    candidateScore += neededForVisibleCards(state, player, color);
+                }
+                if (candidateScore > localBestScore) {
+                    best = candidate;
+                    localBestScore = candidateScore;
                 }
             }
+            chosen.remove(chosen.size() - 1);
         }
         return best;
     }

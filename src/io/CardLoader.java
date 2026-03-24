@@ -15,21 +15,25 @@ import java.util.Locale;
 import java.util.Map;
 
 public class CardLoader {
-
-    public Map<Integer, List<DevelopmentCard>> load(Path dataDir) throws IOException {
+    public Map<Integer, List<DevelopmentCard>> load(Path level1Path, Path level2Path, Path level3Path) throws IOException {
         Map<Integer, List<DevelopmentCard>> byTier = new HashMap<>();
         byTier.put(1, new ArrayList<>());
         byTier.put(2, new ArrayList<>());
         byTier.put(3, new ArrayList<>());
 
+        Map<Integer, Path> csvPaths = Map.of(
+                1, level1Path,
+                2, level2Path,
+                3, level3Path
+        );
+
         for (int level = 1; level <= 3; level++) {
-            Path csvPath = dataDir.resolve("level" + level + ".csv");
+            Path csvPath = csvPaths.get(level);
             List<String> lines = Files.readAllLines(csvPath);
             if (lines.isEmpty()) {
                 throw new IllegalArgumentException("Card CSV is empty: " + csvPath);
             }
 
-            // Skip header
             for (int i = 1; i < lines.size(); i++) {
                 String raw = lines.get(i).trim();
                 if (raw.isEmpty()) {
@@ -40,7 +44,7 @@ public class CardLoader {
                     throw new IllegalArgumentException("Invalid card row at line " + (i + 1) + ": " + raw);
                 }
 
-                int id = i; // Use row number as id
+                int id = i;
                 int csvLevel = parseInt(cols[1], "Level", i + 1);
                 if (csvLevel != level) {
                     throw new IllegalArgumentException("Level mismatch at line " + (i + 1) + ": expected " + level + ", got " + csvLevel);
@@ -66,12 +70,18 @@ public class CardLoader {
             }
         }
 
-        // Randomize each tier deck for gameplay.
         Collections.shuffle(byTier.get(1));
         Collections.shuffle(byTier.get(2));
         Collections.shuffle(byTier.get(3));
-
         return byTier;
+    }
+
+    public Map<Integer, List<DevelopmentCard>> load(Path dataDir) throws IOException {
+        return load(
+                dataDir.resolve("level1.csv"),
+                dataDir.resolve("level2.csv"),
+                dataDir.resolve("level3.csv")
+        );
     }
 
     private int parseTier(String raw) {

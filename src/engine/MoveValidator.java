@@ -88,8 +88,9 @@ public class MoveValidator {
             return "TAKE_THREE_DIFFERENT requires tokens";
         }
         
-        if (tokens.size() != 3) {
-            return "TAKE_THREE_DIFFERENT requires exactly 3 different colors, got " + tokens.size();
+        int requiredColors = config.getTakeDifferentCount();
+        if (tokens.size() != requiredColors) {
+            return "TAKE_THREE_DIFFERENT requires exactly " + requiredColors + " different colors, got " + tokens.size();
         }
         
         GemBank bank = state.getBank();
@@ -109,9 +110,9 @@ public class MoveValidator {
         }
         
         // Check token cap not exceeded
-        int totalAfter = player.getTotalTokens() + 3;
+        int totalAfter = player.getTotalTokens() + config.getTakeDifferentCount();
         if (totalAfter > config.getMaxTokensPerPlayer()) {
-            return "Taking 3 tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
+            return "Taking " + config.getTakeDifferentCount() + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
         }
         
         return null;
@@ -144,27 +145,28 @@ public class MoveValidator {
         GemColor color = tokens.keySet().iterator().next();
         int requested = tokens.get(color);
         
-        if (requested != 2) {
-            return "TAKE_TWO_SAME requires count 2, got " + requested;
+        int sameCount = config.getTakeSameCount();
+        if (requested != sameCount) {
+            return "TAKE_TWO_SAME requires count " + sameCount + ", got " + requested;
         }
         
         GemBank bank = state.getBank();
         int bankCount = bank.getTokenCount(color);
         
-        if (bankCount < 2) {
-            return "Bank has only " + bankCount + " " + color + " tokens, need 2";
+        if (bankCount < sameCount) {
+            return "Bank has only " + bankCount + " " + color + " tokens, need " + sameCount;
         }
-        
-        int remainingAfter = bankCount - 2;
+
+        int remainingAfter = bankCount - sameCount;
         int minRemaining = config.getTakeSameMinRemainingInBank();
         if (remainingAfter < minRemaining) {
-            return "Taking 2 " + color + " would leave only " + remainingAfter + " in bank, need at least " + minRemaining;
+            return "Taking " + sameCount + " " + color + " would leave only " + remainingAfter + " in bank, need at least " + minRemaining;
         }
         
         // Check token cap not exceeded
-        int totalAfter = player.getTotalTokens() + 2;
+        int totalAfter = player.getTotalTokens() + sameCount;
         if (totalAfter > config.getMaxTokensPerPlayer()) {
-            return "Taking 2 tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
+            return "Taking " + sameCount + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
         }
         
         return null;

@@ -1,0 +1,148 @@
+package ui.swing;
+
+import config.Config;
+import model.DevelopmentCard;
+import model.GemColor;
+import model.NobleTile;
+
+import javax.swing.ImageIcon;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+final class SwingAssetLoader {
+    private final Config config;
+
+    SwingAssetLoader(Config config) {
+        this.config = config;
+    }
+
+    ImageIcon loadTokenIcon(GemColor color) {
+        String filename = switch (color) {
+            case WHITE -> "white.png";
+            case BLUE -> "blue.png";
+            case GREEN -> "green.png";
+            case RED -> "red.png";
+            case BLACK -> "black.png";
+            case GOLD -> "gold.png";
+        };
+
+        Path[] candidates = new Path[]{
+                config.getTokenImageDir().resolve(filename),
+                Path.of("assets", "tokens", filename),
+                Path.of("resources", "tokens", filename),
+                Path.of("src", "assets", "tokens", filename),
+                Path.of("media", "tokens", filename)
+        };
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return loadCircularIcon(candidate, SwingUiTheme.TOKEN_ICON_SIZE);
+            }
+        }
+
+        try (var stream = Files.list(Path.of("media", "tokens"))) {
+            List<Path> pngs = stream
+                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".png"))
+                    .sorted()
+                    .toList();
+
+            if (!pngs.isEmpty()) {
+                int idx = switch (color) {
+                    case GREEN -> 0;
+                    case BLACK -> 1;
+                    case WHITE -> 2;
+                    case RED -> 3;
+                    case BLUE -> 4;
+                    case GOLD -> 5;
+                };
+                if (idx >= 0 && idx < pngs.size()) {
+                    return loadCircularIcon(pngs.get(idx), SwingUiTheme.TOKEN_ICON_SIZE);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    ImageIcon loadCardIcon(DevelopmentCard card) {
+        String filename = "card_" + card.getId() + ".png";
+        Path[] candidates = new Path[]{
+                config.getCardImageDir().resolve("devLevel" + card.getLevel()).resolve(filename),
+                config.getCardImageDir().resolve(filename),
+                Path.of("media", "devLevel" + card.getLevel(), filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, SwingUiTheme.DEV_CARD_ICON_WIDTH, SwingUiTheme.DEV_CARD_ICON_HEIGHT);
+            }
+        }
+        return null;
+    }
+
+    ImageIcon loadNobleIcon(NobleTile noble) {
+        String filename = "card_" + noble.getId() + ".png";
+        Path[] candidates = new Path[]{
+                config.getNobleImageDir().resolve(filename),
+                Path.of("media", "nobles", filename)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) {
+                return loadScaledIcon(path, SwingUiTheme.NOBLE_ICON_SIZE, SwingUiTheme.NOBLE_ICON_SIZE);
+            }
+        }
+        return null;
+    }
+
+    private ImageIcon loadScaledIcon(Path imagePath, int targetW, int targetH) {
+        ImageIcon icon = new ImageIcon(imagePath.toString());
+        Image src = icon.getImage();
+        int imgW = Math.max(1, src.getWidth(null));
+        int imgH = Math.max(1, src.getHeight(null));
+        double scale = Math.min((double) targetW / imgW, (double) targetH / imgH);
+        int newW = (int) (imgW * scale);
+        int newH = (int) (imgH * scale);
+        int x = (targetW - newW) / 2;
+        int y = (targetH - newH) / 2;
+
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = out.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setBackground(new Color(0, 0, 0, 0));
+        g2.clearRect(0, 0, targetW, targetH);
+        g2.drawImage(src, x, y, newW, newH, null);
+        g2.dispose();
+        return new ImageIcon(out);
+    }
+
+    private ImageIcon loadCircularIcon(Path imagePath, int diameter) {
+        ImageIcon icon = new ImageIcon(imagePath.toString());
+        Image src = icon.getImage();
+        int imgW = Math.max(1, src.getWidth(null));
+        int imgH = Math.max(1, src.getHeight(null));
+        double scale = Math.max((double) diameter / imgW, (double) diameter / imgH);
+        int newW = (int) Math.ceil(imgW * scale);
+        int newH = (int) Math.ceil(imgH * scale);
+        int x = (diameter - newW) / 2;
+        int y = (diameter - newH) / 2;
+
+        BufferedImage out = new BufferedImage(diameter, diameter, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = out.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setClip(new Ellipse2D.Double(0, 0, diameter, diameter));
+        g2.drawImage(src, x, y, newW, newH, null);
+        g2.dispose();
+        return new ImageIcon(out);
+    }
+}

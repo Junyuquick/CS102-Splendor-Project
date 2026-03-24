@@ -126,7 +126,9 @@ public final class Config {
     public int getMaxReservedCards() { return maxReservedCards; }
     public int getMaxNoblesPerTurn() { return maxNoblesPerTurn; }
     public int getMinPlayer() { return minPlayers; }
+    public int getMinPlayers() { return minPlayers; }
     public int getMaxPlayer() { return maxPlayers; }
+    public int getMaxPlayers() { return maxPlayers; }
 
     public int getNumLevels() { return numLevels; }
     public int getOpenCardsPerLevel() { return openCardsPerLevel; }
