@@ -5,33 +5,20 @@ import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
 import engine.NobleAssigner;
+import engine.TurnPostProcessor;
 import engine.TurnManager;
 import engine.WinnerChecker;
-import io.CardLoader;
-import io.NobleLoader;
-import model.Board;
-import model.Cost;
 import model.DevelopmentCard;
 import model.GameState;
-import model.GemBank;
 import model.GemColor;
 import model.NobleTile;
 import model.Player;
+import setup.GameStateFactory;
 
-import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.Timer;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
-import java.awt.BorderLayout;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +28,7 @@ import java.util.Set;
 public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     private final MoveExecutor executor;
     private final NobleAssigner nobleAssigner;
+    private final TurnPostProcessor turnPostProcessor;
     private final WinnerChecker winnerChecker;
     private final TurnManager turnManager;
     private final GreedyStrategy aiStrategy;
@@ -65,6 +53,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         this.state = createInitialState();
         this.executor = new MoveExecutor(config);
         this.nobleAssigner = new NobleAssigner();
+        this.turnPostProcessor = new TurnPostProcessor(config, nobleAssigner);
         this.winnerChecker = new WinnerChecker(config);
         this.turnManager = new TurnManager();
         this.aiStrategy = new GreedyStrategy(config);
@@ -87,36 +76,18 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             players.add(computer);
         }
 
-        GemBank bank = new GemBank();
-        Map<GemColor, Integer> initialGems = new EnumMap<>(GemColor.class);
-        for (GemColor color : GemColor.values()) {
-            int amount = color == GemColor.GOLD
-                    ? config.getInitialGoldGemCount(players.size())
-                    : config.getInitialNormalGemCount(players.size());
-            initialGems.put(color, amount);
-            bank.addGems(color, amount);
-        }
-
-        Board board = new Board(buildDecks(), buildNobles(players.size()), initialGems, bank, config.getOpenCardsPerLevel());
-        return new GameState(new ArrayList<>(players), board, bank);
+        return new GameStateFactory(config, GameStateFactory.FallbackProfile.LOCAL_APP)
+                .createGame(players, this::log);
     }
 
     private void initialisePlayerPanels() {
-        playersPanel.removeAll();
-        playerCardPanels.clear();
-        playerCardAreas.clear();
-        playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8));
-
-        for (Player player : state.getPlayers()) {
-            JPanel panel = createPlayerPanel(player.getName(), false);
-            javax.swing.JEditorPane area = createPlayerHtmlArea();
-            JScrollPane areaScroll = new JScrollPane(area);
-            SwingUiTheme.styleScrollPane(areaScroll, SwingUiTheme.PANEL_BG_ALT);
-            panel.add(areaScroll, BorderLayout.CENTER);
-            playerCardPanels.put(player, panel);
-            playerCardAreas.put(player, area);
-            playersPanel.add(panel);
-        }
+        SwingPlayerPanelSupport.initialiseSinglePlayerPanels(
+                this,
+                playersPanel,
+                state,
+                playerCardPanels,
+                playerCardAreas
+        );
     }
 
     private void refreshAll() {
@@ -128,26 +99,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         statusLabel.setText("You: " + state.getPlayer(0).getName());
         reservedLabel.setText(current.getName() + " Reserved Cards");
 
-        for (Player player : state.getPlayers()) {
-            javax.swing.JEditorPane area = playerCardAreas.get(player);
-            if (area != null) {
-                area.setText(SwingPlayerSummaryFormatter.buildRichHtml(player, config));
-                area.setCaretPosition(0);
-            }
-
-            JPanel panel = playerCardPanels.get(player);
-            if (panel != null) {
-                if (player == current) {
-                    panel.setBorder(BorderFactory.createTitledBorder(
-                            new LineBorder(SwingUiTheme.ACCENT_BLUE, 2),
-                            player.getName() + " (Active)"
-                    ));
-                    SwingUiTheme.styleTitledBorder((TitledBorder) panel.getBorder());
-                } else {
-                    panel.setBorder(SwingUiTheme.createTitledBorder(player.getName()));
-                }
-            }
-        }
+        SwingPlayerPanelSupport.refreshSinglePlayerPanels(config, current, playerCardPanels, playerCardAreas);
 
         refreshReservedCards(current);
         updateLegalUi();
@@ -238,37 +190,10 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     }
 
     private void resolveTokenCapIfNeeded(Player player) {
-        int maxTokens = config.getMaxTokensPerPlayer();
-        while (player.getTotalTokens() > maxTokens) {
-            int excess = player.getTotalTokens() - maxTokens;
-            Map<GemColor, Integer> discard = autoDiscard(player, excess);
-            player.removeTokens(discard);
-            state.getBank().addTokens(discard);
+        Map<GemColor, Integer> discard = turnPostProcessor.enforceTokenLimit(state, player);
+        if (!discard.isEmpty()) {
             log(player.getName() + " discarded " + discard);
         }
-    }
-
-    private Map<GemColor, Integer> autoDiscard(Player player, int excess) {
-        Map<GemColor, Integer> discard = new EnumMap<>(GemColor.class);
-        Map<GemColor, Integer> working = new EnumMap<>(GemColor.class);
-        working.putAll(player.getTokens());
-        while (excess > 0) {
-            GemColor candidate = null;
-            int max = 0;
-            for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
-                if (entry.getValue() > max) {
-                    max = entry.getValue();
-                    candidate = entry.getKey();
-                }
-            }
-            if (candidate == null || max == 0) {
-                break;
-            }
-            discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
-            working.put(candidate, max - 1);
-            excess--;
-        }
-        return discard;
     }
 
     private void resolveNobleAttraction(Player player, boolean automaticChoice) {
@@ -290,17 +215,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             return eligible.get(0);
         }
         if (automaticChoice) {
-            return eligible.stream()
-                    .max((a, b) -> {
-                        int points = Integer.compare(a.getPrestigePoints(), b.getPrestigePoints());
-                        if (points != 0) {
-                            return points;
-                        }
-                        int aReq = a.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
-                        int bReq = b.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
-                        return Integer.compare(bReq, aReq);
-                    })
-                    .orElse(eligible.get(0));
+            return turnPostProcessor.chooseBestNoble(eligible);
         }
         Object pick = JOptionPane.showInputDialog(
                 this,
@@ -352,102 +267,6 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         } catch (NumberFormatException e) {
             return minComputers;
         }
-    }
-
-    private Map<Integer, List<DevelopmentCard>> buildDecks() {
-        try {
-            return new CardLoader().load(
-                    config.getCardsPath(1),
-                    config.getCardsPath(2),
-                    config.getCardsPath(3)
-            );
-        } catch (IOException | IllegalArgumentException e) {
-            log("Failed to load cards from CSV. Falling back to sample deck. Reason: " + e.getMessage());
-        }
-
-        Map<Integer, List<DevelopmentCard>> decks = new HashMap<>();
-        decks.put(1, shuffled(List.of(
-                card(1, 0, GemColor.WHITE, mapCost(0, 1, 1, 1, 1)),
-                card(1, 0, GemColor.BLUE, mapCost(1, 0, 1, 1, 1)),
-                card(1, 0, GemColor.GREEN, mapCost(1, 1, 0, 1, 1)),
-                card(1, 0, GemColor.RED, mapCost(1, 1, 1, 0, 1)),
-                card(1, 0, GemColor.BLACK, mapCost(1, 1, 1, 1, 0)),
-                card(1, 1, GemColor.WHITE, mapCost(0, 0, 2, 2, 0)),
-                card(1, 1, GemColor.BLUE, mapCost(2, 0, 0, 2, 0)),
-                card(1, 1, GemColor.GREEN, mapCost(2, 2, 0, 0, 0))
-        )));
-        decks.put(2, shuffled(List.of(
-                card(2, 1, GemColor.WHITE, mapCost(0, 2, 2, 2, 0)),
-                card(2, 1, GemColor.BLUE, mapCost(0, 0, 3, 2, 2)),
-                card(2, 1, GemColor.GREEN, mapCost(2, 0, 0, 3, 2)),
-                card(2, 2, GemColor.RED, mapCost(0, 3, 0, 2, 3)),
-                card(2, 2, GemColor.BLACK, mapCost(3, 2, 0, 0, 3)),
-                card(2, 2, GemColor.WHITE, mapCost(3, 0, 3, 2, 0))
-        )));
-        decks.put(3, shuffled(List.of(
-                card(3, 3, GemColor.WHITE, mapCost(0, 3, 3, 5, 3)),
-                card(3, 3, GemColor.BLUE, mapCost(3, 0, 3, 3, 5)),
-                card(3, 4, GemColor.GREEN, mapCost(3, 3, 0, 3, 6)),
-                card(3, 4, GemColor.RED, mapCost(6, 3, 3, 0, 3)),
-                card(3, 5, GemColor.BLACK, mapCost(3, 6, 3, 3, 0))
-        )));
-        return decks;
-    }
-
-    private List<NobleTile> buildNobles(int playerCount) {
-        Path csv = config.getNoblesPath();
-        try {
-            List<NobleTile> nobles = new ArrayList<>(new NobleLoader().load(csv));
-            Collections.shuffle(nobles);
-            return new ArrayList<>(nobles.subList(0, Math.min(config.getNoblesCount(playerCount), nobles.size())));
-        } catch (IOException | IllegalArgumentException e) {
-            log("Failed to load nobles from CSV. Falling back to sample nobles. Reason: " + e.getMessage());
-        }
-
-        List<NobleTile> fallback = shuffled(List.of(
-                noble(1, mapReq(3, 3, 0, 0, 0)),
-                noble(2, mapReq(0, 3, 3, 0, 0)),
-                noble(3, mapReq(0, 0, 3, 3, 0)),
-                noble(4, mapReq(0, 0, 0, 3, 3)),
-                noble(5, mapReq(3, 0, 0, 0, 3))
-        ));
-        return new ArrayList<>(fallback.subList(0, Math.min(config.getNoblesCount(playerCount), fallback.size())));
-    }
-
-    private <T> List<T> shuffled(List<T> items) {
-        List<T> copy = new ArrayList<>(items);
-        Collections.shuffle(copy);
-        return copy;
-    }
-
-    private DevelopmentCard card(int level, int prestige, GemColor bonus, Map<GemColor, Integer> cost) {
-        return new DevelopmentCard(0, level, prestige, bonus, toCost(cost));
-    }
-
-    private NobleTile noble(int id, Map<GemColor, Integer> requirement) {
-        return new NobleTile(id, 3, toCost(requirement));
-    }
-
-    private Map<GemColor, Integer> mapCost(int white, int blue, int green, int red, int black) {
-        Map<GemColor, Integer> cost = new EnumMap<>(GemColor.class);
-        cost.put(GemColor.WHITE, white);
-        cost.put(GemColor.BLUE, blue);
-        cost.put(GemColor.GREEN, green);
-        cost.put(GemColor.RED, red);
-        cost.put(GemColor.BLACK, black);
-        return cost;
-    }
-
-    private Map<GemColor, Integer> mapReq(int white, int blue, int green, int red, int black) {
-        return mapCost(white, blue, green, red, black);
-    }
-
-    private Cost toCost(Map<GemColor, Integer> values) {
-        Cost cost = new Cost();
-        for (Map.Entry<GemColor, Integer> entry : values.entrySet()) {
-            cost.set(entry.getKey(), entry.getValue());
-        }
-        return cost;
     }
 
     private boolean isComputerTurn() {

@@ -6,30 +6,19 @@ import engine.Move;
 import engine.MoveExecutor;
 import engine.MoveValidator;
 import engine.NobleAssigner;
+import engine.TurnPostProcessor;
 import engine.TurnManager;
 import engine.WinnerChecker;
-import io.CardLoader;
-import io.NobleLoader;
-import model.Board;
-import model.Cost;
-import model.DevelopmentCard;
 import model.GameState;
-import model.GemBank;
-import model.GemColor;
-import model.NobleTile;
 import model.Player;
+import setup.GameStateFactory;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -47,6 +36,7 @@ public class GameServer {
     private final MoveValidator validator = new MoveValidator(config);
     private final MoveExecutor executor = new MoveExecutor(config);
     private final NobleAssigner nobleAssigner = new NobleAssigner();
+    private final TurnPostProcessor turnPostProcessor = new TurnPostProcessor(config, nobleAssigner);
     private final WinnerChecker winnerChecker = new WinnerChecker(config);
     private final TurnManager turnManager = new TurnManager();
 
@@ -93,11 +83,9 @@ public class GameServer {
 
         // Initialize game state
         try {
-            int playerCount = players.size();
-            GemBank bank = createBank(playerCount);
-            Board board = createBoard(playerCount, bank);
-            gameState = new GameState(players, board, bank);
-        } catch (IOException e) {
+            gameState = new GameStateFactory(config, GameStateFactory.FallbackProfile.SERVER)
+                    .createGame(players, message -> System.err.println(message));
+        } catch (RuntimeException e) {
             System.err.println("Failed to initialize game: " + e.getMessage());
             return;
         }
@@ -111,34 +99,6 @@ public class GameServer {
         }
 
         System.out.println("Game started!");
-    }
-
-    private Board createBoard(int playerCount, GemBank bank) throws IOException {
-        Map<Integer, List<DevelopmentCard>> decks = buildDecks(config);
-        List<NobleTile> nobles = buildNobles(playerCount);
-
-        Map<GemColor, Integer> initialGems = new EnumMap<>(GemColor.class);
-        for (GemColor color : GemColor.values()) {
-            int amount = color == GemColor.GOLD
-                    ? config.getInitialGoldGemCount(playerCount)
-                    : config.getInitialNormalGemCount(playerCount);
-            initialGems.put(color, amount);
-        }
-
-        return new Board(decks, nobles, initialGems, bank, config.getOpenCardsPerLevel());
-    }
-
-    private GemBank createBank(int playerCount) {
-        GemBank bank = new GemBank();
-        for (GemColor color : GemColor.values()) {
-            Map<GemColor, Integer> delta = new EnumMap<>(GemColor.class);
-            int amount = color == GemColor.GOLD
-                    ? config.getInitialGoldGemCount(playerCount)
-                    : config.getInitialNormalGemCount(playerCount);
-            delta.put(color, amount);
-            bank.addTokens(delta);
-        }
-        return bank;
     }
 
     public synchronized void handleStartRequest(ClientHandler client) {
@@ -192,10 +152,10 @@ public class GameServer {
 
         // Execute the move
         executor.execute(gameState, currentPlayer, move);
-        resolveTokenCapIfNeeded(currentPlayer);
+        turnPostProcessor.enforceTokenLimit(gameState, currentPlayer);
 
         // Handle noble assignment
-        assignConfiguredNobles(currentPlayer);
+        turnPostProcessor.assignBestAvailableNobles(gameState, currentPlayer);
 
         // Check for final round
         if (winnerChecker.shouldTriggerFinalRound(gameState)) {
@@ -296,158 +256,4 @@ public class GameServer {
         }
     }
 
-    private static Map<Integer, List<DevelopmentCard>> buildDecks(Config config) {
-        try {
-            return new CardLoader().load(
-                    config.getCardsPath(1),
-                    config.getCardsPath(2),
-                    config.getCardsPath(3)
-            );
-        } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load cards from configured CSV paths. Falling back to sample deck. Reason: " + e.getMessage());
-        }
-
-        Map<Integer, List<DevelopmentCard>> decks = new HashMap<>();
-
-        decks.put(1, shuffled(List.of(
-                card(1, 0, GemColor.WHITE, mapCost(0, 1, 1, 1, 1)),
-                card(1, 0, GemColor.BLUE, mapCost(1, 0, 1, 1, 1)),
-                card(1, 0, GemColor.GREEN, mapCost(1, 1, 0, 1, 1)),
-                card(1, 0, GemColor.RED, mapCost(1, 1, 1, 0, 1)),
-                card(1, 0, GemColor.BLACK, mapCost(1, 1, 1, 1, 0)),
-                card(1, 1, GemColor.WHITE, mapCost(0, 0, 2, 2, 0)),
-                card(1, 1, GemColor.BLUE, mapCost(2, 0, 0, 2, 0)),
-                card(1, 1, GemColor.GREEN, mapCost(2, 2, 0, 0, 0))
-        )));
-
-        decks.put(2, shuffled(List.of(
-                card(2, 1, GemColor.WHITE, mapCost(0, 2, 2, 2, 0)),
-                card(2, 1, GemColor.BLUE, mapCost(0, 0, 3, 2, 2)),
-                card(2, 1, GemColor.GREEN, mapCost(2, 0, 0, 3, 2)),
-                card(2, 2, GemColor.RED, mapCost(0, 3, 0, 2, 3)),
-                card(2, 2, GemColor.BLACK, mapCost(3, 2, 0, 0, 3)),
-                card(2, 2, GemColor.WHITE, mapCost(3, 0, 3, 2, 0))
-        )));
-
-        decks.put(3, shuffled(List.of(
-                card(3, 3, GemColor.WHITE, mapCost(0, 3, 3, 5, 3)),
-                card(3, 3, GemColor.BLUE, mapCost(3, 0, 3, 3, 5)),
-                card(3, 4, GemColor.GREEN, mapCost(3, 3, 0, 3, 6)),
-                card(3, 4, GemColor.RED, mapCost(6, 3, 3, 0, 3)),
-                card(3, 5, GemColor.BLACK, mapCost(3, 6, 3, 3, 0))
-        )));
-
-        return decks;
-    }
-
-    private List<NobleTile> buildNobles(int playerCount) {
-        Path csv = config.getNoblesPath();
-        try {
-            List<NobleTile> nobles = new NobleLoader().load(csv);
-            Collections.shuffle(nobles);
-            int nobleCount = Math.min(config.getNoblesCount(playerCount), nobles.size());
-            return new ArrayList<>(nobles.subList(0, nobleCount));
-        } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load nobles from " + csv + ". Falling back to sample nobles. Reason: " + e.getMessage());
-        }
-
-        List<NobleTile> fallback = new ArrayList<>(List.of(
-                noble(1, 3, mapCost(3, 3, 3, 0, 0)),
-                noble(2, 3, mapCost(0, 3, 3, 3, 0)),
-                noble(3, 3, mapCost(0, 0, 3, 3, 3)),
-                noble(4, 3, mapCost(3, 0, 0, 3, 3))
-        ));
-        Collections.shuffle(fallback);
-        int nobleCount = Math.min(config.getNoblesCount(playerCount), fallback.size());
-        return new ArrayList<>(fallback.subList(0, nobleCount));
-    }
-
-    private static DevelopmentCard card(int level, int points, GemColor bonus, Map<GemColor, Integer> costs) {
-        Cost cost = new Cost();
-        for (Map.Entry<GemColor, Integer> entry : costs.entrySet()) {
-            cost.set(entry.getKey(), entry.getValue());
-        }
-        return new DevelopmentCard(0, level, points, bonus, cost);
-    }
-
-    private static NobleTile noble(int id, int points, Map<GemColor, Integer> reqs) {
-        Cost cost = new Cost();
-        for (Map.Entry<GemColor, Integer> entry : reqs.entrySet()) {
-            cost.set(entry.getKey(), entry.getValue());
-        }
-        return new NobleTile(id, points, cost);
-    }
-
-    private static Map<GemColor, Integer> mapCost(int w, int b, int g, int r, int k) {
-        Map<GemColor, Integer> m = new EnumMap<>(GemColor.class);
-        if (w > 0) m.put(GemColor.WHITE, w);
-        if (b > 0) m.put(GemColor.BLUE, b);
-        if (g > 0) m.put(GemColor.GREEN, g);
-        if (r > 0) m.put(GemColor.RED, r);
-        if (k > 0) m.put(GemColor.BLACK, k);
-        return m;
-    }
-
-    private static List<DevelopmentCard> shuffled(List<DevelopmentCard> cards) {
-        List<DevelopmentCard> copy = new ArrayList<>(cards);
-        Collections.shuffle(copy);
-        return copy;
-    }
-
-    private void resolveTokenCapIfNeeded(Player player) {
-        int maxTokens = config.getMaxTokensPerPlayer();
-        while (player.getTotalTokens() > maxTokens) {
-            int excess = player.getTotalTokens() - maxTokens;
-            Map<GemColor, Integer> discard = autoDiscard(player, excess);
-            player.removeTokens(discard);
-            gameState.getBank().addTokens(discard);
-        }
-    }
-
-    private Map<GemColor, Integer> autoDiscard(Player player, int excess) {
-        Map<GemColor, Integer> discard = new EnumMap<>(GemColor.class);
-        Map<GemColor, Integer> working = new EnumMap<>(GemColor.class);
-        working.putAll(player.getTokens());
-        while (excess > 0) {
-            GemColor candidate = null;
-            int max = 0;
-            for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
-                if (entry.getValue() > max) {
-                    max = entry.getValue();
-                    candidate = entry.getKey();
-                }
-            }
-            if (candidate == null || max == 0) {
-                break;
-            }
-            discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
-            working.put(candidate, max - 1);
-            excess--;
-        }
-        return discard;
-    }
-
-    private void assignConfiguredNobles(Player player) {
-        List<NobleTile> eligibleNobles = new ArrayList<>(nobleAssigner.findEligibleNobles(gameState, player));
-        int noblesThisTurn = Math.min(config.getMaxNoblesPerTurn(), eligibleNobles.size());
-        for (int i = 0; i < noblesThisTurn; i++) {
-            NobleTile chosen = chooseBestNoble(eligibleNobles);
-            nobleAssigner.assignNoble(gameState, player, chosen);
-            eligibleNobles.remove(chosen);
-        }
-    }
-
-    private NobleTile chooseBestNoble(List<NobleTile> eligibleNobles) {
-        return eligibleNobles.stream()
-                .max((a, b) -> {
-                    int points = Integer.compare(a.getPrestigePoints(), b.getPrestigePoints());
-                    if (points != 0) {
-                        return points;
-                    }
-                    int aReq = a.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
-                    int bReq = b.getRequirement().asMap().values().stream().mapToInt(Integer::intValue).sum();
-                    return Integer.compare(bReq, aReq);
-                })
-                .orElse(eligibleNobles.get(0));
-    }
 }

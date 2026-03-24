@@ -2,6 +2,7 @@ package ai;
 
 import config.Config;
 import engine.Move;
+import engine.PaymentCalculator;
 import engine.MoveValidator;
 import model.DevelopmentCard;
 import model.GameState;
@@ -200,29 +201,7 @@ public class GreedyStrategy {
     }
 
     private Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
-        Map<GemColor, Integer> payment = new EnumMap<>(GemColor.class);
-        int goldNeeded = 0;
-
-        for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {
-            GemColor color = entry.getKey();
-            int required = entry.getValue();
-
-            int remaining = Math.max(0, required - player.getBonusCount(color));
-            if (remaining == 0) {
-                continue;
-            }
-
-            int useColor = Math.min(player.getTokenCount(color), remaining);
-            if (useColor > 0) {
-                payment.put(color, useColor);
-            }
-            goldNeeded += (remaining - useColor);
-        }
-
-        if (goldNeeded > 0) {
-            payment.put(GemColor.GOLD, goldNeeded);
-        }
-        return payment;
+        return PaymentCalculator.computePaymentTokens(player, cost);
     }
 
     private int totalCost(Map<GemColor, Integer> cost) {
