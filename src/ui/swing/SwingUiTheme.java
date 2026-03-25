@@ -24,11 +24,11 @@ final class SwingUiTheme {
     static final int NOBLE_CARD_WIDTH = 122;
     static final int NOBLE_CARD_HEIGHT = 122;
 
-    static final Color APP_BG = new Color(24, 27, 31);
-    static final Color PANEL_BG = new Color(31, 36, 42);
-    static final Color PANEL_BG_ALT = new Color(39, 45, 52);
-    static final Color SURFACE_BG = new Color(46, 53, 61);
-    static final Color EMPTY_BG = new Color(58, 63, 70);
+    static final Color APP_BG = new Color(82, 87, 94);
+    static final Color PANEL_BG = new Color(100, 106, 114);
+    static final Color PANEL_BG_ALT = new Color(116, 123, 132);
+    static final Color SURFACE_BG = new Color(132, 139, 148);
+    static final Color EMPTY_BG = new Color(148, 154, 162);
     static final Color TEXT_PRIMARY = new Color(232, 236, 241);
     static final Color TEXT_MUTED = new Color(182, 190, 200);
     static final Color BORDER_COLOR = new Color(92, 102, 114);
