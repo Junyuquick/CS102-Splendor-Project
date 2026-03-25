@@ -8,8 +8,12 @@ import network.GameClient;
 import network.NetworkMessage;
 
 import javax.swing.JOptionPane;
+import javax.swing.JEditorPane;
+import javax.swing.JPanel;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Swing UI for multiplayer Splendor client.
@@ -17,6 +21,8 @@ import java.util.List;
  */
 public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
     private final GameClient client;
+    private final Map<Player, JPanel> playerCardPanels = new LinkedHashMap<>();
+    private final Map<Player, JEditorPane> playerCardAreas = new LinkedHashMap<>();
     private int myPlayerIndex = -1;
     private int hostPlayerIndex = 0;
     private int minPlayersToStart;
@@ -139,7 +145,8 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
             rebuildMarketButtons();
             rebuildNobleCards();
             refreshBankCounts();
-            refreshReservedCards(myPlayerIndex >= 0 ? state.getPlayer(myPlayerIndex) : null);
+            Player current = state.getCurrentPlayer();
+            refreshReservedCards(current);
         } else {
             clearPreGamePanels();
         }
@@ -153,6 +160,8 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      */
     private void refreshPlayers() {
         if (state == null) {
+            playerCardPanels.clear();
+            playerCardAreas.clear();
             SwingPlayerPanelSupport.renderLobbyPlayers(
                     this,
                     playersPanel,
@@ -164,7 +173,13 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
             return;
         }
 
-        SwingPlayerPanelSupport.renderMultiplayerPlayers(this, playersPanel, state);
+        ensureInGamePlayerPanels();
+        SwingPlayerPanelSupport.refreshSinglePlayerPanels(
+                config,
+                state.getCurrentPlayer(),
+                playerCardPanels,
+                playerCardAreas
+        );
     }
 
     /**
@@ -181,10 +196,10 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + client.getPlayerName() + (myPlayerIndex == state.getCurrentPlayerIndex() ? " (Your Turn)" : ""));
-        phaseLabel.setText("Round: " + (state.isFinalRound() ? "Final" : "Normal"));
+        statusLabel.setText("You: " + client.getPlayerName());
+        phaseLabel.setText("Turn: " + current.getName() + (state.isFinalRound() ? " | Final Round" : ""));
         lobbyStatusLabel.setText("Turn: " + current.getName());
-        reservedLabel.setText("Your Reserved Cards");
+        reservedLabel.setText(current.getName() + " Reserved Cards");
     }
 
     /**
@@ -261,8 +276,10 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + client.getPlayerName() + (myTurn ? " (Your Turn)" : ""));
-        phaseLabel.setText("Phase: " + mode.name().replace('_', ' '));
+        statusLabel.setText("You: " + client.getPlayerName());
+        phaseLabel.setText("Turn: " + current.getName()
+                + " | Phase: " + mode.name().replace('_', ' ')
+                + (state.isFinalRound() ? " | Final Round" : ""));
         helpArea.setText(myTurn ? activeTurnHelpText() : "Wait for the other player to finish their turn.");
 
         actionTakeThree.setEnabled(myTurn && hasAnyLegalTakeThree(current));
@@ -281,6 +298,20 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
                 && mode != SwingGameMode.IDLE
                 && pending != null
                 && validator.validate(state, current, pending) == null);
+    }
+
+    private void ensureInGamePlayerPanels() {
+        if (playerCardPanels.size() == state.getPlayers().size() && playerCardAreas.size() == state.getPlayers().size()) {
+            return;
+        }
+
+        SwingPlayerPanelSupport.initialiseSinglePlayerPanels(
+                this,
+                playersPanel,
+                state,
+                playerCardPanels,
+                playerCardAreas
+        );
     }
 
     /**
