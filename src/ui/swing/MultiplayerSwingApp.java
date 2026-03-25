@@ -300,8 +300,16 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
                 && validator.validate(state, current, pending) == null);
     }
 
+    @Override
+    protected boolean showTokenBankCountsOnButtons() {
+        return true;
+    }
+
     private void ensureInGamePlayerPanels() {
-        if (playerCardPanels.size() == state.getPlayers().size() && playerCardAreas.size() == state.getPlayers().size()) {
+        if (playerCardPanels.size() == state.getPlayers().size()
+                && playerCardAreas.size() == state.getPlayers().size()
+                && playerCardPanels.keySet().containsAll(state.getPlayers())
+                && playerCardAreas.keySet().containsAll(state.getPlayers())) {
             return;
         }
 
