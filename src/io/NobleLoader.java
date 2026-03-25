@@ -10,7 +10,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Loads noble-tile data from CSV input.
+ */
 public class NobleLoader {
+    /**
+     * Loads nobles from a CSV file.
+     *
+     * @param csvPath path to the noble CSV file
+     * @return the nobles parsed from that file
+     * @throws IOException if the file cannot be read
+     */
     public List<NobleTile> load(Path csvPath) throws IOException {
         List<String> lines = Files.readAllLines(csvPath);
         if (lines.isEmpty()) {

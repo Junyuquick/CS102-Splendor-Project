@@ -23,6 +23,11 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
     private List<String> lobbyPlayers = new ArrayList<>();
     private boolean shuttingDown = false;
 
+    /**
+     * Creates a multiplayer game window using the default configuration.
+     *
+     * @param client connected multiplayer client
+     */
     public MultiplayerSwingApp(GameClient client) {
         this(client, SwingConfigSupport.loadConfig());
     }
@@ -39,6 +44,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         new Thread(this::listenForMessages, "Splendor-Client-Listener").start();
     }
 
+    /**
+     * Starts the background receive loop that feeds server messages back onto the Swing thread.
+     */
     private void listenForMessages() {
         while (client.isConnected()) {
             NetworkMessage message = client.receiveMessage();
@@ -56,6 +64,11 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Applies a received network message to the local Swing state.
+     *
+     * @param message message received from the server
+     */
     private void handleMessage(NetworkMessage message) {
         switch (message.getType()) {
             case JOIN_ACK -> {
@@ -89,6 +102,11 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Handles the end-of-game prompt shown after the server reports a winner.
+     *
+     * @param message human-readable game-over message
+     */
     private void handleGameOver(String message) {
         disableAllInputs();
         int choice = JOptionPane.showConfirmDialog(
@@ -113,6 +131,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         dispose();
     }
 
+    /**
+     * Refreshes all multiplayer panels based on the latest lobby or game state.
+     */
     private void refreshAll() {
         if (state != null) {
             rebuildMarketButtons();
@@ -127,6 +148,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         updateLegalUi();
     }
 
+    /**
+     * Refreshes either the pre-game lobby panels or the in-game player summaries.
+     */
     private void refreshPlayers() {
         if (state == null) {
             SwingPlayerPanelSupport.renderLobbyPlayers(
@@ -143,6 +167,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         SwingPlayerPanelSupport.renderMultiplayerPlayers(this, playersPanel, state);
     }
 
+    /**
+     * Refreshes the status labels for either lobby or active-game mode.
+     */
     private void refreshStatus() {
         if (state == null) {
             int needed = Math.max(0, minPlayersToStart - lobbyPlayers.size());
@@ -160,11 +187,22 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         reservedLabel.setText("Your Reserved Cards");
     }
 
+    /**
+     * Indicates whether the local client may switch into the requested interaction mode.
+     *
+     * @param newMode requested interaction mode
+     * @return {@code true} when it is the local player's turn
+     */
     @Override
     protected boolean canSwitchMode(SwingGameMode newMode) {
         return state != null && myPlayerIndex == state.getCurrentPlayerIndex();
     }
 
+    /**
+     * Logs a short explanation when interaction is blocked.
+     *
+     * @param newMode rejected interaction mode
+     */
     @Override
     protected void onModeSwitchRejected(SwingGameMode newMode) {
         if (state == null) {
@@ -174,6 +212,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Validates the current selection locally and sends the resulting move to the server.
+     */
     @Override
     protected void handleConfirmAction() {
         if (state == null || myPlayerIndex != state.getCurrentPlayerIndex()) {
@@ -199,6 +240,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         clearSelection();
     }
 
+    /**
+     * Refreshes action availability for either the lobby state or the current multiplayer turn.
+     */
     @Override
     protected void updateLegalUi() {
         boolean gameStarted = state != null;
@@ -239,6 +283,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
                 && validator.validate(state, current, pending) == null);
     }
 
+    /**
+     * Sends a start-game request when the local client is the host and the lobby is ready.
+     */
     private void onStartGame() {
         if (state != null) {
             return;
@@ -255,14 +302,29 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         log("Start request sent.");
     }
 
+    /**
+     * Indicates whether the local client is currently the lobby host.
+     *
+     * @return {@code true} when the local player is the host
+     */
     private boolean isHost() {
         return myPlayerIndex >= 0 && myPlayerIndex == hostPlayerIndex;
     }
 
+    /**
+     * Returns the current player index from the latest state snapshot.
+     *
+     * @return current player index, or {@code -1} if no game is active
+     */
     private int currentPlayerIndex() {
         return state == null ? -1 : state.getCurrentPlayerIndex();
     }
 
+    /**
+     * Shows a popup when control passes to the local player.
+     *
+     * @param previousCurrentPlayerIndex player whose turn it was before the latest update
+     */
     private void maybeShowTurnPopup(int previousCurrentPlayerIndex) {
         if (state == null || myPlayerIndex < 0) {
             return;

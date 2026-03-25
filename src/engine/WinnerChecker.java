@@ -5,26 +5,19 @@ import model.*;
 import java.util.*;
 
 /**
- * Decides when the game ends and who wins.
- * 
- * Enforces:
- * - Final-round ending rule (game continues until turn order returns to starting point)
- * - Winner selection by highest prestige points
- * - Tie-breaker by fewest purchased development cards
- * 
- * Called by GameEngine each turn after:
- * - Nobles are assigned
- * - Turn advancement is applied as needed
+ * Evaluates endgame conditions and chooses the winning player.
+ *
+ * <p>The final round is triggered once a player reaches the configured prestige threshold.
+ * Winner selection then prefers highest prestige and breaks ties by fewest purchased cards.
  */
 public class WinnerChecker {
     
     private final Config config;
     
     /**
-     * Constructs a WinnerChecker with the given configuration.
-     * Config is used for the points-to-win threshold.
-     * 
-     * @param config the game configuration
+     * Creates a checker that uses the supplied victory configuration.
+     *
+     * @param config game configuration containing the win threshold
      */
     public WinnerChecker(Config config) {
         this.config = config;
@@ -39,14 +32,12 @@ public class WinnerChecker {
      * @return true if final round should be triggered, false otherwise
      */
     public boolean shouldTriggerFinalRound(GameState state) {
-        // Final round already active
         if (state.isFinalRound()) {
             return false;
         }
         
         int winThreshold = config.getpointsToWin();
         
-        // Check if any player has reached the threshold
         for (Player player : state.getPlayers()) {
             if (player.getPrestigePoints() >= winThreshold) {
                 return true;
@@ -57,21 +48,16 @@ public class WinnerChecker {
     }
     
     /**
-     * Determines if the game is over.
-     * The game ends when the final round has been triggered AND
-     * the turn order has cycled back to the player who triggered it.
-     * This is typically enforced by TurnManager.
-     * 
-     * This method checks if the final round flag is set.
-     * The caller (GameEngine/TurnManager) must handle the turn-order cycling logic.
+     * Returns whether the game is in its endgame state.
+     *
+     * <p>This implementation reflects only the {@link GameState#isFinalRound()} flag. Callers
+     * that need to know whether the last turn has completed must combine this with
+     * {@link TurnManager#hasFinalRoundCompleted(model.GameState)}.
      * 
      * @param state the game state
      * @return true if the game is over, false otherwise
      */
     public boolean isGameOver(GameState state) {
-        // Game is over when final round is set AND it's been confirmed complete by TurnManager.
-        // This method returns true when final round has been triggered and processed.
-        // In practice, TurnManager will call this when cycling back to the starting player.
         return state.isFinalRound();
     }
     
@@ -99,14 +85,12 @@ public class WinnerChecker {
         for (int i = 1; i < players.size(); i++) {
             Player challenger = players.get(i);
             
-            // Compare by prestige first
             int winnerPrestige = winner.getPrestigePoints();
             int challengerPrestige = challenger.getPrestigePoints();
             
             if (challengerPrestige > winnerPrestige) {
                 winner = challenger;
             } else if (challengerPrestige == winnerPrestige) {
-                // Tie in prestige: compare by fewest cards
                 int winnerCards = winner.getDevelopmentCardCount();
                 int challengerCards = challenger.getDevelopmentCardCount();
                 

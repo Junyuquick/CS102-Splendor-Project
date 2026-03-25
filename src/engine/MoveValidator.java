@@ -5,26 +5,19 @@ import model.*;
 import java.util.*;
 
 /**
- * Prevents illegal moves before any state change happens.
- * 
- * Enforces rules for:
- * - Token-taking constraints
- * - Reservation limits
- * - Purchase affordability (bonuses + tokens + gold)
- * - Maximum token hand size
- * 
- * Called by GameEngine before move execution.
- * Used by AI to filter candidate moves.
+ * Checks whether a proposed move is legal before any game state is mutated.
+ *
+ * <p>The validator enforces token-taking rules, reserve limits, affordability, and the
+ * per-player token cap. A {@code null} return value indicates that the move is legal.
  */
 public class MoveValidator {
     
     private final Config config;
     
     /**
-     * Constructs a MoveValidator with the given configuration.
-     * Config is used for numeric constraints like max tokens, max reserved cards, etc.
-     * 
-     * @param config the game configuration
+     * Creates a validator backed by the supplied rule configuration.
+     *
+     * @param config game configuration containing numeric move constraints
      */
     public MoveValidator(Config config) {
         this.config = config;
@@ -95,7 +88,6 @@ public class MoveValidator {
         
         GemBank bank = state.getBank();
         
-        // Check each color has at least 1 token
         for (Map.Entry<GemColor, Integer> entry : tokens.entrySet()) {
             GemColor color = entry.getKey();
             int requested = entry.getValue();
@@ -109,7 +101,6 @@ public class MoveValidator {
             }
         }
         
-        // Check token cap not exceeded
         int totalAfter = player.getTotalTokens() + config.getTakeDifferentCount();
         if (totalAfter > config.getMaxTokensPerPlayer()) {
             return "Taking " + config.getTakeDifferentCount() + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
@@ -163,7 +154,6 @@ public class MoveValidator {
             return "Taking " + sameCount + " " + color + " would leave only " + remainingAfter + " in bank, need at least " + minRemaining;
         }
         
-        // Check token cap not exceeded
         int totalAfter = player.getTotalTokens() + sameCount;
         if (totalAfter > config.getMaxTokensPerPlayer()) {
             return "Taking " + sameCount + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
@@ -175,9 +165,11 @@ public class MoveValidator {
     /**
      * Validates a RESERVE move.
      * Checks:
-     * - Card exists on board or in specified deck level
-     * - Player has not reached reserve limit
-     * - If giving gold bonus, bank has gold available
+     * - A card was supplied
+     * - The player has not reached the reserve limit
+     *
+     * <p>The current implementation accepts face-up reservations and relies on downstream
+     * board logic to remove the selected card.
      * 
      * @param state the game state
      * @param player the player
@@ -193,23 +185,20 @@ public class MoveValidator {
         
         Board board = state.getBoard();
         
-        // Check card exists on board
         List<DevelopmentCard> faceUp = board.getFaceUpCards();
         if (!faceUp.contains(card)) {
-            // Could also be in a deck, but validation of specific deck availability
-            // depends on Board implementation
+            // Deck-reservation validation is intentionally deferred because the board API does
+            // not expose deck contents in a way that identifies a specific hidden card.
         }
         
-        // Check reserve limit
         List<DevelopmentCard> reserved = player.getReservedCards();
         if (reserved.size() >= config.getMaxReservedCards()) {
             return "Player has already reserved " + reserved.size() + " cards (max: " + config.getMaxReservedCards() + ")";
         }
         
-        // Check gold bonus availability (if applicable)
         GemBank bank = state.getBank();
         if (bank.getTokenCount(GemColor.GOLD) > 0) {
-            // Gold is available, can give bonus
+            // Reserving remains legal whether or not a gold bonus is available.
         }
         
         return null;
@@ -236,7 +225,6 @@ public class MoveValidator {
             return "BUY requires a card";
         }
         
-        // Check card availability
         boolean fromReserved = move.isFromReserved();
         if (fromReserved) {
             if (!player.getReservedCards().contains(card)) {
@@ -249,14 +237,11 @@ public class MoveValidator {
             }
         }
         
-        // Get card cost
         Map<GemColor, Integer> cost = card.getCost();
         if (cost == null || cost.isEmpty()) {
-            // Card costs nothing, automatically affordable
             return null;
         }
         
-        // Compute affordability
         String affordabilityError = canAfford(player, cost);
         return affordabilityError;
     }
@@ -279,27 +264,22 @@ public class MoveValidator {
             GemColor color = entry.getKey();
             int needed = entry.getValue();
             
-            // Get permanent bonus first
             int bonusCount = player.getBonusCount(color);
             int remaining = needed - bonusCount;
             
             if (remaining <= 0) {
-                // Fully covered by bonuses
                 continue;
             }
             
-            // Use colored tokens
             int playerTokens = player.getTokenCount(color);
             int tokensUsable = Math.min(playerTokens, remaining);
             remaining -= tokensUsable;
             
             if (remaining > 0) {
-                // Need gold to cover the gap
                 goldNeeded += remaining;
             }
         }
         
-        // Check if player has enough gold
         int playerGold = player.getTokenCount(GemColor.GOLD);
         if (playerGold < goldNeeded) {
             return "Cannot afford card: need " + goldNeeded + " gold tokens, have " + playerGold;

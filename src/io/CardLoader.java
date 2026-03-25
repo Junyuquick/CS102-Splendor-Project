@@ -14,7 +14,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Loads development-card data from CSV files.
+ */
 public class CardLoader {
+    /**
+     * Loads and shuffles card decks for all three tiers from separate CSV files.
+     *
+     * @param level1Path path to the level-1 card data
+     * @param level2Path path to the level-2 card data
+     * @param level3Path path to the level-3 card data
+     * @return cards grouped by tier number
+     * @throws IOException if any CSV file cannot be read
+     */
     public Map<Integer, List<DevelopmentCard>> load(Path level1Path, Path level2Path, Path level3Path) throws IOException {
         Map<Integer, List<DevelopmentCard>> byTier = new HashMap<>();
         byTier.put(1, new ArrayList<>());
@@ -76,29 +88,19 @@ public class CardLoader {
         return byTier;
     }
 
+    /**
+     * Loads and shuffles card decks using the conventional file names inside one data directory.
+     *
+     * @param dataDir directory containing {@code level1.csv}, {@code level2.csv}, and {@code level3.csv}
+     * @return cards grouped by tier number
+     * @throws IOException if any CSV file cannot be read
+     */
     public Map<Integer, List<DevelopmentCard>> load(Path dataDir) throws IOException {
         return load(
                 dataDir.resolve("level1.csv"),
                 dataDir.resolve("level2.csv"),
                 dataDir.resolve("level3.csv")
         );
-    }
-
-    private int parseTier(String raw) {
-        String value = raw.trim();
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("Missing tier value");
-        }
-        // Supports format like "1", "2", "3", or values where first char is tier.
-        char first = value.charAt(0);
-        if (!Character.isDigit(first)) {
-            throw new IllegalArgumentException("Invalid tier value: " + raw);
-        }
-        int tier = Character.digit(first, 10);
-        if (tier < 1 || tier > 3) {
-            throw new IllegalArgumentException("Tier must be 1-3, got: " + raw);
-        }
-        return tier;
     }
 
     private GemColor parseColor(String raw) {

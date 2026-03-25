@@ -5,26 +5,19 @@ import model.*;
 import java.util.*;
 
 /**
- * Applies validated moves to GameState.
- * 
- * Centralizes all mutations to keep state updates consistent. Handles:
- * - Player token count updates
- * - Player card collections (reserved and purchased)
- * - Bank token supply changes
- * - Board face-up card refills when needed
- * 
- * Called by GameEngine after MoveValidator approves a move.
- * Typically followed by NobleAssigner and WinnerChecker.
+ * Applies already validated moves to the mutable game state.
+ *
+ * <p>This class centralizes board, bank, and player mutations so turn-processing code can
+ * execute moves consistently before any post-turn effects are applied.
  */
 public class MoveExecutor {
     
     private final Config config;
     
     /**
-     * Constructs a MoveExecutor with the given configuration.
-     * Config is used for execution rules like reserve gold bonus and token cap handling.
-     * 
-     * @param config the game configuration
+     * Creates an executor that uses the supplied rule configuration.
+     *
+     * @param config game configuration used for execution details such as reserve bonuses
      */
     public MoveExecutor(Config config) {
         this.config = config;
@@ -62,131 +55,77 @@ public class MoveExecutor {
     }
     
     /**
-     * Executes taking three different colored tokens.
-     * 
-     * Implementation:
-     * - Takes exactly one token of each specified color from the bank
-     * - Adds tokens to the player
-     * - Enforces token cap (if exceeded, caller must handle discard logic)
-     * 
-     * @param state the game state (mutated)
-     * @param player the player taking tokens
-     * @param move the move with token colors specified
+     * Applies a move that takes one token from each selected color.
+     *
+     * @param state game state to mutate
+     * @param player player receiving the tokens
+     * @param move move carrying the token selection
      */
     private void applyTakeThreeDiff(GameState state, Player player, Move move) {
         GemBank bank = state.getBank();
-        Map<GemColor, Integer> tokensTaken = move.getTokens(); // {color1: 1, color2: 1, color3: 1}
-        
-        // Remove tokens from bank
+        Map<GemColor, Integer> tokensTaken = move.getTokens();
         bank.removeTokens(tokensTaken);
-        
-        // Add tokens to player
         player.addTokens(tokensTaken);
     }
     
     /**
-     * Executes taking two of the same color token.
-     * Respects the minimum bank constraint: bank must have at least takeSameMinRemainingInBank after removal.
-     * 
-     * Implementation:
-     * - Takes two tokens of the specified color from the bank
-     * - Adds tokens to the player
-     * - Enforces token cap (if exceeded, caller must handle discard logic)
-     * 
-     * @param state the game state (mutated)
-     * @param player the player taking tokens
-     * @param move the move with a single color and count = 2
+     * Applies a move that takes multiple tokens of a single color.
+     *
+     * @param state game state to mutate
+     * @param player player receiving the tokens
+     * @param move move carrying the token selection
      */
     private void applyTakeTwoSame(GameState state, Player player, Move move) {
         GemBank bank = state.getBank();
-        Map<GemColor, Integer> tokensTaken = move.getTokens(); // {color: 2}
-        
-        // Remove tokens from bank
+        Map<GemColor, Integer> tokensTaken = move.getTokens();
         bank.removeTokens(tokensTaken);
-        
-        // Add tokens to player
         player.addTokens(tokensTaken);
     }
     
     /**
-     * Executes reserving a card.
-     * If the bank has gold tokens available, the player receives one.
-     * 
-     * Implementation:
-     * - Removes the card from the board (face-up or from a deck)
-     * - Adds the card to the player's reserved cards
-     * - If bank has gold tokens, removes one and adds to player
-     * - Refills the board slot if the card came from a face-up slot
-     * 
-     * @param state the game state (mutated)
-     * @param player the player reserving the card
-     * @param move the move specifying which card to reserve
+     * Applies a reserve move, including the optional gold bonus.
+     *
+     * @param state game state to mutate
+     * @param player player reserving the card
+     * @param move move identifying the reserved card
      */
     private void applyReserve(GameState state, Player player, Move move) {
         Board board = state.getBoard();
         GemBank bank = state.getBank();
         DevelopmentCard cardToReserve = move.getCard();
         
-        // Remove card from board
         board.removeCard(cardToReserve);
-        
-        // Add card to player's reserved cards
         player.addReservedCard(cardToReserve);
-        
-        // Apply gold bonus if available
         if (bank.getTokenCount(GemColor.GOLD) > 0) {
             Map<GemColor, Integer> goldDelta = new HashMap<>();
             goldDelta.put(GemColor.GOLD, config.getReserveGoldBonus());
             bank.removeTokens(goldDelta);
             player.addTokens(goldDelta);
         }
-        
-        // Refill board slot if applicable
         board.refillSlot(move.getCard());
     }
     
     /**
-     * Executes buying a development card.
-     * Pays the cost using permanent bonuses, colored tokens, and gold (as wildcard).
-     * 
-     * Implementation:
-     * - Removes the card from the player's reserved cards (if applicable)
-     * - Computes the payment breakdown: bonuses, colored tokens, gold
-     * - Removes payment tokens from the player
-     * - Returns payment tokens to the bank
-     * - Adds the card to the player's purchased cards
-     * - Refills the board slot if the card came from a face-up slot
-     * 
-     * @param state the game state (mutated)
-     * @param player the player buying the card
-     * @param move the move specifying which card and payment breakdown
+     * Applies a purchase move and transfers the paid tokens back to the bank.
+     *
+     * @param state game state to mutate
+     * @param player player buying the card
+     * @param move move identifying the purchased card and token payment
      */
     private void applyBuy(GameState state, Player player, Move move) {
         Board board = state.getBoard();
         GemBank bank = state.getBank();
         DevelopmentCard cardToBuy = move.getCard();
         
-        // Remove from reserved if applicable
         if (move.isFromReserved()) {
             player.removeReservedCard(cardToBuy);
         } else {
-            // Remove from board
             board.removeCard(cardToBuy);
         }
-        
-        // Get the cost breakdown
-        Map<GemColor, Integer> paymentTokens = move.getPaymentTokens(); // {GOLD: 2, RED: 1, ...}
-        
-        // Remove payment tokens from player
+        Map<GemColor, Integer> paymentTokens = move.getPaymentTokens();
         player.removeTokens(paymentTokens);
-        
-        // Return payment tokens to bank
         bank.addTokens(paymentTokens);
-        
-        // Add purchased card to player (affects prestige and bonuses)
         player.addPurchasedCard(cardToBuy);
-        
-        // Refill board slot if the card came from face-up
         if (!move.isFromReserved()) {
             board.refillSlot(cardToBuy);
         }

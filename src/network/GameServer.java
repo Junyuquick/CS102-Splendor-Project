@@ -40,6 +40,11 @@ public class GameServer {
     private final WinnerChecker winnerChecker = new WinnerChecker(config);
     private final TurnManager turnManager = new TurnManager();
 
+    /**
+     * Creates a server that listens on the supplied port.
+     *
+     * @param port TCP port to bind
+     */
     public GameServer(int port) {
         this.port = port;
     }
@@ -48,12 +53,16 @@ public class GameServer {
         return ConfigSupport.loadDefaultConfig();
     }
 
+    /**
+     * Starts accepting client connections until a game begins or the socket is closed.
+     *
+     * @throws IOException if the server socket cannot be opened or accepted from
+     */
     public void start() throws IOException {
         serverSocket = new ServerSocket(port);
         System.out.println("Server started on port " + port);
         System.out.println("Waiting for players to join...");
 
-        // Accept clients until server is shut down
         ExecutorService executor = Executors.newCachedThreadPool();
         while (!gameStarted) {
             Socket clientSocket = serverSocket.accept();
@@ -65,15 +74,15 @@ public class GameServer {
             clients.add(handler);
             executor.submit(handler);
             System.out.println("Player joined. Total players: " + clients.size());
-            // Do not auto-start. wait for host request.
-            // Host is the first connected client.
         }
     }
 
+    /**
+     * Builds and broadcasts a fresh game state for the current lobby.
+     */
     private void startGame() {
         System.out.println("Starting game with " + clients.size() + " players");
 
-        // Create players
         List<Player> players = new ArrayList<>();
         for (int i = 0; i < clients.size(); i++) {
             String name = clients.get(i).getPlayerName();
@@ -81,7 +90,6 @@ public class GameServer {
             players.add(new Player(name));
         }
 
-        // Initialize game state
         try {
             gameState = new GameStateFactory(config, GameStateFactory.FallbackProfile.SERVER)
                     .createGame(players, message -> System.err.println(message));
@@ -92,7 +100,6 @@ public class GameServer {
 
         gameStarted = true;
 
-        // Assign player indices and send game start
         for (int i = 0; i < clients.size(); i++) {
             clients.get(i).setPlayerIndex(i);
             clients.get(i).sendMessage(NetworkMessage.gameStart(gameState, i));
@@ -101,6 +108,11 @@ public class GameServer {
         System.out.println("Game started!");
     }
 
+    /**
+     * Handles a host request to start the current lobby as a game.
+     *
+     * @param client client that sent the request
+     */
     public synchronized void handleStartRequest(ClientHandler client) {
         if (gameStarted) {
             client.sendMessage(NetworkMessage.error("Game already started"));
@@ -122,6 +134,11 @@ public class GameServer {
         startGame();
     }
 
+    /**
+     * Finalizes a newly joined client and broadcasts the updated lobby state.
+     *
+     * @param client client that completed the join handshake
+     */
     public synchronized void handleJoin(ClientHandler client) {
         int lobbyIndex = clients.indexOf(client);
         if (lobbyIndex < 0) {
@@ -131,6 +148,12 @@ public class GameServer {
         broadcastLobbyState();
     }
 
+    /**
+     * Validates and applies a move sent by one of the connected clients.
+     *
+     * @param client client that sent the move
+     * @param move requested move
+     */
     public synchronized void handleMove(ClientHandler client, Move move) {
         if (!gameStarted || gameState == null) {
             client.sendMessage(NetworkMessage.error("Game not started"));
@@ -150,22 +173,17 @@ public class GameServer {
             return;
         }
 
-        // Execute the move
         executor.execute(gameState, currentPlayer, move);
         turnPostProcessor.enforceTokenLimit(gameState, currentPlayer);
 
-        // Handle noble assignment
         turnPostProcessor.assignBestAvailableNobles(gameState, currentPlayer);
 
-        // Check for final round
         if (winnerChecker.shouldTriggerFinalRound(gameState)) {
             turnManager.markFinalRound(gameState);
         }
 
-        // Advance turn
         turnManager.advanceTurn(gameState);
 
-        // Check for game over
         if (turnManager.hasFinalRoundCompleted(gameState)) {
             Player winner = winnerChecker.determineWinner(gameState);
             System.out.println("Game over! Winner: " + winner.getName());
@@ -178,10 +196,12 @@ public class GameServer {
             return;
         }
 
-        // Broadcast updated state to all clients
         broadcastState();
     }
 
+    /**
+     * Broadcasts the latest game-state snapshot to every connected client.
+     */
     private void broadcastState() {
         NetworkMessage msg = NetworkMessage.stateUpdate(gameState);
         for (ClientHandler c : clients) {
@@ -189,6 +209,11 @@ public class GameServer {
         }
     }
 
+    /**
+     * Broadcasts a game-over message to every connected client.
+     *
+     * @param message human-readable game result
+     */
     private void broadcastGameOver(String message) {
         NetworkMessage msg = NetworkMessage.gameOver(message);
         for (ClientHandler client : clients) {
@@ -196,6 +221,11 @@ public class GameServer {
         }
     }
 
+    /**
+     * Removes a disconnected client and updates the lobby if no game is active.
+     *
+     * @param client disconnected client
+     */
     public synchronized void removeClient(ClientHandler client) {
         clients.remove(client);
         System.out.println("Client disconnected. Remaining: " + clients.size());
@@ -207,11 +237,14 @@ public class GameServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                // ignore
+                // Ignore close failures while the server is already shutting down.
             }
         }
     }
 
+    /**
+     * Broadcasts the current lobby roster and host information.
+     */
     private void broadcastLobbyState() {
         List<String> playerNames = new ArrayList<>();
         for (int i = 0; i < clients.size(); i++) {
@@ -228,6 +261,12 @@ public class GameServer {
         }
     }
 
+    /**
+     * Rejects a connection attempt by sending an error and closing the socket.
+     *
+     * @param socket socket to reject
+     * @param message rejection reason
+     */
     private void rejectConnection(Socket socket, String message) {
         try (socket; ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
             out.writeObject(NetworkMessage.error(message));
@@ -237,8 +276,13 @@ public class GameServer {
         }
     }
 
+    /**
+     * Starts a standalone multiplayer server.
+     *
+     * @param args optional first argument specifying the listening port
+     */
     public static void main(String[] args) {
-        int port = 12345; // default port
+        int port = 12345;
         if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);

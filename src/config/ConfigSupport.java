@@ -4,10 +4,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Convenience helpers for locating and loading a default Splendor configuration.
+ */
 public final class ConfigSupport {
     private ConfigSupport() {
     }
 
+    /**
+     * Loads the default configuration file, falling back to hard-coded defaults if loading fails.
+     *
+     * @return the loaded or fallback configuration
+     */
     public static Config loadDefaultConfig() {
         Path configPath = locateConfigFile();
         try {
@@ -27,6 +35,11 @@ public final class ConfigSupport {
         );
     }
 
+    /**
+     * Locates the configuration file using the standard search paths for the project.
+     *
+     * @return the first matching configuration path, or the primary candidate if none exists yet
+     */
     public static Path locateConfigFile() {
         Path[] candidates = new Path[]{
                 Path.of("config.properties"),

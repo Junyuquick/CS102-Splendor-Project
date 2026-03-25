@@ -12,16 +12,30 @@ import java.awt.event.ActionListener;
  * Shows connection dialog and launches the multiplayer UI.
  */
 public class ClientMain {
+    /**
+     * Launches the multiplayer connection dialog on the Swing event thread.
+     *
+     * @param args ignored command-line arguments
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             showConnectionDialog();
         });
     }
 
+    /**
+     * Shows the connection dialog using localhost defaults.
+     */
     public static void showConnectionDialog() {
         showConnectionDialog("localhost", "12345");
     }
 
+    /**
+     * Shows the connection dialog with pre-populated host and port values.
+     *
+     * @param defaultHost default host name or IP address
+     * @param defaultPort default port text shown in the form
+     */
     public static void showConnectionDialog(String defaultHost, String defaultPort) {
         JFrame dialog = new JFrame("Connect to Splendor Game");
         dialog.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

@@ -5,26 +5,22 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Represents exactly one player action for a turn.
- * 
- * Avoids parsing raw input inside the engine.
- * Each turn produces one Move instance.
- * 
- * Immutable. Instances are created by InputParser (human input) or AiController (computer players).
- * Consumed by MoveValidator and MoveExecutor.
- * Categorized by MoveType.
+ * Immutable description of a single player action.
+ *
+ * <p>A move records only the data needed by validation and execution, such as selected
+ * tokens, the targeted card, and any payment-token breakdown for purchases.
  */
 public class Move implements Serializable {
     
     private final MoveType type;
-    private final Map<GemColor, Integer> tokens;           // For TAKE_THREE_DIFFERENT, TAKE_TWO_SAME
-    private final DevelopmentCard card;                    // For RESERVE, BUY
-    private final Map<GemColor, Integer> paymentTokens;   // For BUY: token breakdown used to pay
-    private final boolean fromReserved;                    // For BUY: true if buying from reserved, false if from board
-    private final int cardLevel;                           // For RESERVE: level of deck to reserve from (1, 2, 3), -1 if face-up
+    private final Map<GemColor, Integer> tokens;
+    private final DevelopmentCard card;
+    private final Map<GemColor, Integer> paymentTokens;
+    private final boolean fromReserved;
+    private final int cardLevel;
     
     /**
-     * Private constructor to enforce builder pattern or static factory methods.
+     * Creates a move with the supplied payload.
      */
     private Move(MoveType type,
                  Map<GemColor, Integer> tokens,
@@ -99,8 +95,6 @@ public class Move implements Serializable {
         return cardLevel;
     }
     
-    // ============ FACTORY METHODS ============
-    
     /**
      * Creates a TAKE_THREE_DIFFERENT move.
      * 
@@ -154,6 +148,11 @@ public class Move implements Serializable {
         return new Move(MoveType.BUY, null, card, new HashMap<>(paymentTokens), fromReserved, -1);
     }
     
+    /**
+     * Returns a debug-friendly description of the move contents.
+     *
+     * @return string form of this move
+     */
     @Override
     public String toString() {
         return "Move{" +

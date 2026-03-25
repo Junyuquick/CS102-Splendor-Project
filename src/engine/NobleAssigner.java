@@ -79,11 +79,7 @@ public class NobleAssigner {
         }
         
         Board board = state.getBoard();
-        
-        // Remove from board
         board.removeNoble(chosen);
-        
-        // Add to player
         player.addNoble(chosen);
     }
     

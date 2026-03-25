@@ -44,8 +44,6 @@ public class Player implements Serializable {
         return name;
     }
     
-    // ============ TOKEN MANAGEMENT ============
-    
     /**
      * Returns how many tokens of the given color the player currently holds.
      * 
@@ -113,8 +111,6 @@ public class Player implements Serializable {
         return total;
     }
     
-    // ============ PURCHASED CARDS ============
-    
     /**
      * Adds a bought development card to the player's purchased cards.
      * Affects prestige calculations and permanent bonus calculations.
@@ -134,8 +130,6 @@ public class Player implements Serializable {
     public List<DevelopmentCard> getPurchasedCards() {
         return Collections.unmodifiableList(purchasedCards);
     }
-    
-    // ============ RESERVED CARDS ============
     
     /**
      * Adds a development card to the player's reserved cards.
@@ -167,8 +161,6 @@ public class Player implements Serializable {
         return Collections.unmodifiableList(reservedCards);
     }
     
-    // ============ NOBLES ============
-    
     /**
      * Adds a noble tile to the player's collection of nobles.
      * Increases prestige points.
@@ -187,8 +179,6 @@ public class Player implements Serializable {
     public List<NobleTile> getNobles() {
         return Collections.unmodifiableList(nobles);
     }
-    
-    // ============ COMPUTED PROPERTIES ============
     
     /**
      * Returns how many permanent bonuses the player has for a given color.
@@ -218,12 +208,10 @@ public class Player implements Serializable {
     public int getPrestigePoints() {
         int prestige = 0;
         
-        // Add prestige from purchased cards
         for (DevelopmentCard card : purchasedCards) {
             prestige += card.getPrestigePoints();
         }
-        
-        // Add prestige from nobles
+
         for (NobleTile noble : nobles) {
             prestige += noble.getPrestigePoints();
         }

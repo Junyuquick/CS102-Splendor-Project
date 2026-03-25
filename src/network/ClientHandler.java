@@ -14,18 +14,26 @@ public class ClientHandler implements Runnable {
     private String playerName;
     private Integer playerIndex;
 
+    /**
+     * Creates a handler for one accepted client socket.
+     *
+     * @param socket connected client socket
+     * @param server server coordinating the lobby and game state
+     */
     public ClientHandler(Socket socket, GameServer server) {
         this.socket = socket;
         this.server = server;
     }
 
+    /**
+     * Processes the client's incoming message stream until the connection closes.
+     */
     @Override
     public void run() {
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
 
-            // First message should be JOIN
             NetworkMessage msg = (NetworkMessage) in.readObject();
             if (msg.getType() == NetworkMessage.Type.JOIN) {
                 playerName = msg.getPlayerName();
@@ -36,7 +44,6 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
-            // Handle subsequent messages
             while (true) {
                 msg = (NetworkMessage) in.readObject();
                 switch (msg.getType()) {
@@ -60,12 +67,17 @@ public class ClientHandler implements Runnable {
             try {
                 socket.close();
             } catch (IOException e) {
-                // ignore
+                // Ignore close failures during connection teardown.
             }
             server.removeClient(this);
         }
     }
 
+    /**
+     * Sends a protocol message to the connected client.
+     *
+     * @param msg message to send
+     */
     public void sendMessage(NetworkMessage msg) {
         try {
             // ObjectOutputStream caches object identities; reset so each update sends
@@ -78,14 +90,29 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Returns the player's joined display name.
+     *
+     * @return player name, or {@code null} before the join message is processed
+     */
     public String getPlayerName() {
         return playerName;
     }
 
+    /**
+     * Returns the zero-based player index assigned by the server.
+     *
+     * @return player index, or {@code null} if not assigned yet
+     */
     public Integer getPlayerIndex() {
         return playerIndex;
     }
 
+    /**
+     * Stores the player index assigned for the current game.
+     *
+     * @param index zero-based player index
+     */
     public void setPlayerIndex(int index) {
         this.playerIndex = index;
     }

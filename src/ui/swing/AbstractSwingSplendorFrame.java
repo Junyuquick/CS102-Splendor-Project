@@ -37,6 +37,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Shared Swing frame infrastructure for both local and multiplayer game windows.
+ *
+ * <p>This base class builds the common layout, tracks UI selection state, and provides helper
+ * methods for constructing pending moves from the current interaction mode.
+ */
 abstract class AbstractSwingSplendorFrame extends JFrame {
     protected final Config config;
     protected GameState state;
@@ -73,6 +79,14 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected DevelopmentCard selectedBoardCard;
     protected DevelopmentCard selectedReservedCard;
 
+    /**
+     * Creates the shared frame state used by concrete Swing game windows.
+     *
+     * @param title window title
+     * @param config application configuration
+     * @param state current game state, or {@code null} before a multiplayer game starts
+     * @param validator move validator used to enable and confirm actions
+     */
     protected AbstractSwingSplendorFrame(String title, Config config, GameState state, MoveValidator validator) {
         super(title);
         this.config = config;
@@ -81,6 +95,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         this.assetLoader = new SwingAssetLoader(config);
     }
 
+    /**
+     * Builds the common Swing layout shared by local and multiplayer views.
+     *
+     * @param showLobbyCenter whether the top bar should include the lobby status label
+     * @param showStartButton whether the top bar should include the start-game button
+     * @param playerRows number of rows to reserve for the player summary panel
+     */
     protected final void buildSharedUi(boolean showLobbyCenter, boolean showStartButton, int playerRows) {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1500, 1020);
@@ -253,6 +274,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         add(centerSplit, BorderLayout.CENTER);
     }
 
+    /**
+     * Binds listeners for shared buttons, token controls, and reserved-card selection.
+     */
     protected final void bindSharedActions() {
         actionTakeThree.addActionListener(e -> switchMode(SwingGameMode.TAKE_THREE));
         actionTakeTwo.addActionListener(e -> switchMode(SwingGameMode.TAKE_TWO));
@@ -279,6 +303,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         });
     }
 
+    /**
+     * Switches the current interaction mode when the concrete frame allows it.
+     *
+     * @param newMode requested mode
+     */
     protected void switchMode(SwingGameMode newMode) {
         if (!canSwitchMode(newMode)) {
             onModeSwitchRejected(newMode);
@@ -288,13 +317,27 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         updateLegalUi();
     }
 
+    /**
+     * Indicates whether a mode switch is currently allowed.
+     *
+     * @param newMode requested mode
+     * @return {@code true} if the mode change should proceed
+     */
     protected boolean canSwitchMode(SwingGameMode newMode) {
         return true;
     }
 
+    /**
+     * Hook invoked when a requested mode switch is rejected.
+     *
+     * @param newMode rejected mode
+     */
     protected void onModeSwitchRejected(SwingGameMode newMode) {
     }
 
+    /**
+     * Clears the current interaction state and returns the UI to idle mode.
+     */
     protected final void clearSelection() {
         setMode(SwingGameMode.IDLE);
         updateLegalUi();
@@ -308,6 +351,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         clearTokenSelection();
     }
 
+    /**
+     * Updates the current token selection based on the active token-taking mode.
+     *
+     * @param color token color that was clicked
+     */
     protected void onTokenButtonClicked(GemColor color) {
         if (color == GemColor.GOLD) {
             return;
@@ -333,6 +381,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         refreshTokenButtonLabels();
     }
 
+    /**
+     * Builds the move represented by the current UI selection.
+     *
+     * @return pending move, or {@code null} if the current selection is incomplete
+     */
     protected Move buildPendingMove() {
         if (state == null) {
             return null;
@@ -366,10 +419,22 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return null;
     }
 
+    /**
+     * Computes the payment-token breakdown that would be used for a purchase.
+     *
+     * @param player player attempting the purchase
+     * @param cost card cost by color
+     * @return token payment by color
+     */
     protected Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
         return PaymentCalculator.computePaymentTokens(player, cost);
     }
 
+    /**
+     * Returns the currently selected tokens as a sparse color-count map.
+     *
+     * @return selected tokens
+     */
     protected Map<GemColor, Integer> selectedTokens() {
         Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
         for (Map.Entry<GemColor, Integer> entry : selectedTokenCounts.entrySet()) {
@@ -380,6 +445,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return tokens;
     }
 
+    /**
+     * Refreshes the bank token-count labels from the current game state.
+     */
     protected void refreshBankCounts() {
         if (state == null) {
             clearBankCounts();
@@ -398,6 +466,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         bankCountPanel.repaint();
     }
 
+    /**
+     * Clears the bank token-count display.
+     */
     protected void clearBankCounts() {
         bankCountPanel.removeAll();
         bankLabels.clear();
@@ -405,6 +476,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         bankCountPanel.repaint();
     }
 
+    /**
+     * Rebuilds the reserved-card list for the supplied player.
+     *
+     * @param player player whose reserved cards should be shown
+     */
     protected void refreshReservedCards(Player player) {
         reservedModel.clear();
         if (player == null) {
@@ -432,6 +508,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         });
     }
 
+    /**
+     * Rebuilds the market buttons from the current board state.
+     */
     protected void rebuildMarketButtons() {
         if (state == null) {
             marketPanel.removeAll();
@@ -494,6 +573,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         marketPanel.repaint();
     }
 
+    /**
+     * Rebuilds the noble display from the current board state.
+     */
     protected void rebuildNobleCards() {
         noblesPanel.removeAll();
         if (state == null) {
@@ -541,6 +623,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         noblesPanel.repaint();
     }
 
+    /**
+     * Clears board-dependent panels before a multiplayer game has started.
+     */
     protected void clearPreGamePanels() {
         marketPanel.removeAll();
         marketPanel.revalidate();
@@ -552,6 +637,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         reservedModel.clear();
     }
 
+    /**
+     * Enables card buttons and updates their highlight state for reserve and buy modes.
+     *
+     * @param current current player
+     * @param allowInteractions whether interaction should be enabled at all
+     * @param cardMode whether the current mode uses card selection
+     */
     protected void updateCardSelectionState(Player current, boolean allowInteractions, boolean cardMode) {
         for (JButton button : cardButtons.values()) {
             button.setEnabled(false);
@@ -587,6 +679,12 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         }
     }
 
+    /**
+     * Enables token buttons according to the active token-taking mode and current selection.
+     *
+     * @param current current player
+     * @param allowInteractions whether token input should be enabled
+     */
     protected void applyTokenModeRules(Player current, boolean allowInteractions) {
         Map<GemColor, Integer> selected = selectedTokens();
         int totalSelected = selected.values().stream().mapToInt(Integer::intValue).sum();
@@ -610,6 +708,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         refreshTokenButtonLabels();
     }
 
+    /**
+     * Refreshes token-button labels, tooltips, and selection highlighting.
+     */
     protected void refreshTokenButtonLabels() {
         for (GemColor color : GemColor.values()) {
             JButton button = tokenButtons.get(color);
@@ -629,10 +730,18 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         }
     }
 
+    /**
+     * Indicates whether token buttons should show bank counts in their text labels.
+     *
+     * @return {@code true} to include bank counts in button labels
+     */
     protected boolean showTokenBankCountsOnButtons() {
         return false;
     }
 
+    /**
+     * Clears the current token selection.
+     */
     protected void clearTokenSelection() {
         for (GemColor color : GemColor.values()) {
             selectedTokenCounts.put(color, 0);
@@ -640,11 +749,23 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         refreshTokenButtonLabels();
     }
 
+    /**
+     * Indicates whether the player has at least one legal take-different move.
+     *
+     * @param player player to check
+     * @return {@code true} if a legal move exists
+     */
     protected boolean hasAnyLegalTakeThree(Player player) {
         List<GemColor> colors = List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK);
         return hasAnyLegalTakeDifferentCombination(player, colors, 0, config.getTakeDifferentCount(), new EnumMap<>(GemColor.class));
     }
 
+    /**
+     * Indicates whether the player has at least one legal take-two-same move.
+     *
+     * @param player player to check
+     * @return {@code true} if a legal move exists
+     */
     protected boolean hasAnyLegalTakeTwo(Player player) {
         for (GemColor color : List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK)) {
             Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
@@ -656,6 +777,12 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return false;
     }
 
+    /**
+     * Indicates whether the player can legally reserve any visible card.
+     *
+     * @param player player to check
+     * @return {@code true} if a legal reserve move exists
+     */
     protected boolean hasAnyLegalReserve(Player player) {
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
             if (validator.validate(state, player, Move.reserveFaceUp(card)) == null) {
@@ -665,6 +792,12 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return false;
     }
 
+    /**
+     * Indicates whether the player can legally buy any visible or reserved card.
+     *
+     * @param player player to check
+     * @return {@code true} if a legal purchase exists
+     */
     protected boolean hasAnyLegalBuy(Player player) {
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
             Move move = Move.buy(card, computePaymentTokens(player, card.getCost()), false);
@@ -681,6 +814,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return false;
     }
 
+    /**
+     * Creates a standard player panel shell with the configured active-state border.
+     *
+     * @param title panel title
+     * @param active whether the player is currently active
+     * @return configured player panel
+     */
     protected JPanel createPlayerPanel(String title, boolean active) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(SwingUiTheme.PANEL_BG_ALT);
@@ -688,6 +828,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates a styled HTML-capable editor pane for player summaries.
+     *
+     * @return configured summary pane
+     */
     protected JEditorPane createPlayerHtmlArea() {
         JEditorPane area = new JEditorPane();
         area.setContentType("text/html");
@@ -698,6 +843,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return area;
     }
 
+    /**
+     * Returns the help text shown for the current interaction mode.
+     *
+     * @return prompt text for the user
+     */
     protected String activeTurnHelpText() {
         return switch (mode) {
             case IDLE -> "Choose an action. Take tokens, reserve a face-up card, or buy a card.";
@@ -708,6 +858,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         };
     }
 
+    /**
+     * Recursively checks whether any legal combination of distinct token colors remains.
+     */
     private boolean hasAnyLegalTakeDifferentCombination(
             Player player,
             List<GemColor> colors,
@@ -730,6 +883,12 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         return false;
     }
 
+    /**
+     * Builds fallback HTML used when card artwork is unavailable.
+     *
+     * @param card card to describe
+     * @return HTML summary for the card button
+     */
     protected String buildCardHtml(DevelopmentCard card) {
         StringBuilder cost = new StringBuilder();
         for (Map.Entry<GemColor, Integer> entry : card.getCost().entrySet()) {
@@ -743,11 +902,21 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
                 + "<br/>Cost: " + cost + "</html>";
     }
 
+    /**
+     * Builds the tooltip text shown for a card button.
+     *
+     * @param key board key such as {@code a1}
+     * @param card card being described
+     * @return tooltip text
+     */
     protected String buildCardTooltip(String key, DevelopmentCard card) {
         return key + " | Bonus " + card.getBonusColor() + " | Prestige " + card.getPrestigePoints()
                 + " | Cost " + card.getCost();
     }
 
+    /**
+     * Disables every interactive control in the shared frame.
+     */
     protected void disableAllInputs() {
         actionTakeThree.setEnabled(false);
         actionTakeTwo.setEnabled(false);
@@ -764,12 +933,23 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         reservedList.setEnabled(false);
     }
 
+    /**
+     * Appends a line to the log area and scrolls to the newest entry.
+     *
+     * @param message message to append
+     */
     protected void log(String message) {
         logArea.append(message + "\n");
         logArea.setCaretPosition(logArea.getDocument().getLength());
     }
 
+    /**
+     * Handles confirmation of the currently selected action.
+     */
     protected abstract void handleConfirmAction();
 
+    /**
+     * Refreshes control enablement, prompts, and selection highlighting.
+     */
     protected abstract void updateLegalUi();
 }

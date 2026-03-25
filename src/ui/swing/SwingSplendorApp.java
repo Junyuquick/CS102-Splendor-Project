@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Single-player Swing implementation that runs the full game loop locally.
+ */
 public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     private final MoveExecutor executor;
     private final NobleAssigner nobleAssigner;
@@ -39,6 +42,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     private boolean finalGameOver = false;
     private boolean computerThinking = false;
 
+    /**
+     * Creates a new single-player game window using the default configuration.
+     */
     public SwingSplendorApp() {
         this(SwingConfigSupport.loadConfig());
     }
@@ -64,6 +70,11 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         refreshAll();
     }
 
+    /**
+     * Prompts for players and builds the initial local game state.
+     *
+     * @return initialized game state
+     */
     private GameState createInitialState() {
         String playerName = promptName("Enter Player 1 name:");
         int computerCount = askComputerCount();
@@ -80,6 +91,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                 .createGame(players, this::log);
     }
 
+    /**
+     * Creates the player summary panels for the local game.
+     */
     private void initialisePlayerPanels() {
         SwingPlayerPanelSupport.initialiseSinglePlayerPanels(
                 this,
@@ -90,6 +104,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         );
     }
 
+    /**
+     * Refreshes all board, player, and action displays from the current local state.
+     */
     private void refreshAll() {
         rebuildMarketButtons();
         rebuildNobleCards();
@@ -106,6 +123,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         scheduleComputerTurnIfNeeded();
     }
 
+    /**
+     * Applies the pending move, resolves post-turn effects, and advances the local game.
+     */
     @Override
     protected void handleConfirmAction() {
         if (finalGameOver) {
@@ -149,6 +169,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         refreshAll();
     }
 
+    /**
+     * Refreshes action availability and prompts for the local player's current state.
+     */
     @Override
     protected void updateLegalUi() {
         if (finalGameOver) {
@@ -189,6 +212,11 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         return true;
     }
 
+    /**
+     * Enforces the token cap after a move and logs any forced discards.
+     *
+     * @param player player whose tokens may need to be reduced
+     */
     private void resolveTokenCapIfNeeded(Player player) {
         Map<GemColor, Integer> discard = turnPostProcessor.enforceTokenLimit(state, player);
         if (!discard.isEmpty()) {
@@ -196,6 +224,12 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Assigns any nobles the player qualifies for, prompting only when multiple choices exist.
+     *
+     * @param player player who may attract nobles
+     * @param automaticChoice whether to auto-pick the best noble instead of prompting
+     */
     private void resolveNobleAttraction(Player player, boolean automaticChoice) {
         List<NobleTile> eligible = new ArrayList<>(nobleAssigner.findEligibleNobles(state, player));
         if (eligible.isEmpty() || config.getMaxNoblesPerTurn() <= 0) {
@@ -210,6 +244,13 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Chooses a noble from the current eligible set.
+     *
+     * @param eligible nobles the player can currently claim
+     * @param automaticChoice whether to choose automatically
+     * @return selected noble
+     */
     private NobleTile chooseNoble(List<NobleTile> eligible, boolean automaticChoice) {
         if (eligible.size() == 1) {
             return eligible.get(0);
@@ -229,6 +270,12 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         return pick instanceof NobleTile ? (NobleTile) pick : eligible.get(0);
     }
 
+    /**
+     * Prompts for a player name and falls back to a default when the dialog is blank or cancelled.
+     *
+     * @param prompt dialog prompt text
+     * @return chosen player name
+     */
     private String promptName(String prompt) {
         String name = JOptionPane.showInputDialog(this, prompt, "Player Setup", JOptionPane.QUESTION_MESSAGE);
         if (name == null || name.isBlank()) {
@@ -237,6 +284,11 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         return name.trim();
     }
 
+    /**
+     * Prompts for the number of computer opponents within the configured bounds.
+     *
+     * @return number of AI opponents to create
+     */
     private int askComputerCount() {
         int minComputers = Math.max(1, config.getMinPlayers() - 1);
         int maxComputers = Math.max(minComputers, config.getMaxPlayers() - 1);
@@ -269,10 +321,20 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
     }
 
+    /**
+     * Indicates whether the current turn belongs to an AI-controlled player.
+     *
+     * @return {@code true} when the current player is computer-controlled
+     */
     private boolean isComputerTurn() {
         return computerPlayers.contains(state.getCurrentPlayer());
     }
 
+    /**
+     * Shows the local game-over dialog and optionally starts a new single-player game.
+     *
+     * @param winner winning player
+     */
     private void showSinglePlayerGameOverDialog(Player winner) {
         int choice = JOptionPane.showConfirmDialog(
                 this,
@@ -287,6 +349,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         dispose();
     }
 
+    /**
+     * Schedules a short pause before running the next AI turn.
+     */
     private void scheduleComputerTurnIfNeeded() {
         if (finalGameOver || !isComputerTurn() || computerThinking) {
             return;
@@ -303,6 +368,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         timer.start();
     }
 
+    /**
+     * Executes one AI turn and then refreshes the local game state.
+     */
     private void runComputerTurn() {
         if (finalGameOver || !isComputerTurn()) {
             return;

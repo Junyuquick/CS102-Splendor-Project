@@ -2,67 +2,69 @@ package config;
 
 import java.nio.file.Path;
 
-/*
- * Immutable configuration data object(final).
+/**
+ * Immutable bundle of validated configuration values for a Splendor game.
  *
- * This class stores ALL validated configuration values loaded from config.properties.
- * - All fields are final (cannot change after construction)
- * - Values are retrieved via getters
- *
- * ConfigLoader is responsible for validating ranges and resolving relative paths
- * before creating this Config object.
+ * <p>Instances are created by {@link ConfigLoader} after the raw properties file
+ * has been parsed, validated, and any relative paths have been resolved.
  */
-
 public final class Config {
-    //20 getters for 26variables
-
-    // ---------- Core game rules ----------
     private final int pointsToWin;
     private final int maxTokensPerPlayer;
     private final int maxReservedCards;
     private final int maxNoblesPerTurn;
-
-    // ---------- Allowed player counts ----------
     private final int minPlayers;
     private final int maxPlayers;
-
-    // ---------- Board setup ----------
     private final int numLevels;
     private final int openCardsPerLevel;
-
-    // ---------- Nobles count by player count ---------
     private final int noblesCount2p;
     private final int noblesCount3p;
     private final int noblesCount4p;
-
-    // ---------- Bank token counts by player count ----------
     private final int bankNormal2p;
     private final int bankNormal3p;
     private final int bankNormal4p;
     private final int bankGold;
-
-    // ---------- Token-taking rules ----------
     private final int takeDifferentCount;
     private final int takeSameCount;
     private final int takeSameMinRemainingInBank;
-
-    // ---------- Reserve rules ----------
     private final int reserveGoldBonus;
-
-    // ---------- Data file paths ----------
     private final Path level1Path;
     private final Path level2Path;
     private final Path level3Path;
     private final Path noblesPath;
-
-    // ---------- Asset directories ----------
     private final Path cardImageDir;
     private final Path tokenImageDir;
     private final Path nobleImageDir;
 
-    /*
-     * Constructs a Config object with all required values.
-     * (All validation should be done in ConfigLoader before calling this.)
+    /**
+     * Creates a configuration object from already validated values.
+     *
+     * @param pointsToWin prestige points required to trigger the endgame
+     * @param maxTokensPerPlayer maximum number of tokens a player may hold
+     * @param maxReservedCards maximum number of reserved cards per player
+     * @param maxNoblesPerTurn maximum number of nobles assignable after one turn
+     * @param minPlayers minimum supported player count
+     * @param maxPlayers maximum supported player count
+     * @param numLevels number of development-card tiers in use
+     * @param openCardsPerLevel number of face-up cards shown for each tier
+     * @param noblesCount2p noble count for a two-player game
+     * @param noblesCount3p noble count for a three-player game
+     * @param noblesCount4p noble count for a four-player game
+     * @param bankNormal2p starting non-gold token count for a two-player game
+     * @param bankNormal3p starting non-gold token count for a three-player game
+     * @param bankNormal4p starting non-gold token count for a four-player game
+     * @param bankGold starting gold token count
+     * @param takeDifferentCount number of differently colored tokens allowed in one take move
+     * @param takeSameCount number of identical tokens allowed in one take move
+     * @param takeSameMinRemainingInBank minimum number of tokens that must remain after taking two of one color
+     * @param reserveGoldBonus gold-token bonus awarded when reserving a card
+     * @param level1Path path to the level-1 card data
+     * @param level2Path path to the level-2 card data
+     * @param level3Path path to the level-3 card data
+     * @param noblesPath path to the noble data
+     * @param cardImageDir directory containing development-card images
+     * @param tokenImageDir directory containing token images
+     * @param nobleImageDir directory containing noble images
      */
     public Config(
             int pointsToWin,
@@ -120,32 +122,138 @@ public final class Config {
         this.nobleImageDir = nobleImageDir;
     }
 
-    // ---------- Simple getters ----------
+    /**
+     * Returns the prestige-point threshold that triggers the final round.
+     *
+     * @return the winning score threshold
+     */
     public int getpointsToWin() { return pointsToWin; }
+
+    /**
+     * Returns the maximum number of tokens a player may hold.
+     *
+     * @return the player token limit
+     */
     public int getMaxTokensPerPlayer() { return maxTokensPerPlayer; }
+
+    /**
+     * Returns the maximum number of reserved cards per player.
+     *
+     * @return the reserve limit
+     */
     public int getMaxReservedCards() { return maxReservedCards; }
+
+    /**
+     * Returns the maximum number of nobles that can be assigned after one turn.
+     *
+     * @return the noble-assignment limit
+     */
     public int getMaxNoblesPerTurn() { return maxNoblesPerTurn; }
+
+    /**
+     * Returns the minimum supported player count.
+     *
+     * @return the minimum player count
+     */
     public int getMinPlayer() { return minPlayers; }
+
+    /**
+     * Returns the minimum supported player count.
+     *
+     * @return the minimum player count
+     */
     public int getMinPlayers() { return minPlayers; }
+
+    /**
+     * Returns the maximum supported player count.
+     *
+     * @return the maximum player count
+     */
     public int getMaxPlayer() { return maxPlayers; }
+
+    /**
+     * Returns the maximum supported player count.
+     *
+     * @return the maximum player count
+     */
     public int getMaxPlayers() { return maxPlayers; }
 
+    /**
+     * Returns the number of development-card tiers used by the game.
+     *
+     * @return the tier count
+     */
     public int getNumLevels() { return numLevels; }
+
+    /**
+     * Returns the number of face-up cards shown for each tier.
+     *
+     * @return the number of open cards per tier
+     */
     public int getOpenCardsPerLevel() { return openCardsPerLevel; }
 
+    /**
+     * Returns how many differently colored tokens can be taken in one move.
+     *
+     * @return the take-different token count
+     */
     public int getTakeDifferentCount() { return takeDifferentCount; }
+
+    /**
+     * Returns how many identical tokens can be taken in one move.
+     *
+     * @return the take-same token count
+     */
     public int getTakeSameCount() { return takeSameCount; }
+
+    /**
+     * Returns the minimum bank balance required after taking two of one color.
+     *
+     * @return the minimum remaining tokens in the bank
+     */
     public int getTakeSameMinRemainingInBank() { return takeSameMinRemainingInBank; }
 
+    /**
+     * Returns the gold-token bonus awarded when a card is reserved.
+     *
+     * @return the reserve gold bonus
+     */
     public int getReserveGoldBonus() { return reserveGoldBonus; }
+
+    /**
+     * Returns the path to the noble data file.
+     *
+     * @return the nobles CSV path
+     */
     public Path getNoblesPath() { return noblesPath; }
 
+    /**
+     * Returns the directory containing card artwork.
+     *
+     * @return the card image directory
+     */
     public Path getCardImageDir() { return cardImageDir; }
-    public Path getTokenImageDir() { return tokenImageDir; } 
+
+    /**
+     * Returns the directory containing token artwork.
+     *
+     * @return the token image directory
+     */
+    public Path getTokenImageDir() { return tokenImageDir; }
+
+    /**
+     * Returns the directory containing noble artwork.
+     *
+     * @return the noble image directory
+     */
     public Path getNobleImageDir() { return nobleImageDir; }
-    
-    /*
-     * Returns how many nobles should be placed on the board for a given player count.
+
+    /**
+     * Returns how many nobles should be placed on the board for a game size.
+     *
+     * @param playerCount active player count
+     * @return the noble count for that game size
+     * @throws IllegalArgumentException if {@code playerCount} is unsupported
      */
     public int getNoblesCount(int playerCount) {
         return switch (playerCount) {
@@ -156,8 +264,12 @@ public final class Config {
         };
     }
 
-    /*
-     * Returns how many nobles should be placed on the board for a given player count.
+    /**
+     * Returns the starting count for each non-gold token color for a game size.
+     *
+     * @param playerCount active player count
+     * @return the starting supply for each normal token color
+     * @throws IllegalArgumentException if {@code playerCount} is unsupported
      */
     public int getInitialNormalGemCount(int playerCount) {
         return switch (playerCount) {
@@ -168,15 +280,22 @@ public final class Config {
         };
     }
 
-    /*
-     * Returns how many nobles should be placed on the board for a given player count.
+    /**
+     * Returns the starting number of gold tokens.
+     *
+     * @param playerCount active player count; included for API symmetry with normal tokens
+     * @return the starting gold-token supply
      */
     public int getInitialGoldGemCount(int playerCount) {
         return bankGold;
     }
 
-    /*
-     * Returns how many nobles should be placed on the board for a given player count.
+    /**
+     * Returns the card-data file for the requested tier.
+     *
+     * @param level development-card level
+     * @return the path to the CSV file for that tier
+     * @throws IllegalArgumentException if {@code level} is unsupported
      */
     public Path getCardsPath(int level) {
         return switch (level) {
@@ -186,5 +305,4 @@ public final class Config {
             default -> throw new IllegalArgumentException("Unsupported level: " + level);
         };
     }
-    
 }
