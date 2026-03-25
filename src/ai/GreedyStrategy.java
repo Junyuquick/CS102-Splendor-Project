@@ -15,18 +15,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * Selects a legal AI move using simple heuristics for token-taking, reserving, and buying.
+ */
 public class GreedyStrategy {
     private final Config config;
     private final Random random = new Random();
 
+    /**
+     * Creates the strategy with access to rule configuration values.
+     *
+     * @param config game configuration
+     */
     public GreedyStrategy(Config config) {
         this.config = config;
     }
 
+    /**
+     * Chooses one legal move for the given player.
+     *
+     * @param state current game state
+     * @param player player whose turn is being played
+     * @param validator move validator used to filter illegal options
+     * @return the selected move
+     */
     public Move chooseMove(GameState state, Player player, MoveValidator validator) {
         return chooseEasyMove(state, player, validator);
     }
 
+    /**
+     * Chooses among legal buys, reserves, and token-taking moves using a lightweight weighted
+     * random policy.
+     */
     private Move chooseEasyMove(GameState state, Player player, MoveValidator validator) {
         List<Move> buyMoves = new ArrayList<>();
         List<Move> reserveMoves = new ArrayList<>();
@@ -80,6 +100,9 @@ public class GreedyStrategy {
         throw new IllegalStateException("No legal moves available for AI");
     }
 
+    /**
+     * Returns the highest-value affordable purchase, preferring more prestige and then lower cost.
+     */
     private Move bestBuyMove(GameState state, Player player, MoveValidator validator) {
         Move best = null;
         int bestPoints = Integer.MIN_VALUE;
@@ -116,6 +139,9 @@ public class GreedyStrategy {
         return best;
     }
 
+    /**
+     * Chooses the legal two-of-a-kind token move that best supports visible cards.
+     */
     private Move bestTakeTwoSame(GameState state, Player player, MoveValidator validator) {
         Move best = null;
         int bestNeedScore = Integer.MIN_VALUE;
@@ -136,6 +162,9 @@ public class GreedyStrategy {
         return best;
     }
 
+    /**
+     * Chooses the legal take-different move with the highest heuristic score.
+     */
     private Move bestTakeThreeDifferent(GameState state, Player player, MoveValidator validator) {
         List<GemColor> colors = normalColors();
         Move best = null;
@@ -144,6 +173,9 @@ public class GreedyStrategy {
         return bestTakeThreeDifferent(state, player, validator, colors, 0, config.getTakeDifferentCount(), new ArrayList<>(), best, bestScore);
     }
 
+    /**
+     * Recursively enumerates color combinations and keeps the highest-scoring legal selection.
+     */
     private Move bestTakeThreeDifferent(
             GameState state,
             Player player,
@@ -189,6 +221,9 @@ public class GreedyStrategy {
         return best;
     }
 
+    /**
+     * Estimates how useful a token color is across the currently visible market.
+     */
     private int neededForVisibleCards(GameState state, Player player, GemColor color) {
         int need = 0;
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
@@ -200,10 +235,16 @@ public class GreedyStrategy {
         return need;
     }
 
+    /**
+     * Computes the token payment the AI would use to buy a card.
+     */
     private Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
         return PaymentCalculator.computePaymentTokens(player, cost);
     }
 
+    /**
+     * Returns the total number of colored requirements in a card cost.
+     */
     private int totalCost(Map<GemColor, Integer> cost) {
         int total = 0;
         for (int amount : cost.values()) {
@@ -212,6 +253,9 @@ public class GreedyStrategy {
         return total;
     }
 
+    /**
+     * Returns the non-gold gem colors in enum order.
+     */
     private List<GemColor> normalColors() {
         List<GemColor> colors = new ArrayList<>();
         for (GemColor c : GemColor.values()) {

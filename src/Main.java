@@ -3,13 +3,22 @@ import network.GameServer;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-// DONT use VSCODE shortcut to run this code
-// run from compileRunShortcut.sh file, else will have a lot clutter
-public class SwingMain {
+/**
+ * Launcher that lets the user choose between single-player and multiplayer modes.
+ */
+public class Main {
+    /**
+     * Shows the mode-selection dialog on the Swing event thread.
+     *
+     * @param args ignored command-line arguments
+     */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(SwingMain::showModeDialog);
+        SwingUtilities.invokeLater(Main::showModeDialog);
     }
 
+    /**
+     * Prompts the user to launch single-player, host multiplayer, or join multiplayer mode.
+     */
     private static void showModeDialog() {
         String[] options = {"Single Player", "Host Multiplayer", "Join Multiplayer", "Exit"};
         int selected = JOptionPane.showOptionDialog(
@@ -42,7 +51,7 @@ public class SwingMain {
                     }, "Splendor-Server");
                     serverThread.setDaemon(true);
                     serverThread.start();
-                    // small delay to ensure server is up
+                    // Give the server thread a moment to bind before the local client connects.
                     Thread.sleep(200);
                     ClientMain.showConnectionDialog("localhost", String.valueOf(port));
                 } catch (NumberFormatException | InterruptedException e) {

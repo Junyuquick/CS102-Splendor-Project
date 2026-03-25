@@ -16,13 +16,30 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Loads and scales artwork used by the Swing interface.
+ *
+ * <p>The loader searches configured asset directories first and then falls back to a few
+ * project-local media locations.
+ */
 final class SwingAssetLoader {
     private final Config config;
 
+    /**
+     * Creates an asset loader that reads locations from the supplied configuration.
+     *
+     * @param config application configuration
+     */
     SwingAssetLoader(Config config) {
         this.config = config;
     }
 
+    /**
+     * Loads the icon used for a token button.
+     *
+     * @param color gem color to load
+     * @return token icon, or {@code null} if none could be found
+     */
     ImageIcon loadTokenIcon(GemColor color) {
         String filename = switch (color) {
             case WHITE -> "white.png";
@@ -72,6 +89,12 @@ final class SwingAssetLoader {
         return null;
     }
 
+    /**
+     * Loads the artwork for a development card.
+     *
+     * @param card card whose artwork should be loaded
+     * @return card icon, or {@code null} if no image is available
+     */
     ImageIcon loadCardIcon(DevelopmentCard card) {
         String filename = "card_" + card.getId() + ".png";
         Path[] candidates = new Path[]{
@@ -87,6 +110,12 @@ final class SwingAssetLoader {
         return null;
     }
 
+    /**
+     * Loads the artwork for a noble tile.
+     *
+     * @param noble noble whose artwork should be loaded
+     * @return noble icon, or {@code null} if no image is available
+     */
     ImageIcon loadNobleIcon(NobleTile noble) {
         String filename = "card_" + noble.getId() + ".png";
         Path[] candidates = new Path[]{
@@ -101,6 +130,14 @@ final class SwingAssetLoader {
         return null;
     }
 
+    /**
+     * Loads an image and scales it to fit within the requested bounds while preserving aspect ratio.
+     *
+     * @param imagePath source image path
+     * @param targetW target width in pixels
+     * @param targetH target height in pixels
+     * @return scaled icon
+     */
     private ImageIcon loadScaledIcon(Path imagePath, int targetW, int targetH) {
         ImageIcon icon = new ImageIcon(imagePath.toString());
         Image src = icon.getImage();
@@ -124,6 +161,13 @@ final class SwingAssetLoader {
         return new ImageIcon(out);
     }
 
+    /**
+     * Loads an image, scales it to cover a circle, and clips the result to a round token icon.
+     *
+     * @param imagePath source image path
+     * @param diameter target icon diameter in pixels
+     * @return circular icon
+     */
     private ImageIcon loadCircularIcon(Path imagePath, int diameter) {
         ImageIcon icon = new ImageIcon(imagePath.toString());
         Image src = icon.getImage();

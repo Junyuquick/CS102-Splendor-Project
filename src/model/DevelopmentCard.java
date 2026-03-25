@@ -1,8 +1,13 @@
 package model;
-import java.io.Serializable;import java.util.Collections;
+
+import java.io.Serializable;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Immutable representation of a development card on the board or in a deck.
+ */
 public class DevelopmentCard implements Serializable {
 
     private final int id;
@@ -11,6 +16,15 @@ public class DevelopmentCard implements Serializable {
     private final GemColor bonusColor;
     private final Cost cost;
 
+    /**
+     * Creates a development card.
+     *
+     * @param id stable card identifier
+     * @param level card tier, from 1 to 3
+     * @param prestigePoints prestige points awarded when purchased
+     * @param bonusColor permanent bonus color granted by the card
+     * @param cost token cost required to buy the card
+     */
     public DevelopmentCard(int id,
                            int level,
                            int prestigePoints,
@@ -36,26 +50,56 @@ public class DevelopmentCard implements Serializable {
         this.bonusColor = bonusColor;
     }
 
+    /**
+     * Returns the card identifier.
+     *
+     * @return the card identifier
+     */
     public int getId() {
         return id;
     }
 
+    /**
+     * Returns the card tier.
+     *
+     * @return the card level
+     */
     public int getLevel() {
         return level;
     }
 
+    /**
+     * Returns the prestige points granted by the card.
+     *
+     * @return the prestige point value
+     */
     public int getPrestigePoints() {
         return prestigePoints;
     }
 
+    /**
+     * Returns the permanent bonus color granted after purchase.
+     *
+     * @return the bonus color
+     */
     public GemColor getBonusColor() {
         return bonusColor;
     }
 
+    /**
+     * Returns the purchase cost of the card.
+     *
+     * @return an unmodifiable view of the token cost by color
+     */
     public Map<GemColor, Integer> getCost() {
         return Collections.unmodifiableMap(cost.asMap());
     }
 
+    /**
+     * Returns a concise textual summary of the card.
+     *
+     * @return string form of this card
+     */
     @Override
     public String toString() {
         return "ID: " + id +
@@ -65,6 +109,12 @@ public class DevelopmentCard implements Serializable {
                ", Cost: " + cost;
     }
 
+    /**
+     * Compares this card with another object using card identity fields.
+     *
+     * @param obj object to compare against
+     * @return {@code true} when both objects describe the same card
+     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -76,6 +126,11 @@ public class DevelopmentCard implements Serializable {
                 && Objects.equals(cost, other.cost);
     }
 
+    /**
+     * Returns a hash code consistent with {@link #equals(Object)}.
+     *
+     * @return hash code for this card
+     */
     @Override
     public int hashCode() {
         return Objects.hash(id, level, prestigePoints, bonusColor, cost);

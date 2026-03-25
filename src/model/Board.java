@@ -11,23 +11,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Represents the shared board state for a Splendor game.
+ *
+ * <p>The board tracks the visible market, the remaining decks for each tier,
+ * available nobles, and the token supply mirrored in the {@link GemBank}.
+ */
 public class Board implements Serializable {
 
     private final Map<Integer, List<DevelopmentCard>> faceUpCards;
     private final List<NobleTile> nobles;
     private final Map<GemColor, Integer> gems;
 
-    // Internal decks used to refill face-up slots and support blind draws.
     private final Map<Integer, Deque<DevelopmentCard>> decks;
-    // Stores last removed face-up slot index per tier so refills preserve board order.
     private final Map<Integer, Integer> lastRemovedFaceUpIndexByTier;
     private final GemBank bank;
     private final int openCardsPerTier;
 
+    /**
+     * Creates an empty board with the default four visible cards per tier.
+     */
     public Board() {
         this(new HashMap<>(), new ArrayList<>(), new EnumMap<>(GemColor.class), new GemBank(), 4);
     }
 
+    /**
+     * Creates a board from prepared decks, nobles, and token counts.
+     *
+     * @param deckCards cards remaining in each tier deck, ordered from next draw onward
+     * @param nobles nobles currently available on the board
+     * @param initialGems initial token counts shown on the board
+     * @param bank shared bank used to mirror token inventory
+     * @param openCardsPerTier number of face-up cards to maintain per tier
+     */
     public Board(Map<Integer, List<DevelopmentCard>> deckCards,
                  List<NobleTile> nobles,
                  Map<GemColor, Integer> initialGems,
@@ -100,6 +116,12 @@ public class Board implements Serializable {
         }
     }
 
+    /**
+     * Removes tokens from the board supply.
+     *
+     * @param requested number of tokens requested for each color
+     * @throws IllegalArgumentException if a request is negative or exceeds the available supply
+     */
     public void takeGems(Map<GemColor, Integer> requested) {
         if (requested == null || requested.isEmpty()) {
             return;
@@ -124,6 +146,12 @@ public class Board implements Serializable {
         }
     }
 
+    /**
+     * Returns tokens to the board supply.
+     *
+     * @param returned number of tokens returned for each color
+     * @throws IllegalArgumentException if a returned amount is negative
+     */
     public void returnGems(Map<GemColor, Integer> returned) {
         if (returned == null || returned.isEmpty()) {
             return;
@@ -140,6 +168,15 @@ public class Board implements Serializable {
         }
     }
 
+    /**
+     * Removes a face-up card from the requested tier and immediately refills its slot if possible.
+     *
+     * @param tier development-card tier
+     * @param index zero-based index within that tier's visible cards
+     * @return the purchased card
+     * @throws IllegalArgumentException if the tier is unsupported
+     * @throws IndexOutOfBoundsException if the index is outside the visible-card range
+     */
     public DevelopmentCard purchaseCard(int tier, int index) {
         validateTier(tier);
         List<DevelopmentCard> tierCards = faceUpCards.get(tier);
@@ -155,30 +192,66 @@ public class Board implements Serializable {
         return purchased;
     }
 
+    /**
+     * Draws the next hidden card from the requested tier.
+     *
+     * @param tier development-card tier
+     * @return the next card, or {@code null} if the deck is empty
+     * @throws IllegalArgumentException if the tier is unsupported
+     */
     public DevelopmentCard drawFromDeck(int tier) {
         validateTier(tier);
         Deque<DevelopmentCard> deck = decks.get(tier);
         return deck == null ? null : deck.pollFirst();
     }
 
+    /**
+     * Removes a noble from the list of available nobles.
+     *
+     * @param noble noble to remove
+     */
     public void removeNoble(NobleTile noble) {
         nobles.remove(noble);
     }
 
+    /**
+     * Returns the number of available tokens of a given color.
+     *
+     * @param color token color to query
+     * @return available token count for that color
+     */
     public int getGemCount(GemColor color) {
         return gems.getOrDefault(color, 0);
     }
 
+    /**
+     * Returns the visible cards for one tier.
+     *
+     * @param tier development-card tier
+     * @return an unmodifiable view of the visible cards in that tier
+     * @throws IllegalArgumentException if the tier is unsupported
+     */
     public List<DevelopmentCard> getFaceUpCards(int tier) {
         validateTier(tier);
         return Collections.unmodifiableList(faceUpCards.get(tier));
     }
 
+    /**
+     * Returns the nobles still available on the board.
+     *
+     * @return an unmodifiable view of the available nobles
+     */
     public List<NobleTile> getAvailableNobles() {
         return Collections.unmodifiableList(nobles);
     }
 
-    // Compatibility overload used in engine classes.
+    /**
+     * Returns all visible cards across every tier.
+     *
+     * <p>This compatibility overload is used by engine code that does not work with tiers directly.
+     *
+     * @return an unmodifiable flattened view of all visible cards
+     */
     public List<DevelopmentCard> getFaceUpCards() {
         List<DevelopmentCard> all = new ArrayList<>();
         for (int tier = 1; tier <= 3; tier++) {
@@ -187,7 +260,14 @@ public class Board implements Serializable {
         return Collections.unmodifiableList(all);
     }
 
-    // Compatibility method used in engine classes.
+    /**
+     * Removes a card from the visible market or from one of the hidden decks.
+     *
+     * <p>If the card is removed from the visible market, the removed slot index is remembered so that a later
+     * refill can preserve the original ordering of the visible cards.
+     *
+     * @param card card to remove
+     */
     public void removeCard(DevelopmentCard card) {
         if (card == null) {
             return;
@@ -209,7 +289,11 @@ public class Board implements Serializable {
         }
     }
 
-    // Compatibility method used in engine classes.
+    /**
+     * Refills the face-up slot for a removed card when another card is available in the same tier deck.
+     *
+     * @param removedCard card whose tier determines the slot to refill
+     */
     public void refillSlot(DevelopmentCard removedCard) {
         if (removedCard == null) {
             return;
@@ -234,6 +318,8 @@ public class Board implements Serializable {
     }
 
     private int inferTier(DevelopmentCard card) {
+        // Refills are keyed by tier, so compatibility calls that pass only a card must infer it
+        // from the card's recorded level.
         String level = String.valueOf(card.getLevel()).toUpperCase();
         if (level.contains("1")) return 1;
         if (level.contains("2")) return 2;

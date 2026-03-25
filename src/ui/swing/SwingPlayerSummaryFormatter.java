@@ -8,10 +8,20 @@ import model.Player;
 import java.util.EnumMap;
 import java.util.Map;
 
+/**
+ * Formats player state into HTML or plain text for Swing summary panels.
+ */
 final class SwingPlayerSummaryFormatter {
     private SwingPlayerSummaryFormatter() {
     }
 
+    /**
+     * Builds the rich HTML summary used in the single-player side panel.
+     *
+     * @param player player to summarize
+     * @param config configuration used for token-cap display
+     * @return HTML fragment describing the player
+     */
     static String buildRichHtml(Player player, Config config) {
         StringBuilder html = new StringBuilder();
         html.append("<html><body style='font-family:sans-serif;font-size:12px;color:#E8ECF1;'>");
@@ -44,6 +54,12 @@ final class SwingPlayerSummaryFormatter {
         return html.toString();
     }
 
+    /**
+     * Builds the compact text summary used in multiplayer player panels.
+     *
+     * @param player player to summarize
+     * @return compact summary text
+     */
     static String buildCompactText(Player player) {
         StringBuilder sb = new StringBuilder();
         sb.append("Prestige: ").append(player.getPrestigePoints()).append("\n");
@@ -55,6 +71,12 @@ final class SwingPlayerSummaryFormatter {
         return sb.toString();
     }
 
+    /**
+     * Builds a short reserved-card summary such as {@code r1(P1 red)}.
+     *
+     * @param player player whose reserved cards are summarized
+     * @return compact reserved-card text, or {@code -} when none are reserved
+     */
     private static String compactReserved(Player player) {
         if (player.getReservedCards().isEmpty()) {
             return "-";
@@ -73,6 +95,12 @@ final class SwingPlayerSummaryFormatter {
         return sb.toString();
     }
 
+    /**
+     * Counts the player's permanent bonuses by color.
+     *
+     * @param player player whose bonuses are counted
+     * @return bonus counts by non-gold color
+     */
     private static Map<GemColor, Integer> getBonusCounts(Player player) {
         Map<GemColor, Integer> bonus = new EnumMap<>(GemColor.class);
         for (GemColor color : GemColor.values()) {
@@ -83,6 +111,12 @@ final class SwingPlayerSummaryFormatter {
         return bonus;
     }
 
+    /**
+     * Returns the HTML color used when highlighting a gem color in rich summaries.
+     *
+     * @param color gem color
+     * @return CSS-compatible hex color string
+     */
     private static String hexColor(GemColor color) {
         return switch (color) {
             case WHITE -> "#8A8A8A";

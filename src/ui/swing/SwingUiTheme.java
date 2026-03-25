@@ -10,6 +10,9 @@ import javax.swing.border.TitledBorder;
 import java.awt.Color;
 import java.awt.Font;
 
+/**
+ * Centralized colors, dimensions, and styling helpers for the Swing user interface.
+ */
 final class SwingUiTheme {
     static final int DEV_CARD_ICON_WIDTH = 96;
     static final int DEV_CARD_ICON_HEIGHT = 134;
@@ -37,12 +40,25 @@ final class SwingUiTheme {
     private SwingUiTheme() {
     }
 
+    /**
+     * Creates a standard titled border used throughout the application.
+     *
+     * @param title border title text
+     * @return styled titled border
+     */
     static TitledBorder createTitledBorder(String title) {
         TitledBorder border = BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR, 1), title);
         styleTitledBorder(border);
         return border;
     }
 
+    /**
+     * Creates the border used for player summary panels.
+     *
+     * @param title panel title
+     * @param active whether the player is currently active
+     * @return styled border
+     */
     static TitledBorder createPlayerBorder(String title, boolean active) {
         return BorderFactory.createTitledBorder(
                 new LineBorder(active ? ACCENT_BLUE : BORDER_COLOR, active ? 2 : 1),
@@ -54,10 +70,20 @@ final class SwingUiTheme {
         );
     }
 
+    /**
+     * Applies the shared title styling used by themed borders.
+     *
+     * @param border border to style
+     */
     static void styleTitledBorder(TitledBorder border) {
         border.setTitleColor(TEXT_PRIMARY);
     }
 
+    /**
+     * Applies the standard action-button appearance.
+     *
+     * @param button button to style
+     */
     static void styleActionButton(JButton button) {
         button.setFocusPainted(false);
         button.setBackground(SURFACE_BG);
@@ -66,12 +92,24 @@ final class SwingUiTheme {
         button.setBorder(new LineBorder(BORDER_COLOR, 1, true));
     }
 
+    /**
+     * Styles a scroll pane so it matches the application's panel colors.
+     *
+     * @param scrollPane scroll pane to style
+     * @param viewportColor background color for the viewport
+     */
     static void styleScrollPane(JScrollPane scrollPane, Color viewportColor) {
         scrollPane.setBorder(new LineBorder(BORDER_COLOR, 1));
         scrollPane.getViewport().setBackground(viewportColor);
         scrollPane.setBackground(viewportColor);
     }
 
+    /**
+     * Returns the display color used for a token of the given gem color.
+     *
+     * @param color gem color
+     * @return token display color
+     */
     static Color tokenColor(GemColor color) {
         return switch (color) {
             case WHITE -> new Color(240, 240, 240);
@@ -83,6 +121,12 @@ final class SwingUiTheme {
         };
     }
 
+    /**
+     * Returns the background color used when rendering a card that grants the given bonus.
+     *
+     * @param color bonus color
+     * @return display color for that bonus type
+     */
     static Color colorForBonus(GemColor color) {
         return switch (color) {
             case WHITE -> new Color(245, 245, 245);

@@ -15,10 +15,22 @@ import java.awt.BorderLayout;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Helper methods for building and refreshing player-summary panels in the Swing UI.
+ */
 final class SwingPlayerPanelSupport {
     private SwingPlayerPanelSupport() {
     }
 
+    /**
+     * Creates the player panels used by the single-player interface.
+     *
+     * @param frame owning frame that supplies shared panel factories
+     * @param playersPanel container that holds all player panels
+     * @param state current game state
+     * @param playerCardPanels map that stores each player's panel
+     * @param playerCardAreas map that stores each player's summary area
+     */
     static void initialiseSinglePlayerPanels(
             AbstractSwingSplendorFrame frame,
             JPanel playersPanel,
@@ -43,6 +55,14 @@ final class SwingPlayerPanelSupport {
         }
     }
 
+    /**
+     * Refreshes the single-player summary panels after game-state changes.
+     *
+     * @param config game configuration used when formatting summaries
+     * @param current player whose turn is active
+     * @param playerCardPanels map of players to their panels
+     * @param playerCardAreas map of players to their formatted text areas
+     */
     static void refreshSinglePlayerPanels(
             Config config,
             Player current,
@@ -71,6 +91,16 @@ final class SwingPlayerPanelSupport {
         }
     }
 
+    /**
+     * Renders the multiplayer lobby view before a game has started.
+     *
+     * @param frame owning frame that supplies shared panel factories
+     * @param playersPanel container that holds lobby panels
+     * @param lobbyPlayers connected player names in lobby order
+     * @param hostPlayerIndex index of the host player
+     * @param myPlayerIndex index of the local player
+     * @param minPlayersToStart minimum players required to start
+     */
     static void renderLobbyPlayers(
             AbstractSwingSplendorFrame frame,
             JPanel playersPanel,
@@ -104,6 +134,13 @@ final class SwingPlayerPanelSupport {
         playersPanel.repaint();
     }
 
+    /**
+     * Renders compact player summaries during an active multiplayer game.
+     *
+     * @param frame owning frame that supplies shared panel factories
+     * @param playersPanel container that holds player panels
+     * @param state current game state
+     */
     static void renderMultiplayerPlayers(AbstractSwingSplendorFrame frame, JPanel playersPanel, GameState state) {
         playersPanel.removeAll();
         playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8));

@@ -3,18 +3,14 @@ package engine;
 import model.*;
 
 /**
- * Advances turn in strict player order.
- * Manages the final-round rule so the game ends fairly after equal turns.
- * 
- * Once final-round is triggered (via WinnerChecker), TurnManager enforces
- * that the game continues until the turn order cycles back to the player
- * who triggered it, ensuring all players get equal turns in the final round.
- * 
- * Called by GameEngine as part of the main loop.
+ * Advances turn order and tracks which player triggered the final round.
+ *
+ * <p>When the final round starts, the manager records the triggering player so callers can
+ * later detect when turn order has wrapped back to that player.
  */
 public class TurnManager {
     
-    private int finalRoundStartingPlayerIndex = -1;  // Tracks which player triggered final round
+    private int finalRoundStartingPlayerIndex = -1;
     
     /**
      * Creates a TurnManager service instance.
@@ -35,7 +31,6 @@ public class TurnManager {
         int playerCount = state.getPlayers().size();
         int currentIndex = state.getCurrentPlayerIndex();
         
-        // Advance to next player, wrapping around
         int nextIndex = (currentIndex + 1) % playerCount;
         state.setCurrentPlayerIndex(nextIndex);
     }
@@ -74,7 +69,6 @@ public class TurnManager {
      */
     public void markFinalRound(GameState state) {
         state.setFinalRound(true);
-        // Record which player triggered the final round
         this.finalRoundStartingPlayerIndex = state.getCurrentPlayerIndex();
     }
     
@@ -95,10 +89,8 @@ public class TurnManager {
         }
         
         if (finalRoundStartingPlayerIndex == -1) {
-            return false;  // markFinalRound was never called
+            return false;
         }
-        
-        // Check if we've cycled back to the starting player
         return state.getCurrentPlayerIndex() == finalRoundStartingPlayerIndex;
     }
     
