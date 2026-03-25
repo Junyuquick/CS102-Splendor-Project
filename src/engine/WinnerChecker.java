@@ -36,7 +36,7 @@ public class WinnerChecker {
             return false;
         }
         
-        int winThreshold = config.getpointsToWin();
+        int winThreshold = config.getPointsToWin();
         
         for (Player player : state.getPlayers()) {
             if (player.getPrestigePoints() >= winThreshold) {

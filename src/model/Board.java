@@ -87,10 +87,6 @@ public class Board implements Serializable {
         }
     }
 
-    private void initializeGemSupply() {
-        initializeGemSupply(null);
-    }
-
     private void initializeGemSupply(Map<GemColor, Integer> initialGems) {
         gems.clear();
         for (GemColor color : GemColor.values()) {
@@ -103,10 +99,6 @@ public class Board implements Serializable {
                 bank.removeGems(color, bankCount - count);
             }
         }
-    }
-
-    private void initializeNobles() {
-        initializeNobles(Collections.emptyList());
     }
 
     private void initializeNobles(List<NobleTile> initialNobles) {

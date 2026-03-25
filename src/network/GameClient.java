@@ -82,28 +82,14 @@ public class GameClient {
      * @param move move selected by the local player
      */
     public void sendMove(Move move) {
-        if (!connected) return;
-        try {
-            out.writeObject(NetworkMessage.move(move));
-            out.flush();
-        } catch (IOException e) {
-            System.err.println("Failed to send move: " + e.getMessage());
-            connected = false;
-        }
+        sendMessage(NetworkMessage.move(move), "move");
     }
 
     /**
      * Asks the server to start the lobby's next game.
      */
     public void sendStartRequest() {
-        if (!connected) return;
-        try {
-            out.writeObject(NetworkMessage.startRequest());
-            out.flush();
-        } catch (IOException e) {
-            System.err.println("Failed to send start request: " + e.getMessage());
-            connected = false;
-        }
+        sendMessage(NetworkMessage.startRequest(), "start request");
     }
 
     /**
@@ -174,5 +160,18 @@ public class GameClient {
      */
     public void setMyPlayerIndex(int index) {
         this.myPlayerIndex = index;
+    }
+
+    private void sendMessage(NetworkMessage message, String actionName) {
+        if (!connected) {
+            return;
+        }
+        try {
+            out.writeObject(message);
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to send " + actionName + ": " + e.getMessage());
+            connected = false;
+        }
     }
 }

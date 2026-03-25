@@ -6,7 +6,9 @@ import engine.MoveExecutor;
 import engine.MoveValidator;
 import engine.NobleAssigner;
 import engine.TurnPostProcessor;
+import engine.TurnProgressionService;
 import engine.TurnManager;
+import engine.TurnAdvanceResult;
 import engine.WinnerChecker;
 import model.DevelopmentCard;
 import model.GameState;
@@ -29,11 +31,17 @@ import java.util.Set;
  * Single-player Swing implementation that runs the full game loop locally.
  */
 public class SwingSplendorApp extends AbstractSwingSplendorFrame {
+    private enum LocalMode {
+        SINGLE_PLAYER_VS_AI,
+        SAME_LAPTOP_MULTIPLAYER
+    }
+
     private final MoveExecutor executor;
     private final NobleAssigner nobleAssigner;
     private final TurnPostProcessor turnPostProcessor;
     private final WinnerChecker winnerChecker;
     private final TurnManager turnManager;
+    private final TurnProgressionService turnProgressionService;
     private final GreedyStrategy aiStrategy;
     private final Map<Player, JPanel> playerCardPanels = new LinkedHashMap<>();
     private final Map<Player, javax.swing.JEditorPane> playerCardAreas = new LinkedHashMap<>();
@@ -41,27 +49,39 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
 
     private boolean finalGameOver = false;
     private boolean computerThinking = false;
+    private final LocalMode localMode;
 
     /**
      * Creates a new single-player game window using the default configuration.
      */
     public SwingSplendorApp() {
-        this(SwingConfigSupport.loadConfig());
+        this(SwingConfigSupport.loadConfig(), LocalMode.SINGLE_PLAYER_VS_AI, -1);
     }
 
-    private SwingSplendorApp(config.Config config) {
+    /**
+     * Creates a local same-laptop multiplayer game window with all-human players.
+     *
+     * @param playerCount number of human players sharing the same laptop
+     */
+    public SwingSplendorApp(int playerCount) {
+        this(SwingConfigSupport.loadConfig(), LocalMode.SAME_LAPTOP_MULTIPLAYER, playerCount);
+    }
+
+    private SwingSplendorApp(config.Config config, LocalMode localMode, int requestedPlayerCount) {
         super(
                 "Splendor (Swing)",
                 config,
                 null,
                 new MoveValidator(config)
         );
-        this.state = createInitialState();
+        this.localMode = localMode;
+        this.state = createInitialState(requestedPlayerCount);
         this.executor = new MoveExecutor(config);
         this.nobleAssigner = new NobleAssigner();
         this.turnPostProcessor = new TurnPostProcessor(config, nobleAssigner);
         this.winnerChecker = new WinnerChecker(config);
         this.turnManager = new TurnManager();
+        this.turnProgressionService = new TurnProgressionService();
         this.aiStrategy = new GreedyStrategy(config);
 
         buildSharedUi(false, false, state.getPlayers().size());
@@ -75,7 +95,14 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
      *
      * @return initialized game state
      */
-    private GameState createInitialState() {
+    private GameState createInitialState(int requestedPlayerCount) {
+        if (localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER) {
+            return createSameLaptopInitialState(requestedPlayerCount);
+        }
+        return createSinglePlayerInitialState();
+    }
+
+    private GameState createSinglePlayerInitialState() {
         String playerName = promptName("Enter Player 1 name:");
         int computerCount = askComputerCount();
         List<Player> players = new ArrayList<>();
@@ -85,6 +112,21 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             Player computer = new Player(i == 1 ? "Computer" : "Computer " + i);
             computerPlayers.add(computer);
             players.add(computer);
+        }
+
+        return new GameStateFactory(config, GameStateFactory.FallbackProfile.LOCAL_APP)
+                .createGame(players, this::log);
+    }
+
+    private GameState createSameLaptopInitialState(int requestedPlayerCount) {
+        int minPlayers = config.getMinPlayers();
+        int maxPlayers = config.getMaxPlayers();
+        int playerCount = Math.max(minPlayers, Math.min(maxPlayers, requestedPlayerCount));
+
+        List<Player> players = new ArrayList<>();
+        for (int i = 1; i <= playerCount; i++) {
+            String name = promptName("Enter Player " + i + " name:");
+            players.add(new Player(name.isBlank() ? "Player " + i : name));
         }
 
         return new GameStateFactory(config, GameStateFactory.FallbackProfile.LOCAL_APP)
@@ -113,7 +155,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         refreshBankCounts();
 
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + state.getPlayer(0).getName());
+        statusLabel.setText(localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER
+                ? "Mode: Same Laptop Multiplayer"
+                : "You: " + state.getPlayer(0).getName());
         reservedLabel.setText(current.getName() + " Reserved Cards");
 
         SwingPlayerPanelSupport.refreshSinglePlayerPanels(config, current, playerCardPanels, playerCardAreas);
@@ -151,14 +195,12 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         resolveTokenCapIfNeeded(current);
         resolveNobleAttraction(current, false);
 
-        if (winnerChecker.shouldTriggerFinalRound(state)) {
-            turnManager.markFinalRound(state);
+        TurnAdvanceResult turnResult = turnProgressionService.progressTurn(state, winnerChecker, turnManager);
+        if (turnResult.isFinalRoundTriggered()) {
             log("Final round triggered by " + current.getName());
         }
-
-        turnManager.advanceTurn(state);
-        if (turnManager.hasFinalRoundCompleted(state)) {
-            Player winner = winnerChecker.determineWinner(state);
+        if (turnResult.getWinner() != null) {
+            Player winner = turnResult.getWinner();
             finalGameOver = true;
             log("Game over. Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");
             showSinglePlayerGameOverDialog(winner);
@@ -180,7 +222,9 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        statusLabel.setText("You: " + state.getPlayer(0).getName());
+        statusLabel.setText(localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER
+                ? "Mode: Same Laptop Multiplayer"
+                : "You: " + state.getPlayer(0).getName());
         phaseLabel.setText("Turn: " + current.getName() + " | Phase: " + mode.name().replace('_', ' '));
 
         if (isComputerTurn() || computerThinking) {
@@ -278,7 +322,11 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
      */
     private String promptName(String prompt) {
         String name = JOptionPane.showInputDialog(this, prompt, "Player Setup", JOptionPane.QUESTION_MESSAGE);
-        if (name == null || name.isBlank()) {
+        if (name == null) {
+            System.exit(0);
+            return "Player";
+        }
+        if (name.isBlank()) {
             return "Player";
         }
         return name.trim();
@@ -311,6 +359,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                 options.get(0)
         );
         if (choice == null) {
+            System.exit(0);
             return minComputers;
         }
         try {
@@ -344,7 +393,13 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                 JOptionPane.INFORMATION_MESSAGE
         );
         if (choice == JOptionPane.YES_OPTION) {
-            java.awt.EventQueue.invokeLater(() -> new SwingSplendorApp().setVisible(true));
+            java.awt.EventQueue.invokeLater(() -> {
+                if (localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER) {
+                    new SwingSplendorApp(state.getPlayers().size()).setVisible(true);
+                } else {
+                    new SwingSplendorApp().setVisible(true);
+                }
+            });
         }
         dispose();
     }
@@ -392,7 +447,6 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             executor.execute(state, current, move);
             resolveTokenCapIfNeeded(current);
             String moveSummary = current.getName() + " played: " + move.getType();
-            latestComputerMoveLabel.setText(moveSummary);
             log(moveSummary);
             JOptionPane.showMessageDialog(
                     this,
@@ -402,14 +456,12 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             );
             resolveNobleAttraction(current, true);
 
-            if (winnerChecker.shouldTriggerFinalRound(state)) {
-                turnManager.markFinalRound(state);
+            TurnAdvanceResult turnResult = turnProgressionService.progressTurn(state, winnerChecker, turnManager);
+            if (turnResult.isFinalRoundTriggered()) {
                 log("Final round triggered by " + current.getName());
             }
-
-            turnManager.advanceTurn(state);
-            if (turnManager.hasFinalRoundCompleted(state)) {
-                Player winner = winnerChecker.determineWinner(state);
+            if (turnResult.getWinner() != null) {
+                Player winner = turnResult.getWinner();
                 finalGameOver = true;
                 log("Game over. Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");
                 showSinglePlayerGameOverDialog(winner);

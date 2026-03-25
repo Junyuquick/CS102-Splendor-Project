@@ -134,32 +134,4 @@ final class SwingPlayerPanelSupport {
         playersPanel.repaint();
     }
 
-    /**
-     * Renders compact player summaries during an active multiplayer game.
-     *
-     * @param frame owning frame that supplies shared panel factories
-     * @param playersPanel container that holds player panels
-     * @param state current game state
-     */
-    static void renderMultiplayerPlayers(AbstractSwingSplendorFrame frame, JPanel playersPanel, GameState state) {
-        playersPanel.removeAll();
-        playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8));
-        for (int i = 0; i < state.getPlayers().size(); i++) {
-            Player player = state.getPlayer(i);
-            String title = (i == state.getCurrentPlayerIndex() ? "* " : "") + player.getName();
-            JPanel panel = frame.createPlayerPanel(title, i == state.getCurrentPlayerIndex());
-
-            JEditorPane area = new JEditorPane();
-            area.setEditable(false);
-            area.setText(SwingPlayerSummaryFormatter.buildCompactText(player));
-            area.setBackground(SwingUiTheme.PANEL_BG_ALT);
-            area.setForeground(SwingUiTheme.TEXT_PRIMARY);
-            JScrollPane scrollPane = new JScrollPane(area);
-            SwingUiTheme.styleScrollPane(scrollPane, SwingUiTheme.PANEL_BG_ALT);
-            panel.add(scrollPane, BorderLayout.CENTER);
-            playersPanel.add(panel);
-        }
-        playersPanel.revalidate();
-        playersPanel.repaint();
-    }
 }
