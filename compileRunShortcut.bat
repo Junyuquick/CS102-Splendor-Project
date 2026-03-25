@@ -1,4 +1,8 @@
 @echo off
+REM This script must be run in a Windows terminal, not bash or WSL.
+REM Run in PowerShell with: .\compileRunShortcut.bat
+REM Run in Command Prompt with: compileRunShortcut.bat
+
 setlocal EnableDelayedExpansion
 
 echo Compiling...
