@@ -63,6 +63,7 @@ public class CardLoader {
                 }
                 GemColor bonusColor = parseColor(cols[2]);
                 int pv = parseInt(cols[3], "PV", i + 1);
+                validatePrestigeRange(level, pv, i + 1);
 
                 Cost cost = new Cost();
                 int black = parseInt(cols[4], "Black", i + 1);
@@ -120,6 +121,20 @@ public class CardLoader {
             return Integer.parseInt(raw.trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid integer in " + column + " at line " + lineNo + ": " + raw);
+        }
+    }
+
+    private void validatePrestigeRange(int level, int prestigePoints, int lineNo) {
+        boolean valid = switch (level) {
+            case 1 -> prestigePoints >= 0 && prestigePoints <= 1;
+            case 2 -> prestigePoints >= 1 && prestigePoints <= 3;
+            case 3 -> prestigePoints >= 3 && prestigePoints <= 5;
+            default -> false;
+        };
+        if (!valid) {
+            throw new IllegalArgumentException(
+                    "Invalid PV for level " + level + " at line " + lineNo + ": " + prestigePoints
+            );
         }
     }
 }
