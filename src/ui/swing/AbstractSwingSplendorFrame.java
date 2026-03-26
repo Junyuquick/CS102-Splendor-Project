@@ -57,7 +57,6 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected final JTextArea logArea = new JTextArea();
     protected final JPanel playersPanel = new JPanel();
     protected final JTextArea helpArea = new JTextArea();
-    protected final JLabel latestComputerMoveLabel = new JLabel("Latest Computer Move: -");
     protected final JPanel bankCountPanel = new JPanel(new GridLayout(6, 1, 4, 4));
     protected final Map<GemColor, JLabel> bankLabels = new EnumMap<>(GemColor.class);
     protected final Map<GemColor, JButton> tokenButtons = new EnumMap<>(GemColor.class);
@@ -247,12 +246,6 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         helpArea.setCaretColor(SwingUiTheme.TEXT_PRIMARY);
         helpArea.setBorder(SwingUiTheme.createTitledBorder("Prompt"));
         bottom.add(helpArea, BorderLayout.CENTER);
-
-        latestComputerMoveLabel.setOpaque(true);
-        latestComputerMoveLabel.setBackground(SwingUiTheme.PANEL_BG_ALT);
-        latestComputerMoveLabel.setForeground(SwingUiTheme.TEXT_PRIMARY);
-        latestComputerMoveLabel.setBorder(SwingUiTheme.createTitledBorder("Computer Move"));
-        bottom.add(latestComputerMoveLabel, BorderLayout.WEST);
 
         logArea.setEditable(false);
         logArea.setRows(7);

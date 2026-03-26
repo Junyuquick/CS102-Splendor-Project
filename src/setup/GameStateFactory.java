@@ -76,11 +76,9 @@ public class GameStateFactory {
      */
     private GemBank createBank(int playerCount) {
         GemBank bank = new GemBank();
-        for (GemColor color : GemColor.values()) {
-            int amount = color == GemColor.GOLD
-                    ? config.getInitialGoldGemCount(playerCount)
-                    : config.getInitialNormalGemCount(playerCount);
-            bank.addGems(color, amount);
+        Map<GemColor, Integer> initialCounts = buildGemCounts(playerCount);
+        for (Map.Entry<GemColor, Integer> entry : initialCounts.entrySet()) {
+            bank.addGems(entry.getKey(), entry.getValue());
         }
         return bank;
     }
@@ -92,14 +90,18 @@ public class GameStateFactory {
      * @return initial token counts by color
      */
     private Map<GemColor, Integer> buildInitialGems(int playerCount) {
-        Map<GemColor, Integer> initialGems = new EnumMap<>(GemColor.class);
+        return new EnumMap<>(buildGemCounts(playerCount));
+    }
+
+    private Map<GemColor, Integer> buildGemCounts(int playerCount) {
+        Map<GemColor, Integer> counts = new EnumMap<>(GemColor.class);
         for (GemColor color : GemColor.values()) {
             int amount = color == GemColor.GOLD
                     ? config.getInitialGoldGemCount(playerCount)
                     : config.getInitialNormalGemCount(playerCount);
-            initialGems.put(color, amount);
+            counts.put(color, amount);
         }
-        return initialGems;
+        return counts;
     }
 
     /**

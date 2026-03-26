@@ -1,5 +1,6 @@
 import network.ClientMain;
 import network.GameServer;
+import config.ConfigSupport;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
@@ -17,52 +18,181 @@ public class Main {
     }
 
     /**
-     * Prompts the user to launch single-player, host multiplayer, or join multiplayer mode.
+     * Prompts the user to launch single-player or multiplayer mode.
      */
     private static void showModeDialog() {
-        String[] options = {"Single Player", "Host Multiplayer", "Join Multiplayer", "Exit"};
-        int selected = JOptionPane.showOptionDialog(
+        while (true) {
+            String[] options = {"Single Player", "Multiplayer", "Exit"};
+            int selected = showOptionDialog("Choose game mode", "Splendor", options);
+
+            switch (selected) {
+                case 0 -> {
+                    ui.swing.SwingSplendorApp app = new ui.swing.SwingSplendorApp();
+                    app.setVisible(true);
+                    return;
+                }
+                case 1 -> {
+                    if (showMultiplayerModeDialog()) {
+                        return;
+                    }
+                }
+                case 2 -> {
+                    System.exit(0);
+                    return;
+                }
+                default -> {
+                    System.exit(0);
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows multiplayer mode choices.
+     *
+     * @return {@code true} when a game flow is launched; {@code false} when user goes back
+     */
+    private static boolean showMultiplayerModeDialog() {
+        while (true) {
+            String[] options = {"Multiplayer over Network", "Multiplayer on Same Laptop", "Back"};
+            int selected = showOptionDialog("Choose multiplayer mode", "Multiplayer", options);
+
+            switch (selected) {
+                case 0 -> {
+                    if (showNetworkModeDialog()) {
+                        return true;
+                    }
+                }
+                case 1 -> {
+                    launchSameLaptopMultiplayer();
+                    return true;
+                }
+                case 2 -> {
+                    return false;
+                }
+                default -> {
+                    System.exit(0);
+                    return true;
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows host/join options for network multiplayer.
+     *
+     * @return {@code true} when a network flow is launched; {@code false} when user goes back
+     */
+    private static boolean showNetworkModeDialog() {
+        while (true) {
+            String[] options = {"Host Server", "Join Server", "Back"};
+            int selected = showOptionDialog("Choose network mode", "Multiplayer over Network", options);
+
+            switch (selected) {
+                case 0 -> {
+                    if (launchHostServerFlow()) {
+                        return true;
+                    }
+                }
+                case 1 -> {
+                    ClientMain.showConnectionDialog();
+                    return true;
+                }
+                case 2 -> {
+                    return false;
+                }
+                default -> {
+                    System.exit(0);
+                    return true;
+                }
+            }
+        }
+    }
+
+    /**
+     * Starts the local game server and opens the client connection dialog.
+     *
+     * @return {@code true} when the flow starts; {@code false} when cancelled or invalid
+     */
+    private static boolean launchHostServerFlow() {
+        String portStr = JOptionPane.showInputDialog(null, "Multiplayer server port:", "12345");
+        if (portStr == null) {
+            System.exit(0);
+            return true;
+        }
+        if (portStr.isEmpty()) {
+            return false;
+        }
+
+        try {
+            int port = Integer.parseInt(portStr.trim());
+            Thread serverThread = new Thread(() -> {
+                try {
+                    new GameServer(port).start();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "Failed to start server: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }, "Splendor-Server");
+            serverThread.setDaemon(true);
+            serverThread.start();
+            // Give the server thread a moment to bind before the local client connects.
+            Thread.sleep(200);
+            ClientMain.showConnectionDialog("localhost", String.valueOf(port));
+            return true;
+        } catch (NumberFormatException | InterruptedException e) {
+            JOptionPane.showMessageDialog(null, "Invalid port: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    /**
+     * Prompts for same-laptop player count and launches a local all-human game.
+     */
+    private static void launchSameLaptopMultiplayer() {
+        config.Config config = ConfigSupport.loadDefaultConfig();
+        int minPlayers = config.getMinPlayers();
+        int maxPlayers = config.getMaxPlayers();
+
+        Object[] options = new Object[maxPlayers - minPlayers + 1];
+        for (int i = minPlayers; i <= maxPlayers; i++) {
+            options[i - minPlayers] = String.valueOf(i);
+        }
+
+        Object selected = JOptionPane.showInputDialog(
                 null,
-                "Choose game mode",
-                "Splendor",
+                "How many players will use this laptop?",
+                "Multiplayer on Same Laptop",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (selected == null) {
+            System.exit(0);
+            return;
+        }
+
+        try {
+            int playerCount = Integer.parseInt(selected.toString());
+            ui.swing.SwingSplendorApp app = new ui.swing.SwingSplendorApp(playerCount);
+            app.setVisible(true);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Invalid player count: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static int showOptionDialog(String message, String title, String[] options) {
+        return JOptionPane.showOptionDialog(
+                null,
+                message,
+                title,
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
                 null,
                 options,
                 options[0]
         );
-
-        switch (selected) {
-            case 0:
-                ui.swing.SwingSplendorApp app = new ui.swing.SwingSplendorApp();
-                app.setVisible(true);
-                break;
-            case 1:
-                String portStr = JOptionPane.showInputDialog(null, "Multiplayer server port:", "12345");
-                if (portStr == null || portStr.isEmpty()) return;
-                try {
-                    int port = Integer.parseInt(portStr.trim());
-                    Thread serverThread = new Thread(() -> {
-                        try {
-                            new GameServer(port).start();
-                        } catch (Exception e) {
-                            JOptionPane.showMessageDialog(null, "Failed to start server: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                        }
-                    }, "Splendor-Server");
-                    serverThread.setDaemon(true);
-                    serverThread.start();
-                    // Give the server thread a moment to bind before the local client connects.
-                    Thread.sleep(200);
-                    ClientMain.showConnectionDialog("localhost", String.valueOf(port));
-                } catch (NumberFormatException | InterruptedException e) {
-                    JOptionPane.showMessageDialog(null, "Invalid port: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                }
-                break;
-            case 2:
-                ClientMain.showConnectionDialog();
-                break;
-            default:
-                System.exit(0);
-        }
     }
 }

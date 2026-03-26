@@ -7,7 +7,9 @@ import engine.MoveExecutor;
 import engine.MoveValidator;
 import engine.NobleAssigner;
 import engine.TurnPostProcessor;
+import engine.TurnProgressionService;
 import engine.TurnManager;
+import engine.TurnAdvanceResult;
 import engine.WinnerChecker;
 import model.GameState;
 import model.Player;
@@ -39,6 +41,7 @@ public class GameServer {
     private final TurnPostProcessor turnPostProcessor = new TurnPostProcessor(config, nobleAssigner);
     private final WinnerChecker winnerChecker = new WinnerChecker(config);
     private final TurnManager turnManager = new TurnManager();
+    private final TurnProgressionService turnProgressionService = new TurnProgressionService();
 
     /**
      * Creates a server that listens on the supplied port.
@@ -175,17 +178,11 @@ public class GameServer {
 
         executor.execute(gameState, currentPlayer, move);
         turnPostProcessor.enforceTokenLimit(gameState, currentPlayer);
-
         turnPostProcessor.assignBestAvailableNobles(gameState, currentPlayer);
 
-        if (winnerChecker.shouldTriggerFinalRound(gameState)) {
-            turnManager.markFinalRound(gameState);
-        }
-
-        turnManager.advanceTurn(gameState);
-
-        if (turnManager.hasFinalRoundCompleted(gameState)) {
-            Player winner = winnerChecker.determineWinner(gameState);
+        TurnAdvanceResult turnResult = turnProgressionService.progressTurn(gameState, winnerChecker, turnManager);
+        if (turnResult.getWinner() != null) {
+            Player winner = turnResult.getWinner();
             System.out.println("Game over! Winner: " + winner.getName());
             broadcastState();
             broadcastGameOver("Game over! Winner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)");

@@ -127,7 +127,16 @@ public final class Config {
      *
      * @return the winning score threshold
      */
-    public int getpointsToWin() { return pointsToWin; }
+    public int getPointsToWin() { return pointsToWin; }
+
+    /**
+     * Returns the prestige-point threshold that triggers the final round.
+     *
+     * <p>Compatibility alias kept for existing callers.
+     *
+     * @return the winning score threshold
+     */
+    public int getpointsToWin() { return getPointsToWin(); }
 
     /**
      * Returns the maximum number of tokens a player may hold.
