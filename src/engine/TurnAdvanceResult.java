@@ -3,7 +3,7 @@ package engine;
 import model.Player;
 
 /**
- * Carries the outcome of advancing turn state after a completed move.
+ * Small result object that describes what happened when a turn was advanced.
  */
 public final class TurnAdvanceResult {
     private final boolean finalRoundTriggered;
@@ -15,18 +15,18 @@ public final class TurnAdvanceResult {
     }
 
     /**
-     * Returns whether this move triggered the final round.
+     * Tells whether this turn started the final round.
      *
-     * @return {@code true} if the final round was triggered during progression
+     * @return {@code true} if the final round was triggered
      */
     public boolean isFinalRoundTriggered() {
         return finalRoundTriggered;
     }
 
     /**
-     * Returns the game winner when the final round has completed.
+     * Returns the winner if the game has ended by this point.
      *
-     * @return winner, or {@code null} if the game is not over yet
+     * @return the winner, or {@code null} if the game is still going
      */
     public Player getWinner() {
         return winner;

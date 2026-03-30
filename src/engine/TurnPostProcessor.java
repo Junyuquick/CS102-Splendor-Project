@@ -12,17 +12,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Applies end-of-turn rules after a move has already been executed.
+ * Handles cleanup and bonus effects that happen after a move is applied.
  */
 public class TurnPostProcessor {
     private final Config config;
     private final NobleAssigner nobleAssigner;
 
     /**
-     * Creates a post-processing helper for completed turns.
+     * Creates a helper for the extra rule checks that happen at the end of a turn.
      *
-     * @param config game configuration used for turn-end limits
-     * @param nobleAssigner helper used to find and assign eligible nobles
+     * @param config game settings used for end-of-turn limits
+     * @param nobleAssigner helper used to find and assign nobles
      */
     public TurnPostProcessor(Config config, NobleAssigner nobleAssigner) {
         this.config = config;
@@ -30,11 +30,11 @@ public class TurnPostProcessor {
     }
 
     /**
-     * Forces a player to discard tokens until the configured hand limit is satisfied.
+     * Makes the player discard down to the token limit if they are holding too many.
      *
      * @param state game state whose bank receives the discarded tokens
-     * @param player player whose token count is being reduced
-     * @return the total discarded tokens keyed by color
+     * @param player player whose hand is being reduced
+     * @return all discarded tokens grouped by color
      */
     public Map<GemColor, Integer> enforceTokenLimit(GameState state, Player player) {
         Map<GemColor, Integer> discarded = new EnumMap<>(GemColor.class);
@@ -50,7 +50,7 @@ public class TurnPostProcessor {
     }
 
     /**
-     * Assigns as many eligible nobles as the rules allow for the completed turn.
+     * Gives the player as many eligible nobles as the rules allow this turn.
      *
      * @param state current game state
      * @param player player receiving nobles
@@ -66,10 +66,10 @@ public class TurnPostProcessor {
     }
 
     /**
-     * Chooses the most valuable noble from a list of eligible candidates.
+     * Picks the best noble from the available choices.
      *
      * @param eligibleNobles nobles the player currently qualifies for
-     * @return the selected noble
+     * @return the chosen noble
      */
     public NobleTile chooseBestNoble(List<NobleTile> eligibleNobles) {
         return eligibleNobles.stream()
@@ -101,7 +101,7 @@ public class TurnPostProcessor {
             if (candidate == null || max == 0) {
                 break;
             }
-            // Discard from the largest remaining stack first to reach the limit quickly.
+            // Drop tokens from the biggest stack first so the player gets under the limit quickly.
             discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
             working.put(candidate, max - 1);
             excess--;

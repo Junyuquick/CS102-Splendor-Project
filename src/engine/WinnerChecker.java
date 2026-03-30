@@ -5,31 +5,29 @@ import model.*;
 import java.util.*;
 
 /**
- * Evaluates endgame conditions and chooses the winning player.
+ * Decides when the endgame starts and who wins once the game is over.
  *
- * <p>The final round is triggered once a player reaches the configured prestige threshold.
- * Winner selection then prefers highest prestige and breaks ties by fewest purchased cards.
+ * <p>The final round starts when someone reaches the point threshold. After that,
+ * the winner is the player with the most prestige, with ties broken by fewer bought cards.
  */
 public class WinnerChecker {
     
     private final Config config;
     
     /**
-     * Creates a checker that uses the supplied victory configuration.
+     * Creates a winner checker using the current victory rules.
      *
-     * @param config game configuration containing the win threshold
+     * @param config game settings containing the win threshold
      */
     public WinnerChecker(Config config) {
         this.config = config;
     }
     
     /**
-     * Determines if the final round should be triggered.
-     * The final round begins when any player reaches or exceeds the configured
-     * points-to-win threshold, and the final round is not already active.
-     * 
+     * Checks whether the game should enter the final round now.
+     *
      * @param state the game state
-     * @return true if final round should be triggered, false otherwise
+     * @return true if the final round should start, false otherwise
      */
     public boolean shouldTriggerFinalRound(GameState state) {
         if (state.isFinalRound()) {
@@ -50,10 +48,10 @@ public class WinnerChecker {
     /**
      * Returns whether the game is in its endgame state.
      *
-     * <p>This implementation reflects only the {@link GameState#isFinalRound()} flag. Callers
-     * that need to know whether the last turn has completed must combine this with
+     * <p>Right now this simply mirrors the final-round flag in the game state. Code that
+     * needs to know whether the last turn has actually finished should combine this with
      * {@link TurnManager#hasFinalRoundCompleted(model.GameState)}.
-     * 
+     *
      * @param state the game state
      * @return true if the game is over, false otherwise
      */
@@ -62,13 +60,11 @@ public class WinnerChecker {
     }
     
     /**
-     * Determines the winner after the game ends.
-     * Winner is the player with the highest prestige points.
-     * Ties are broken by fewest purchased development cards.
-     * 
+     * Picks the winner once the game has ended.
+     *
      * @param state the game state
      * @return the winning player
-     * @throws IllegalStateException if the game is not over
+     * @throws IllegalStateException if the game is not over yet
      */
     public Player determineWinner(GameState state) {
         if (!isGameOver(state)) {

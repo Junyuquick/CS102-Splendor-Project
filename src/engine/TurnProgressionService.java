@@ -4,16 +4,16 @@ import model.GameState;
 import model.Player;
 
 /**
- * Applies post-move turn progression shared by local and network game flows.
+ * Handles the shared turn-advance steps after a move has finished.
  */
 public final class TurnProgressionService {
     /**
-     * Advances turn order and determines whether the game has just ended.
+     * Advances the turn and checks whether that move started or finished the endgame.
      *
      * @param state mutable game state
-     * @param winnerChecker endgame evaluator
-     * @param turnManager turn-order manager
-     * @return progression result containing final-round trigger and winner info
+     * @param winnerChecker helper for endgame checks
+     * @param turnManager helper for turn order
+     * @return result containing final-round and winner information
      */
     public TurnAdvanceResult progressTurn(GameState state, WinnerChecker winnerChecker, TurnManager turnManager) {
         boolean triggeredFinalRound = false;
