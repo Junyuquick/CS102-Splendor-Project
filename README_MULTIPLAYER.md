@@ -9,6 +9,12 @@ This project now supports multiplayer networking for the Splendor board game.
    javac -d classes $(find src -name '*.java')
    java -cp classes network.GameServer [port]
    ```
+   
+   note:
+   - you should use "ifconfig" to get your private IP address(usually starts with 10, 172 or 192)
+   - tip: use ctrl f and type "en0", your private ip is in that block of information
+   - you may choose to use your loopback address if u want though
+   
    Default port is 12345.
 
 2. The server will wait for players to join.
