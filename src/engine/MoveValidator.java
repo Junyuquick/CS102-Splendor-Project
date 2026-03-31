@@ -5,74 +5,72 @@ import model.*;
 import java.util.*;
 
 /**
- * Checks whether a proposed move is legal before any game state is mutated.
+ * Checks whether a move is legal before anything in the game state changes.
  *
- * <p>The validator enforces token-taking rules, reserve limits, affordability, and the
- * per-player token cap. A {@code null} return value indicates that the move is legal.
+ * <p>If a move is valid, this class returns {@code null}. If not, it returns a message
+ * explaining what was wrong.
  */
 public class MoveValidator {
     
     private final Config config;
     
     /**
-     * Creates a validator backed by the supplied rule configuration.
+     * Creates a validator that uses the current game rules.
      *
-     * @param config game configuration containing numeric move constraints
+     * @param config game settings that contain the numeric move limits
      */
     public MoveValidator(Config config) {
         this.config = config;
     }
     
     /**
-     * Validates a move for legality without changing state.
-     * 
+     * Checks whether the given move is allowed right now.
+     *
      * @param state the current game state
      * @param player the player making the move
-     * @param move the move to validate
-     * @return null if the move is legal, or a human-readable error message if illegal
+     * @param move the move to check
+     * @return {@code null} if the move is legal, otherwise an error message
      */
     public String validate(GameState state, Player player, Move move) {
         if (move == null) {
             return "Move cannot be null";
         }
-        
-        switch (move.getType()) {
-            case TAKE_THREE_DIFFERENT:
-                return validateTakeThreeDiff(state, player, move);
-            case TAKE_TWO_SAME:
-                return validateTakeTwoSame(state, player, move);
-            case RESERVE:
-                return validateReserve(state, player, move);
-            case BUY:
-                return validateBuy(state, player, move);
-            default:
-                return "Unknown move type: " + move.getType();
+
+        if (move instanceof TakeDifferentMove) {
+            return validateTakeThreeDiff(state, player, move);
         }
+        if (move instanceof TakeSameMove) {
+            return validateTakeTwoSame(state, player, move);
+        }
+        if (move instanceof ReserveMove) {
+            return validateReserve(state, player, move);
+        }
+        if (move instanceof BuyMove) {
+            return validateBuy(state, player, move);
+        }
+
+        return "Unknown move type: " + move.getTypeName();
     }
     
     /**
-     * Returns true only when validate(...) returns null (move is legal).
-     * 
+     * Convenience helper that turns the validation result into a simple true or false.
+     *
      * @param state the game state
      * @param player the player making the move
-     * @param move the move to validate
-     * @return true if legal, false otherwise
+     * @param move the move to check
+     * @return true if the move is legal, false otherwise
      */
     public boolean isLegal(GameState state, Player player, Move move) {
         return validate(state, player, move) == null;
     }
     
     /**
-     * Validates a TAKE_THREE_DIFFERENT move.
-     * Checks:
-     * - Exactly 3 different colors specified
-     * - Each color has at least 1 token in the bank
-     * - After taking, player won't exceed token cap
-     * 
+     * Checks the move where a player takes three different colors.
+     *
      * @param state the game state
      * @param player the player
-     * @param move the move with tokens map
-     * @return null if valid, error message otherwise
+     * @param move the move containing the selected tokens
+     * @return {@code null} if valid, otherwise an error message
      */
     private String validateTakeThreeDiff(GameState state, Player player, Move move) {
         Map<GemColor, Integer> tokens = move.getTokens();
@@ -110,17 +108,12 @@ public class MoveValidator {
     }
     
     /**
-     * Validates a TAKE_TWO_SAME move.
-     * Checks:
-     * - Exactly 1 color with count 2
-     * - Bank has at least 2 of that color
-     * - After taking, bank has at least config.takeSameMinRemainingInBank left
-     * - After taking, player won't exceed token cap
-     * 
+     * Checks the move where a player takes two tokens of the same color.
+     *
      * @param state the game state
      * @param player the player
-     * @param move the move with tokens map
-     * @return null if valid, error message otherwise
+     * @param move the move containing the selected tokens
+     * @return {@code null} if valid, otherwise an error message
      */
     private String validateTakeTwoSame(GameState state, Player player, Move move) {
         Map<GemColor, Integer> tokens = move.getTokens();
@@ -163,18 +156,15 @@ public class MoveValidator {
     }
     
     /**
-     * Validates a RESERVE move.
-     * Checks:
-     * - A card was supplied
-     * - The player has not reached the reserve limit
+     * Checks whether the player can reserve the chosen card.
      *
-     * <p>The current implementation accepts face-up reservations and relies on downstream
-     * board logic to remove the selected card.
-     * 
+     * <p>This mainly makes sure a card was supplied and the player has not already hit
+     * the reserve limit.
+     *
      * @param state the game state
      * @param player the player
-     * @param move the move with card and level
-     * @return null if valid, error message otherwise
+     * @param move the move containing the card and level
+     * @return {@code null} if valid, otherwise an error message
      */
     private String validateReserve(GameState state, Player player, Move move) {
         DevelopmentCard card = move.getCard();
@@ -187,8 +177,8 @@ public class MoveValidator {
         
         List<DevelopmentCard> faceUp = board.getFaceUpCards();
         if (!faceUp.contains(card)) {
-            // Deck-reservation validation is intentionally deferred because the board API does
-            // not expose deck contents in a way that identifies a specific hidden card.
+            // Hidden-deck reservations are handled elsewhere because the board API does not
+            // expose deck contents in a way that lets us verify a specific hidden card here.
         }
         
         List<DevelopmentCard> reserved = player.getReservedCards();
@@ -198,24 +188,18 @@ public class MoveValidator {
         
         GemBank bank = state.getBank();
         if (bank.getTokenCount(GemColor.GOLD) > 0) {
-            // Reserving remains legal whether or not a gold bonus is available.
+            // Reserving is still allowed even if there is no gold token to take.
         }
         
         return null;
     }
     
     /**
-     * Validates a BUY move.
-     * Checks:
-     * - Card exists (reserved or on board)
-     * - Player can afford the cost using:
-     *   - Permanent bonuses from purchased cards
-     *   - Colored tokens from hand
-     *   - Gold tokens as wildcard
-     * 
+     * Checks whether the player can afford and buy the chosen card.
+     *
      * @param state the game state
      * @param player the player
-     * @param move the move with card and payment breakdown
+     * @param move the move containing the card and payment details
      * @return null if valid, error message otherwise
      */
     private String validateBuy(GameState state, Player player, Move move) {

@@ -200,7 +200,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
 
         executor.execute(state, current, move);
-        log(current.getName() + " played: " + move.getType());
+        log(current.getName() + " played: " + move.getTypeName());
         resolveTokenCapIfNeeded(current);
         resolveNobleAttraction(current, false);
 
@@ -466,7 +466,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
 
             executor.execute(state, current, move);
             resolveTokenCapIfNeeded(current);
-            String moveSummary = current.getName() + " played: " + move.getType();
+            String moveSummary = current.getName() + " played: " + move.getTypeName();
             log(moveSummary);
             JOptionPane.showMessageDialog(
                     this,

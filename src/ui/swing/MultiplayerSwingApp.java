@@ -262,7 +262,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         }
 
         client.sendMove(move);
-        log("Sent move: " + move.getType());
+        log("Sent move: " + move.getTypeName());
         clearSelection();
     }
 

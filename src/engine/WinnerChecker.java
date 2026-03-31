@@ -25,8 +25,8 @@ public class WinnerChecker {
     
     /**
      * Determines if the final round should be triggered.
-     * The final round begins when any player reaches or exceeds the configured
-     * points-to-win threshold, and the final round is not already active.
+     * The final round begins when any player reaches or exceeds the configured 
+     * points to win threshold, and the final round is not already active.
      * 
      * @param state the game state
      * @return true if final round should be triggered, false otherwise

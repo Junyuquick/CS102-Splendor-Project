@@ -5,61 +5,59 @@ import model.*;
 import java.util.*;
 
 /**
- * Applies already validated moves to the mutable game state.
+ * Applies a move to the game after it has already been checked for legality.
  *
- * <p>This class centralizes board, bank, and player mutations so turn-processing code can
- * execute moves consistently before any post-turn effects are applied.
+ * <p>This keeps all of the actual state changes in one place, so turns are handled the same
+ * way no matter where the move came from.
  */
 public class MoveExecutor {
     
     private final Config config;
     
     /**
-     * Creates an executor that uses the supplied rule configuration.
+     * Creates a move executor with the current game rules.
      *
-     * @param config game configuration used for execution details such as reserve bonuses
+     * @param config game settings used for details like reserve bonuses
      */
     public MoveExecutor(Config config) {
         this.config = config;
     }
     
     /**
-     * Applies a validated move to the game state.
-     * Mutates state to reflect the move:
-     * - Moves tokens between bank and player
-     * - Moves cards to reserved or purchased
-     * - Refills board slots as required
-     * 
-     * @param state the current game state (will be mutated)
+     * Applies a legal move and updates the game state to match it.
+     *
+     * @param state the current game state, which will be updated
      * @param player the player making the move
-     * @param move the move to execute
-     * @throws IllegalArgumentException if the move type is not supported
+     * @param move the move to apply
+     * @throws IllegalArgumentException if the move type is not recognized
      */
     public void execute(GameState state, Player player, Move move) {
-        switch (move.getType()) {
-            case TAKE_THREE_DIFFERENT:
-                applyTakeThreeDiff(state, player, move);
-                break;
-            case TAKE_TWO_SAME:
-                applyTakeTwoSame(state, player, move);
-                break;
-            case RESERVE:
-                applyReserve(state, player, move);
-                break;
-            case BUY:
-                applyBuy(state, player, move);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported move type: " + move.getType());
+        if (move instanceof TakeDifferentMove) {
+            applyTakeThreeDiff(state, player, move);
+            return;
         }
+        if (move instanceof TakeSameMove) {
+            applyTakeTwoSame(state, player, move);
+            return;
+        }
+        if (move instanceof ReserveMove) {
+            applyReserve(state, player, move);
+            return;
+        }
+        if (move instanceof BuyMove) {
+            applyBuy(state, player, move);
+            return;
+        }
+
+        throw new IllegalArgumentException("Unsupported move type: " + move.getTypeName());
     }
     
     /**
-     * Applies a move that takes one token from each selected color.
+     * Handles the move where the player takes one token from each chosen color.
      *
-     * @param state game state to mutate
+     * @param state game state to update
      * @param player player receiving the tokens
-     * @param move move carrying the token selection
+     * @param move move containing the chosen colors
      */
     private void applyTakeThreeDiff(GameState state, Player player, Move move) {
         GemBank bank = state.getBank();
@@ -69,11 +67,11 @@ public class MoveExecutor {
     }
     
     /**
-     * Applies a move that takes multiple tokens of a single color.
+     * Handles the move where the player takes two tokens of the same color.
      *
-     * @param state game state to mutate
+     * @param state game state to update
      * @param player player receiving the tokens
-     * @param move move carrying the token selection
+     * @param move move containing the chosen color
      */
     private void applyTakeTwoSame(GameState state, Player player, Move move) {
         GemBank bank = state.getBank();
@@ -83,11 +81,11 @@ public class MoveExecutor {
     }
     
     /**
-     * Applies a reserve move, including the optional gold bonus.
+     * Handles reserving a card, including the gold bonus when one is available.
      *
-     * @param state game state to mutate
+     * @param state game state to update
      * @param player player reserving the card
-     * @param move move identifying the reserved card
+     * @param move move pointing to the card being reserved
      */
     private void applyReserve(GameState state, Player player, Move move) {
         Board board = state.getBoard();
@@ -106,11 +104,11 @@ public class MoveExecutor {
     }
     
     /**
-     * Applies a purchase move and transfers the paid tokens back to the bank.
+     * Handles buying a card and returning the spent tokens to the bank.
      *
-     * @param state game state to mutate
+     * @param state game state to update
      * @param player player buying the card
-     * @param move move identifying the purchased card and token payment
+     * @param move move containing the card and payment details
      */
     private void applyBuy(GameState state, Player player, Move move) {
         Board board = state.getBoard();

@@ -10,89 +10,60 @@ import java.util.*;
  * <p>A move records only the data needed by validation and execution, such as selected
  * tokens, the targeted card, and any payment-token breakdown for purchases.
  */
-public class Move implements Serializable {
-    
-    private final MoveType type;
-    private final Map<GemColor, Integer> tokens;
-    private final DevelopmentCard card;
-    private final Map<GemColor, Integer> paymentTokens;
-    private final boolean fromReserved;
-    private final int cardLevel;
-    
+public abstract class Move implements Serializable {
     /**
-     * Creates a move with the supplied payload.
+     * Returns a stable label for the concrete move class.
+     *
+     * @return display name used in logs and messages
      */
-    private Move(MoveType type,
-                 Map<GemColor, Integer> tokens,
-                 DevelopmentCard card,
-                 Map<GemColor, Integer> paymentTokens,
-                 boolean fromReserved,
-                 int cardLevel) {
-        this.type = type;
-        this.tokens = tokens;
-        this.card = card;
-        this.paymentTokens = paymentTokens;
-        this.fromReserved = fromReserved;
-        this.cardLevel = cardLevel;
-    }
-    
+    public abstract String getTypeName();
+
     /**
-     * Returns the action type so the validator and executor can dispatch correctly.
-     * 
-     * @return the move type
-     */
-    public MoveType getType() {
-        return type;
-    }
-    
-    /**
-     * Returns the tokens involved in this move (for TAKE_THREE_DIFFERENT or TAKE_TWO_SAME).
+     * Returns the tokens involved in this move (for token-taking moves).
      * Returns a defensive copy to prevent external mutation.
-     * 
      * @return the token map, or empty map if not applicable
      */
     public Map<GemColor, Integer> getTokens() {
-        return tokens != null ? new HashMap<>(tokens) : new HashMap<>();
+        return new HashMap<>();
     }
-    
+
     /**
-     * Returns the card involved in this move (for RESERVE or BUY).
-     * 
+     * Returns the card involved in this move (for reserve or buy).
      * @return the card, or null if not applicable
      */
     public DevelopmentCard getCard() {
-        return card;
+        return null;
     }
-    
+
     /**
-     * Returns the payment token breakdown for a BUY move.
+     * Returns the payment token breakdown for a buy move.
      * Maps color to the number of tokens of that color used to pay.
      * Returns a defensive copy to prevent external mutation.
-     * 
+     *
      * @return the payment token map, or empty map if not applicable
      */
     public Map<GemColor, Integer> getPaymentTokens() {
-        return paymentTokens != null ? new HashMap<>(paymentTokens) : new HashMap<>();
+        return new HashMap<>();
     }
-    
+
     /**
      * Returns whether the card is being bought from reserved cards (true) or from the board (false).
-     * Only applicable for BUY moves.
-     * 
+     * Only applicable for buy moves.
+     *
      * @return true if buying from reserved, false otherwise
      */
     public boolean isFromReserved() {
-        return fromReserved;
+        return false;
     }
-    
+
     /**
      * Returns the deck level to reserve from (1, 2, or 3), or -1 if reserving a face-up card.
-     * Only applicable for RESERVE moves.
-     * 
+     * Only applicable for reserve moves.
+     *
      * @return the level (1-3) or -1 for face-up
      */
     public int getCardLevel() {
-        return cardLevel;
+        return -1;
     }
     
     /**
@@ -102,7 +73,7 @@ public class Move implements Serializable {
      * @return the move
      */
     public static Move takeDifferent(Map<GemColor, Integer> tokens) {
-        return new Move(MoveType.TAKE_THREE_DIFFERENT, new HashMap<>(tokens), null, null, false, -1);
+        return new TakeDifferentMove(tokens);
     }
     
     /**
@@ -112,7 +83,7 @@ public class Move implements Serializable {
      * @return the move
      */
     public static Move takeSame(Map<GemColor, Integer> tokens) {
-        return new Move(MoveType.TAKE_TWO_SAME, new HashMap<>(tokens), null, null, false, -1);
+        return new TakeSameMove(tokens);
     }
     
     /**
@@ -122,7 +93,7 @@ public class Move implements Serializable {
      * @return the move
      */
     public static Move reserveFaceUp(DevelopmentCard card) {
-        return new Move(MoveType.RESERVE, null, card, null, false, -1);
+        return new ReserveMove(card, -1);
     }
     
     /**
@@ -133,7 +104,7 @@ public class Move implements Serializable {
      * @return the move
      */
     public static Move reserveFromDeck(DevelopmentCard card, int level) {
-        return new Move(MoveType.RESERVE, null, card, null, false, level);
+        return new ReserveMove(card, level);
     }
     
     /**
@@ -145,7 +116,7 @@ public class Move implements Serializable {
      * @return the move
      */
     public static Move buy(DevelopmentCard card, Map<GemColor, Integer> paymentTokens, boolean fromReserved) {
-        return new Move(MoveType.BUY, null, card, new HashMap<>(paymentTokens), fromReserved, -1);
+        return new BuyMove(card, paymentTokens, fromReserved);
     }
     
     /**
@@ -156,12 +127,12 @@ public class Move implements Serializable {
     @Override
     public String toString() {
         return "Move{" +
-                "type=" + type +
-                ", tokens=" + tokens +
-                ", card=" + card +
-                ", paymentTokens=" + paymentTokens +
-                ", fromReserved=" + fromReserved +
-                ", cardLevel=" + cardLevel +
+                "type=" + getTypeName() +
+                ", tokens=" + getTokens() +
+                ", card=" + getCard() +
+                ", paymentTokens=" + getPaymentTokens() +
+                ", fromReserved=" + isFromReserved() +
+                ", cardLevel=" + getCardLevel() +
                 '}';
     }
 }

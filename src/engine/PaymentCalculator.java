@@ -7,18 +7,18 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Calculates which player tokens must be spent to pay for a card after permanent bonuses are applied.
+ * Works out which tokens a player actually needs to spend to buy a card.
  */
 public final class PaymentCalculator {
     private PaymentCalculator() {
     }
 
     /**
-     * Computes the colored and gold tokens a player must spend to cover a card cost.
+     * Figures out the colored and gold tokens needed after permanent bonuses are taken into account.
      *
      * @param player player making the purchase
-     * @param cost card cost keyed by token color
-     * @return the tokens that must be removed from the player to complete the purchase
+     * @param cost card cost by gem color
+     * @return the tokens that should be removed from the player
      */
     public static Map<GemColor, Integer> computePaymentTokens(Player player, Map<GemColor, Integer> cost) {
         Map<GemColor, Integer> payment = new EnumMap<>(GemColor.class);
@@ -35,7 +35,7 @@ public final class PaymentCalculator {
             if (useColor > 0) {
                 payment.put(color, useColor);
             }
-            // Any remaining unpaid amount must be covered by gold tokens.
+            // Whatever is still unpaid after using colored tokens has to be covered by gold.
             goldNeeded += remaining - useColor;
         }
 
