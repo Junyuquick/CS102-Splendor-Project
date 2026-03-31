@@ -1,74 +1,46 @@
-To clone project and use it in Vscode:
-
-    1. “ Git clone https://github.com/Junyuquick/CS102-Splendor-Project.git “
-
-    2. “ git checkout main "
-
-    3. " git config —global user.name junyuquick “
-
-    4. " git config —global user.email junyu...@computing.smu.edu.sg “
-
-    Note: replace the name n email w ur own, can be anything
+## How to play Single Player mode
+1. On your machine, launch the game
+   ```
+   bash compile.sh
+   bash run.sh
+   ```
+2. Select "Single Player", key in your name, and select the number of computer u want to play with
 
 
-To create feature branch:
-    
-    1. " git pull "
 
-    2. " git checkout main "
-    
-    3. " git checkout -b feature/<feature name> "
-
-    4. " git add . && git commit -m "first commit "
-
-    5. " git push -u origin feature/<feature name> "
-
-    Note: after "git pull", if there's any conflicts between 2ppl work, ask the chat
-    Note: the name for feature branch is eg. feature/config
+## How to play Multiplayer mode on same laptop
+1. On your machine, launch the game
+   ```
+   bash compile.sh
+   bash run.sh
+   ```
+2. Select "Multiplayer", Select "Multiplayer on Same Laptop"
+3. Then key in your name, and select the number of computer u want to play with
 
 
-To delete feature branch:
 
-    1. " git checkout main "
+## How to play Multiplayer mode on same laptop
+1. to host the game on one laptop(host), run the server:
+   ```
+   bash compile.sh
+   bash run.sh
+   ```
+2. Select "Multiplayer", Select "Multiplayer over Network"
+3. Key in the your private IP address, any port number of the default(12345), and your name
 
-    2. go to github and manually delete the remote branch with feature/<feature name>
+   note:
+   - you should use "ifconfig" to get your private IP address(usually starts with 10, 172 or 192)
+   - tip: use ctrl f and type "en0", your private ip is in that block of information
+   - you may choose to use your loopback address if u want though
+   
+   Default port is 12345.
 
-    3. " git fetch --prune origin "
-
-    4. " git branch -d feature/<feature name> "
-
-    Note: delete the feature branch once youre done with it, if we find bugs in the future, we can create a new feature branch for it, so no worries. this is to prevent buildup of too many dead branches
-
-
-For subsequent uses on Vscode:
-
-    1. if u need the code others merged to main branch already, 
-       type: " git checkout main && git pull && git checkout feature/<feature name> && git merge main "
-
-    2. else, before you begin each coding session: " git pull "
-
-    3. ensure you are on correct branch: " git checkout feature/<feature name> "
-
-    4. Once youre done, find the "COMMIT" button in Vscode, type the commit message and press it
-
-    Note: for commit message, we can type eg. "add token-bank and take 3 rule"
-    • it’ll help us debug, and revert commits easily
-    
-
-How to test other's features before merging to main:
-
-    1. " git checkout main "
-
-    2. " git pull origin main "
-
-    3. " git checkout feature/<the friend's feature name> "
-
-    4. " git pull "
-
-    5. " git merge main "
-
-    6. run compile.sh and run.sh to test it
-
-    7. reset the changes " git reset --hard origin/feature/<friend's feature name>"
-
-    8. decide whether u want to merge the other's feature branch to main on github
+4. The server will wait for players(clients) to join.
+5. The server creator joins as the host and can press `Start Game` once at least 2/3/4 players(depends on config.properties) are in the lobby.
+6. On each client machine, run the client:
+   ```
+   bash compile.sh
+   bash run.sh
+   ```
+7. Enter the host IP address, port (default 12345), and your player name.
+8. Wait in the lobby for the host to start the game.
