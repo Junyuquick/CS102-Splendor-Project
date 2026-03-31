@@ -1,0 +1,564 @@
+@startuml
+' Splendor Project - Exhaustive Class Diagram
+
+title Splendor Project - Full Class-Level UML
+
+skinparam dpi 160
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 220
+left to right direction
+
+interface Serializable <<external>>
+interface Runnable <<external>>
+class JFrame <<external>>
+
+class Main {
+  +main(String[]): void
+}
+
+package "model" {
+  enum GemColor {
+    WHITE
+    BLUE
+    GREEN
+    RED
+    BLACK
+    GOLD
+    +isWildCard(): boolean
+  }
+
+  class Cost {
+    -amounts: EnumMap<GemColor,Integer>
+    +set(GemColor,int): void
+    +get(GemColor): int
+    +asMap(): Map<GemColor,Integer>
+    +total(): int
+    +isEmpty(): boolean
+  }
+
+  class DevelopmentCard {
+    -id: int
+    -level: int
+    -prestigePoints: int
+    -bonusColor: GemColor
+    -cost: Cost
+    +getId(): int
+    +getLevel(): int
+    +getPrestigePoints(): int
+    +getBonusColor(): GemColor
+    +getCost(): Map<GemColor,Integer>
+  }
+
+  class NobleTile {
+    -id: int
+    -prestigePoints: int
+    -requirement: Cost
+    +getId(): int
+    +getPrestigePoints(): int
+    +getRequirement(): Cost
+    +getRequirements(): Map<GemColor,Integer>
+  }
+
+  class GemBank {
+    -inventory: Map<GemColor,Integer>
+    +addGems(GemColor,int): void
+    +removeGems(GemColor,int): boolean
+    +getTokenCount(GemColor): int
+    +addTokens(Map<GemColor,Integer>): void
+    +removeTokens(Map<GemColor,Integer>): boolean
+  }
+
+  class Player {
+    -name: String
+    -tokens: Map<GemColor,Integer>
+    -purchasedCards: List<DevelopmentCard>
+    -reservedCards: List<DevelopmentCard>
+    -nobles: List<NobleTile>
+    +getName(): String
+    +getTokenCount(GemColor): int
+    +addTokens(Map<GemColor,Integer>): void
+    +removeTokens(Map<GemColor,Integer>): void
+    +addPurchasedCard(DevelopmentCard): void
+    +addReservedCard(DevelopmentCard): void
+    +removeReservedCard(DevelopmentCard): boolean
+    +addNoble(NobleTile): void
+    +getPrestigePoints(): int
+  }
+
+  class Board {
+    -faceUpCards: Map<Integer,List<DevelopmentCard>>
+    -decks: Map<Integer,Deque<DevelopmentCard>>
+    -nobles: List<NobleTile>
+    -gems: Map<GemColor,Integer>
+    -bank: GemBank
+    +takeGems(Map<GemColor,Integer>): void
+    +returnGems(Map<GemColor,Integer>): void
+    +purchaseCard(int,int): DevelopmentCard
+    +drawFromDeck(int): DevelopmentCard
+    +removeNoble(NobleTile): void
+    +removeCard(DevelopmentCard): boolean
+    +refillSlot(DevelopmentCard): void
+    +getFaceUpCards(): List<DevelopmentCard>
+    +getAvailableNobles(): List<NobleTile>
+  }
+
+  class GameState {
+    -players: List<Player>
+    -board: Board
+    -bank: GemBank
+    -currentPlayerIndex: int
+    -finalRound: boolean
+    +getPlayers(): List<Player>
+    +getCurrentPlayer(): Player
+    +getBoard(): Board
+    +getBank(): GemBank
+    +isFinalRound(): boolean
+    +setFinalRound(boolean): void
+  }
+}
+
+package "engine" {
+  abstract class Move {
+    +getTypeName(): String
+    +getTokens(): Map<GemColor,Integer>
+    +getCard(): DevelopmentCard
+    +getPaymentTokens(): Map<GemColor,Integer>
+    +isFromReserved(): boolean
+    +getCardLevel(): int
+    +takeDifferent(Map<GemColor,Integer>): Move
+    +takeSame(Map<GemColor,Integer>): Move
+    +reserveFaceUp(DevelopmentCard): Move
+    +reserveFromDeck(DevelopmentCard,int): Move
+    +buy(DevelopmentCard,Map<GemColor,Integer>,boolean): Move
+  }
+
+  class TakeDifferentMove
+  class TakeSameMove
+  class ReserveMove
+  class BuyMove
+
+  class MoveValidator {
+    -config: Config
+    +validate(GameState,Player,Move): String
+    +isLegal(GameState,Player,Move): boolean
+  }
+
+  class MoveExecutor {
+    -config: Config
+    +execute(GameState,Player,Move): void
+  }
+
+  class NobleAssigner {
+    +findEligibleNobles(GameState,Player): List<NobleTile>
+    +assignNoble(GameState,Player,NobleTile): void
+    +autoAssignIfSingle(GameState,Player): NobleTile
+  }
+
+  class TurnPostProcessor {
+    -config: Config
+    -nobleAssigner: NobleAssigner
+    +enforceTokenLimit(GameState,Player): Map<GemColor,Integer>
+    +assignBestAvailableNobles(GameState,Player): void
+    +chooseBestNoble(List<NobleTile>): NobleTile
+  }
+
+  class TurnManager {
+    -finalRoundStartingPlayerIndex: int
+    +advanceTurn(GameState): void
+    +markFinalRound(GameState): void
+    +hasFinalRoundCompleted(GameState): boolean
+    +resetFinalRound(): void
+  }
+
+  class WinnerChecker {
+    -config: Config
+    +shouldTriggerFinalRound(GameState): boolean
+    +isGameOver(GameState): boolean
+    +determineWinner(GameState): Player
+  }
+
+  class TurnProgressionService {
+    +progressTurn(GameState,WinnerChecker,TurnManager): TurnAdvanceResult
+  }
+
+  class TurnAdvanceResult {
+    -finalRoundTriggered: boolean
+    -winner: Player
+    +isFinalRoundTriggered(): boolean
+    +getWinner(): Player
+  }
+
+  class PaymentCalculator {
+    +computePaymentTokens(Player,Map<GemColor,Integer>): Map<GemColor,Integer>
+  }
+}
+
+package "config" {
+  class Config {
+    +getPointsToWin(): int
+    +getMaxTokensPerPlayer(): int
+    +getMaxReservedCards(): int
+    +getMinPlayers(): int
+    +getMaxPlayers(): int
+    +getNoblesCount(int): int
+    +getInitialNormalGemCount(int): int
+    +getInitialGoldGemCount(int): int
+    +getCardsPath(int): Path
+    +getNoblesPath(): Path
+  }
+
+  class ConfigLoader {
+    +load(Path): Config
+  }
+
+  class ConfigSupport {
+    +loadDefaultConfig(): Config
+    +locateConfigFile(): Path
+  }
+}
+
+package "io" {
+  class CardLoader {
+    +load(Path,Path,Path): Map<Integer,List<DevelopmentCard>>
+    +load(Path): Map<Integer,List<DevelopmentCard>>
+  }
+
+  class NobleLoader {
+    +load(Path): List<NobleTile>
+  }
+}
+
+package "setup" {
+  enum FallbackProfile {
+    LOCAL_APP
+    SERVER
+  }
+
+  class GameStateFactory {
+    -config: Config
+    -fallbackProfile: FallbackProfile
+    +createGame(List<Player>,Consumer<String>): GameState
+  }
+}
+
+package "ai" {
+  class GreedyStrategy {
+    -config: Config
+    +chooseMove(GameState,Player,MoveValidator): Move
+  }
+}
+
+package "network" {
+  enum MessageType {
+    JOIN
+    JOIN_ACK
+    MOVE
+    START_REQUEST
+    LOBBY_UPDATE
+    STATE_UPDATE
+    ERROR
+    GAME_START
+    GAME_OVER
+    DISCONNECT
+  }
+
+  class NetworkMessage {
+    -type: MessageType
+    -move: Move
+    -gameState: GameState
+    +join(String): NetworkMessage
+    +joinAck(int): NetworkMessage
+    +move(Move): NetworkMessage
+    +stateUpdate(GameState): NetworkMessage
+    +gameStart(GameState,int): NetworkMessage
+    +gameOver(String): NetworkMessage
+  }
+
+  class GameClient {
+    -host: String
+    -port: int
+    -playerName: String
+    -currentState: GameState
+    +connect(): boolean
+    +disconnect(): void
+    +sendMove(Move): void
+    +sendStartRequest(): void
+    +receiveMessage(): NetworkMessage
+  }
+
+  class ClientHandler {
+    -socket: Socket
+    -server: GameServer
+    +run(): void
+    +sendMessage(NetworkMessage): void
+    +getPlayerName(): String
+    +getPlayerIndex(): Integer
+  }
+
+  class GameServer {
+    -config: Config
+    -clients: List<ClientHandler>
+    -gameState: GameState
+    -validator: MoveValidator
+    -executor: MoveExecutor
+    -turnPostProcessor: TurnPostProcessor
+    -winnerChecker: WinnerChecker
+    -turnManager: TurnManager
+    -turnProgressionService: TurnProgressionService
+    +start(): void
+    +handleStartRequest(ClientHandler): void
+    +handleJoin(ClientHandler): void
+    +handleMove(ClientHandler,Move): void
+    +removeClient(ClientHandler): void
+    +main(String[]): void
+  }
+
+  class ClientMain {
+    +main(String[]): void
+    +showConnectionDialog(): void
+    +showHostConnectionDialog(): void
+  }
+}
+
+package "ui.swing" {
+  enum SwingGameMode {
+    IDLE
+    TAKE_DIFFERENT
+    TAKE_SAME
+    RESERVE
+    BUY
+  }
+
+  enum LocalMode {
+    SINGLE_PLAYER_VS_AI
+    SAME_LAPTOP_MULTIPLAYER
+  }
+
+  class SwingUiTheme {
+    +createTitledBorder(String): TitledBorder
+    +styleActionButton(JButton): void
+    +tokenColor(GemColor): Color
+    +cardBackground(GemColor): Color
+  }
+
+  class SwingConfigSupport {
+    +loadConfig(): Config
+  }
+
+  class SwingAssetLoader {
+    -config: Config
+    +loadTokenIcon(GemColor): ImageIcon
+    +loadCardIcon(DevelopmentCard): ImageIcon
+    +loadNobleIcon(NobleTile): ImageIcon
+  }
+
+  class SwingPlayerSummaryFormatter {
+    +buildRichHtml(Player,Config): String
+    +buildCompactText(Player): String
+  }
+
+  class SwingPlayerPanelSupport {
+    +initialiseSinglePlayerPanels(AbstractSwingSplendorFrame,JPanel,GameState,Map<Player,JPanel>,Map<Player,JEditorPane>): void
+    +refreshSinglePlayerPanels(Config,Player,Map<Player,JPanel>,Map<Player,JEditorPane>): void
+    +renderLobbyPlayers(AbstractSwingSplendorFrame,JPanel,List<String>,int,int,int): void
+  }
+
+  abstract class AbstractSwingSplendorFrame {
+    #config: Config
+    #state: GameState
+    #validator: MoveValidator
+    #assetLoader: SwingAssetLoader
+    #mode: SwingGameMode
+    +buildAndValidatePendingMove(Player,boolean): Move
+    +handleConfirmAction(): void
+  }
+
+  class SwingSplendorApp {
+    -executor: MoveExecutor
+    -nobleAssigner: NobleAssigner
+    -turnPostProcessor: TurnPostProcessor
+    -winnerChecker: WinnerChecker
+    -turnManager: TurnManager
+    -turnProgressionService: TurnProgressionService
+    -aiStrategy: GreedyStrategy
+    -localMode: LocalMode
+    +SwingSplendorApp()
+    +SwingSplendorApp(int)
+  }
+
+  class MultiplayerSwingApp {
+    -client: GameClient
+    +MultiplayerSwingApp(GameClient)
+  }
+}
+
+' Inheritance / implementation
+Move <|-- TakeDifferentMove
+Move <|-- TakeSameMove
+Move <|-- ReserveMove
+Move <|-- BuyMove
+
+AbstractSwingSplendorFrame <|-- SwingSplendorApp
+AbstractSwingSplendorFrame <|-- MultiplayerSwingApp
+
+ClientHandler ..|> Runnable
+AbstractSwingSplendorFrame --|> JFrame
+
+GameState ..|> Serializable
+Board ..|> Serializable
+Player ..|> Serializable
+DevelopmentCard ..|> Serializable
+NobleTile ..|> Serializable
+GemBank ..|> Serializable
+Cost ..|> Serializable
+Move ..|> Serializable
+NetworkMessage ..|> Serializable
+
+' Composition / aggregation
+GameState *-- "1" Board
+GameState *-- "1" GemBank
+GameState *-- "2..4" Player
+
+Board *-- "0..*" DevelopmentCard : decks/market
+Board o-- "0..*" NobleTile : available
+Board o-- "1" GemBank
+
+Player o-- "0..*" DevelopmentCard : purchased
+Player o-- "0..3" DevelopmentCard : reserved
+Player o-- "0..*" NobleTile
+
+DevelopmentCard *-- Cost
+NobleTile *-- Cost
+Cost --> GemColor
+GemBank --> GemColor
+
+NetworkMessage --> MessageType
+NetworkMessage --> Move
+NetworkMessage --> GameState
+
+GameStateFactory *-- FallbackProfile
+
+SwingSplendorApp *-- LocalMode
+
+' Engine orchestration
+MoveValidator --> Config
+MoveValidator --> GameState
+MoveValidator --> Player
+MoveValidator --> Move
+
+MoveExecutor --> Config
+MoveExecutor --> GameState
+MoveExecutor --> Player
+MoveExecutor --> Move
+
+TurnPostProcessor --> Config
+TurnPostProcessor --> NobleAssigner
+TurnPostProcessor --> GameState
+TurnPostProcessor --> Player
+
+WinnerChecker --> Config
+WinnerChecker --> GameState
+WinnerChecker --> Player
+
+TurnProgressionService --> WinnerChecker
+TurnProgressionService --> TurnManager
+TurnProgressionService --> TurnAdvanceResult
+TurnAdvanceResult --> Player
+PaymentCalculator --> Player
+
+' Setup / loading
+ConfigLoader --> Config
+ConfigSupport --> ConfigLoader
+ConfigSupport --> Config
+CardLoader --> DevelopmentCard
+CardLoader --> Cost
+NobleLoader --> NobleTile
+NobleLoader --> Cost
+GameStateFactory --> Config
+GameStateFactory --> CardLoader
+GameStateFactory --> NobleLoader
+GameStateFactory --> Board
+GameStateFactory --> GameState
+GameStateFactory --> GemBank
+GameStateFactory --> Player
+
+' AI
+GreedyStrategy --> Config
+GreedyStrategy --> MoveValidator
+GreedyStrategy --> PaymentCalculator
+GreedyStrategy --> GameState
+GreedyStrategy --> Player
+GreedyStrategy --> Move
+
+' Network orchestration
+GameClient --> NetworkMessage
+GameClient --> Move
+GameClient --> GameState
+
+ClientHandler --> GameServer
+ClientHandler --> NetworkMessage
+
+GameServer --> ConfigSupport
+GameServer --> Config
+GameServer --> ClientHandler
+GameServer --> GameStateFactory
+GameServer --> GameState
+GameServer --> MoveValidator
+GameServer --> MoveExecutor
+GameServer --> NobleAssigner
+GameServer --> TurnPostProcessor
+GameServer --> WinnerChecker
+GameServer --> TurnManager
+GameServer --> TurnProgressionService
+GameServer --> TurnAdvanceResult
+GameServer --> NetworkMessage
+GameServer --> Move
+
+ClientMain --> GameClient
+ClientMain --> GameServer
+ClientMain --> MultiplayerSwingApp
+
+' UI orchestration and coupling boundaries
+Main --> SwingSplendorApp
+Main --> ClientMain
+Main --> ConfigSupport
+
+SwingConfigSupport --> ConfigSupport
+SwingAssetLoader --> Config
+SwingAssetLoader --> GemColor
+SwingAssetLoader --> DevelopmentCard
+SwingAssetLoader --> NobleTile
+
+SwingPlayerSummaryFormatter --> Player
+SwingPlayerSummaryFormatter --> Config
+SwingPlayerPanelSupport --> Player
+SwingPlayerPanelSupport --> GameState
+
+AbstractSwingSplendorFrame --> Config
+AbstractSwingSplendorFrame --> GameState
+AbstractSwingSplendorFrame --> MoveValidator
+AbstractSwingSplendorFrame --> SwingAssetLoader
+AbstractSwingSplendorFrame --> Move
+AbstractSwingSplendorFrame --> PaymentCalculator
+
+SwingSplendorApp --> GameStateFactory
+SwingSplendorApp --> MoveExecutor
+SwingSplendorApp --> NobleAssigner
+SwingSplendorApp --> TurnPostProcessor
+SwingSplendorApp --> TurnManager
+SwingSplendorApp --> TurnProgressionService
+SwingSplendorApp --> TurnAdvanceResult
+SwingSplendorApp --> WinnerChecker
+SwingSplendorApp --> GreedyStrategy
+SwingSplendorApp --> Player
+
+MultiplayerSwingApp --> GameClient
+MultiplayerSwingApp --> NetworkMessage
+MultiplayerSwingApp --> Player
+MultiplayerSwingApp --> GameState
+MultiplayerSwingApp --> SwingPlayerPanelSupport
+
+@enduml

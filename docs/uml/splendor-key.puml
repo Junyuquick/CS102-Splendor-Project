@@ -1,0 +1,97 @@
+@startuml
+
+title Splendor Project - Key Classes (Simplified)
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+left to right direction
+
+class Main
+
+package "model" {
+  class GameState
+  class Board
+  class Player
+  class DevelopmentCard
+  class NobleTile
+  class GemBank
+}
+
+package "engine" {
+  abstract class Move
+  class MoveValidator
+  class MoveExecutor
+  class TurnPostProcessor
+  class TurnManager
+  class WinnerChecker
+}
+
+package "setup" {
+  class GameStateFactory
+}
+
+package "network" {
+  class GameServer
+  class GameClient
+  class NetworkMessage
+}
+
+package "ui.swing" {
+  abstract class AbstractSwingSplendorFrame
+  class SwingSplendorApp
+  class MultiplayerSwingApp
+}
+
+package "config" {
+  class Config
+}
+
+package "ai" {
+  class GreedyStrategy
+}
+
+' Core ownership (minimal)
+GameState *-- Board
+GameState *-- Player
+GameState *-- GemBank
+Board o-- DevelopmentCard
+Board o-- NobleTile
+
+' Key engine flow
+MoveValidator --> GameState
+MoveExecutor --> GameState
+TurnPostProcessor --> GameState
+WinnerChecker --> GameState
+TurnManager --> GameState
+
+' App/server integration
+SwingSplendorApp --|> AbstractSwingSplendorFrame
+MultiplayerSwingApp --|> AbstractSwingSplendorFrame
+SwingSplendorApp --> MoveValidator
+SwingSplendorApp --> MoveExecutor
+SwingSplendorApp --> WinnerChecker
+SwingSplendorApp --> GreedyStrategy
+SwingSplendorApp --> GameStateFactory
+
+GameServer --> MoveValidator
+GameServer --> MoveExecutor
+GameServer --> TurnPostProcessor
+GameServer --> WinnerChecker
+GameServer --> TurnManager
+GameServer --> GameStateFactory
+GameServer --> NetworkMessage
+GameClient --> NetworkMessage
+MultiplayerSwingApp --> GameClient
+
+' High-level entry links
+Main --> SwingSplendorApp
+Main --> GameClient
+
+' Configuration touchpoints
+GameStateFactory --> Config
+SwingSplendorApp --> Config
+GameServer --> Config
+
+@enduml
