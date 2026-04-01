@@ -17,7 +17,7 @@ public final class TurnAdvanceResult {
     /**
      * Tells whether this turn started the final round.
      *
-     * @return {@code true} if the final round was triggered
+     * @return true if the final round was triggered
      */
     public boolean isFinalRoundTriggered() {
         return finalRoundTriggered;

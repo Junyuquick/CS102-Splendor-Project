@@ -14,7 +14,7 @@ import model.Player;
 /**
  * Checks whether a move is legal before anything in the game state changes.
  *
- * <p>If a move is valid, this class returns {@code null}. If not, it returns a message
+ * If a move is valid, this class returns {@code null}. If not, it returns a message
  * explaining what was wrong.
  */
 public class MoveValidator {
