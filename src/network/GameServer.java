@@ -204,7 +204,10 @@ public class GameServer {
 
         broadcastState();
     }
-
+   
+    /**
+     * Logs outcome of a player's turn to consolde.
+     */
     private void logTurnOutcome(Player player, TurnResolutionResult turnResult) {
         if (!turnResult.getDiscardedTokens().isEmpty()) {
             System.out.println(player.getName() + " discarded " + turnResult.getDiscardedTokens());
