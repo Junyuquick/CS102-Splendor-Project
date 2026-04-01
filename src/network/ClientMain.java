@@ -130,7 +130,7 @@ public class ClientMain {
         serverThread.start();
 
         try {
-            // Give the server thread a moment to bind before the local client connects.
+            // Give the server thread a moment (200ms) to bind before the local client connects.
             Thread.sleep(200);
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
