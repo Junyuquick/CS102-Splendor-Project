@@ -1,6 +1,6 @@
 package network;
 
-import engine.Move;
+import engine.moves.Move;
 import model.GameState;
 
 import java.io.Serializable;

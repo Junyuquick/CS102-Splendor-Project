@@ -1,7 +1,7 @@
 package ui.swing;
 
-import engine.Move;
-import engine.MoveValidator;
+import engine.moves.Move;
+import engine.validation.MoveValidator;
 import model.GameState;
 import model.Player;
 import network.GameClient;

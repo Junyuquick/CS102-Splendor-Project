@@ -1,9 +1,9 @@
 package ai;
 
 import config.Config;
-import engine.Move;
-import engine.PaymentCalculator;
-import engine.MoveValidator;
+import engine.moves.Move;
+import engine.payment.PaymentCalculator;
+import engine.validation.MoveValidator;
 import model.DevelopmentCard;
 import model.GameState;
 import model.GemColor;
