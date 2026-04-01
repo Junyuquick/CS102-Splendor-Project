@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Immutable representation of a development card on the board or in a deck.
+ * Immutable model of a development card on the board or in a deck.
  */
 public class DevelopmentCard implements Serializable {
 
@@ -17,13 +17,13 @@ public class DevelopmentCard implements Serializable {
     private final Cost cost;
 
     /**
-     * Creates a development card.
+     * Creates a DevelopementCard.
      *
-     * @param id stable card identifier
-     * @param level card tier, from 1 to 3
-     * @param prestigePoints prestige points awarded when purchased
+     * @param id card identifier
+     * @param level card tier (1-3)
+     * @param prestigePoints prestige points value of the card
      * @param bonusColor permanent bonus color granted by the card
-     * @param cost token cost required to buy the card
+     * @param cost token cost needed to buy the card
      */
     public DevelopmentCard(int id,
                            int level,
@@ -53,7 +53,6 @@ public class DevelopmentCard implements Serializable {
     /**
      * Returns the card identifier.
      *
-     * @return the card identifier
      */
     public int getId() {
         return id;
@@ -62,43 +61,38 @@ public class DevelopmentCard implements Serializable {
     /**
      * Returns the card tier.
      *
-     * @return the card level
      */
     public int getLevel() {
         return level;
     }
 
     /**
-     * Returns the prestige points granted by the card.
+     * Returns the prestige points of the card.
      *
-     * @return the prestige point value
      */
     public int getPrestigePoints() {
         return prestigePoints;
     }
 
     /**
-     * Returns the permanent bonus color granted after purchase.
+     * Returns the permanent bonus color points given to the player after a card is bought.
      *
-     * @return the bonus color
      */
     public GemColor getBonusColor() {
         return bonusColor;
     }
 
     /**
-     * Returns the purchase cost of the card.
+     * Returns the token cost per color for the card (immutable)
      *
-     * @return an unmodifiable view of the token cost by color
      */
     public Map<GemColor, Integer> getCost() {
         return Collections.unmodifiableMap(cost.asMap());
     }
 
     /**
-     * Returns a concise textual summary of the card.
+     * Returns all the attributes of the card (id, level, pretige points, bonus points, cost)
      *
-     * @return string form of this card
      */
     @Override
     public String toString() {
@@ -110,10 +104,10 @@ public class DevelopmentCard implements Serializable {
     }
 
     /**
-     * Compares this card with another object using card identity fields.
+     * Compares this card with another card object using card attributes (id, level, pretige points, bonus points, cost)
      *
-     * @param obj object to compare against
-     * @return {@code true} when both objects describe the same card
+     * @param obj another card
+     * @return true when both cards have the same attributes (same card)
      */
     @Override
     public boolean equals(Object obj) {
@@ -127,7 +121,7 @@ public class DevelopmentCard implements Serializable {
     }
 
     /**
-     * Returns a hash code consistent with {@link #equals(Object)}.
+     * Returns a hash code that is in line with the .equals method above.
      *
      * @return hash code for this card
      */

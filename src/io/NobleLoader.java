@@ -1,24 +1,23 @@
 package io;
 
-import model.Cost;
-import model.GemColor;
-import model.NobleTile;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import model.Cost;
+import model.GemColor;
+import model.NobleTile;
 
 /**
- * Loads noble-tile data from CSV input.
+ * Loads noble data from CSV files.
  */
 public class NobleLoader {
     /**
-     * Loads nobles from a CSV file.
+     * Loads nobles from CSV file.
      *
      * @param csvPath path to the noble CSV file
-     * @return the nobles parsed from that file
+     * @return nobles based on the data in file
      * @throws IOException if the file cannot be read
      */
     public List<NobleTile> load(Path csvPath) throws IOException {
@@ -55,6 +54,9 @@ public class NobleLoader {
         return nobles;
     }
 
+    /**
+     * Converts id in string from data file to int
+     */
     private int parseCardId(String raw) {
         String trimmed = raw.trim();
         if (trimmed.startsWith("card_")) {

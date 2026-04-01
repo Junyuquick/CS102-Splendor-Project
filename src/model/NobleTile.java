@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Immutable representation of a noble tile that can be awarded to a player.
+ * Immutable representation of a noble.
  */
 public class NobleTile implements Serializable {
 
@@ -17,9 +17,9 @@ public class NobleTile implements Serializable {
     /**
      * Creates a noble tile.
      *
-     * @param id stable noble identifier
-     * @param prestigePoints prestige points granted by the noble
-     * @param requirement permanent bonus requirements needed to claim the noble
+     * @param id noble identifier
+     * @param prestigePoints prestige points given by noble
+     * @param requirement permanent bonus points for each color required in order to purchase the noble
      */
     public NobleTile(int id, int prestigePoints, Cost requirement) {
         this.id = id;
@@ -31,25 +31,23 @@ public class NobleTile implements Serializable {
     }
 
     /**
-     * Returns the noble identifier.
+     * Returns noble identifier.
      *
-     * @return the noble identifier
      */
     public int getId() {
         return id;
     }
 
     /**
-     * Returns the prestige points awarded by the noble.
+     * Returns the prestige points given by noble.
      *
-     * @return the prestige point value
      */
     public int getPrestigePoints() {
         return prestigePoints;
     }
 
     /**
-     * Returns the permanent bonus requirements needed to claim the noble.
+     * Returns the bonus points needed to claim the noble
      *
      * @return the noble requirement
      */
@@ -58,9 +56,7 @@ public class NobleTile implements Serializable {
     }
 
     /**
-     * Returns the noble requirements as a map keyed by color.
-     *
-     * <p>This compatibility accessor supports engine code that reads requirements without using {@link Cost}.
+     * Returns the noble requirements as a map with color as its key
      *
      * @return an unmodifiable view of the noble requirements
      */
@@ -69,9 +65,8 @@ public class NobleTile implements Serializable {
     }
 
     /**
-     * Returns a concise textual summary of the noble tile.
+     * Returns all the attributes of the noble(identifier, pretige points, requirement)
      *
-     * @return string form of this noble
      */
     @Override
     public String toString() {

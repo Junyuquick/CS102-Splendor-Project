@@ -12,10 +12,10 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents the shared board state for a Splendor game.
+ * Represents the state of the shared board in Splendor game.
  *
- * <p>The board tracks the visible market, the remaining decks for each tier,
- * available nobles, and the token supply mirrored in the {@link GemBank}.
+ * Board tracks the visible cards available to buy, the remaining decks for each tier,
+ * available nobles to buy, and the token supply in the Gem bank.
  */
 public class Board implements Serializable {
 
@@ -29,7 +29,7 @@ public class Board implements Serializable {
     private final int openCardsPerTier;
 
     /**
-     * Creates an empty board with the default four visible cards per tier.
+     * Creates an empty board with the default four visible cards for each tier (total 12 cards)
      */
     public Board() {
         this(new HashMap<>(), new ArrayList<>(), new EnumMap<>(GemColor.class), new GemBank(), 4);
@@ -39,10 +39,10 @@ public class Board implements Serializable {
      * Creates a board from prepared decks, nobles, and token counts.
      *
      * @param deckCards cards remaining in each tier deck, ordered from next draw onward
-     * @param nobles nobles currently available on the board
+     * @param nobles nobles currently available to buy on the board
      * @param initialGems initial token counts shown on the board
-     * @param bank shared bank used to mirror token inventory
-     * @param openCardsPerTier number of face-up cards to maintain per tier
+     * @param bank shared bank used to mirror the token inventory
+     * @param openCardsPerTier number of face-up cards(cards available to buy) to maintain for each tier
      */
     public Board(Map<Integer, List<DevelopmentCard>> deckCards,
                  List<NobleTile> nobles,
@@ -112,7 +112,7 @@ public class Board implements Serializable {
      * Removes tokens from the board supply.
      *
      * @param requested number of tokens requested for each color
-     * @throws IllegalArgumentException if a request is negative or exceeds the available supply
+     * @throws IllegalArgumentException if a request is negative or exceeds the available supply of tokens
      */
     public void takeGems(Map<GemColor, Integer> requested) {
         if (requested == null || requested.isEmpty()) {
@@ -142,7 +142,7 @@ public class Board implements Serializable {
      * Returns tokens to the board supply.
      *
      * @param returned number of tokens returned for each color
-     * @throws IllegalArgumentException if a returned amount is negative
+     * @throws IllegalArgumentException if the number of tokens returned is negative
      */
     public void returnGems(Map<GemColor, Integer> returned) {
         if (returned == null || returned.isEmpty()) {
@@ -161,13 +161,13 @@ public class Board implements Serializable {
     }
 
     /**
-     * Removes a face-up card from the requested tier and immediately refills its slot if possible.
+     * Removes a face-up card from the requested tier (when bought) and immediately replaces the card with a new card of the same tier if possible.
      *
-     * @param tier development-card tier
-     * @param index zero-based index within that tier's visible cards
+     * @param tier DevelopementCard tier
+     * @param index index of the card to be purchased within that tier's visible cards on the board
      * @return the purchased card
-     * @throws IllegalArgumentException if the tier is unsupported
-     * @throws IndexOutOfBoundsException if the index is outside the visible-card range
+     * @throws IllegalArgumentException if tier is unsupported
+     * @throws IndexOutOfBoundsException if the index is outside the visible-card range on the board
      */
     public DevelopmentCard purchaseCard(int tier, int index) {
         validateTier(tier);
@@ -185,11 +185,11 @@ public class Board implements Serializable {
     }
 
     /**
-     * Draws the next hidden card from the requested tier.
+     * Draws the next hidden card from the requested tier (tier that a card has just been taken from)
      *
-     * @param tier development-card tier
-     * @return the next card, or {@code null} if the deck is empty
-     * @throws IllegalArgumentException if the tier is unsupported
+     * @param tier DevelopementCard tier
+     * @return the next card, or null if the deck is empty
+     * @throws IllegalArgumentException if tier is unsupported
      */
     public DevelopmentCard drawFromDeck(int tier) {
         validateTier(tier);
@@ -209,7 +209,7 @@ public class Board implements Serializable {
     /**
      * Returns the number of available tokens of a given color.
      *
-     * @param color token color to query
+     * @param color color of the token to get the count from
      * @return available token count for that color
      */
     public int getGemCount(GemColor color) {
@@ -217,10 +217,10 @@ public class Board implements Serializable {
     }
 
     /**
-     * Returns the visible cards for one tier.
+     * Returns the visible cards for a card tier.
      *
-     * @param tier development-card tier
-     * @return an unmodifiable view of the visible cards in that tier
+     * @param tier DevelopementCard tier
+     * @return an immutable list of the visible cards in that tier on the board
      * @throws IllegalArgumentException if the tier is unsupported
      */
     public List<DevelopmentCard> getFaceUpCards(int tier) {
@@ -231,16 +231,14 @@ public class Board implements Serializable {
     /**
      * Returns the nobles still available on the board.
      *
-     * @return an unmodifiable view of the available nobles
+     * @return an immutable list of the available nobles that is still on the board
      */
     public List<NobleTile> getAvailableNobles() {
         return Collections.unmodifiableList(nobles);
     }
 
     /**
-     * Returns all visible cards across every tier.
-     *
-     * <p>This compatibility overload is used by engine code that does not work with tiers directly.
+     * Returns all visible cards(cards available to purchase) across every tier.
      *
      * @return an unmodifiable flattened view of all visible cards
      */
@@ -253,10 +251,9 @@ public class Board implements Serializable {
     }
 
     /**
-     * Removes a card from the visible market or from one of the hidden decks.
+     * Removes a card from the visible cards or from one of the hidden decks.
      *
-     * <p>If the card is removed from the visible market, the removed slot index is remembered so that a later
-     * refill can preserve the original ordering of the visible cards.
+     * (If a card is removed, the index of the card on the board is remembered in oreder to be replaced by another card)
      *
      * @param card card to remove
      */
@@ -282,9 +279,9 @@ public class Board implements Serializable {
     }
 
     /**
-     * Refills the face-up slot for a removed card when another card is available in the same tier deck.
+     * Replaces a removed card with another card in the visible slot on the board when another card is available in the deck of the same tier.
      *
-     * @param removedCard card whose tier determines the slot to refill
+     * @param removedCard card (its tier is used to determine the tier of visible cards to refill on the board)
      */
     public void refillSlot(DevelopmentCard removedCard) {
         if (removedCard == null) {
@@ -309,9 +306,8 @@ public class Board implements Serializable {
         }
     }
 
+    //  If method calls that pass card only without a tier parameter, a tier is inferred from the card object itself
     private int inferTier(DevelopmentCard card) {
-        // Refills are keyed by tier, so compatibility calls that pass only a card must infer it
-        // from the card's recorded level.
         String level = String.valueOf(card.getLevel()).toUpperCase();
         if (level.contains("1")) return 1;
         if (level.contains("2")) return 2;

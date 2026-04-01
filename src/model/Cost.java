@@ -7,25 +7,25 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents a token cost keyed by color.
+ * Represents a token cost based on color.
  */
 public class Cost implements Serializable {
 
     private final EnumMap<GemColor, Integer> amounts;
 
     /**
-     * Creates an empty cost.
+     * Creates an empty cost object.
      */
     public Cost() {
         this.amounts = new EnumMap<>(GemColor.class);
     }
 
     /**
-     * Sets the required amount for a given gem color.
+     * Sets the required amount of tokens for a gem color.
      *
-     * @param color token color to update
+     * @param color token color
      * @param amount number of required tokens for that color
-     * @throws IllegalArgumentException if the amount is negative or if a non-zero gold cost is supplied
+     * @throws IllegalArgumentException if the amount is negative or if a non-zero cost is assigned to GOLD color (wild card)
      */
     public void set(GemColor color, int amount) {
         Objects.requireNonNull(color, "GemColor cannot be null");
@@ -46,19 +46,19 @@ public class Cost implements Serializable {
     }
 
     /**
-     * Returns the required amount for a gem color.
+     * Returns the required amount of tokens for a gem color.
      *
-     * @param color token color to query
-     * @return required token count, or {@code 0} if the color is absent
+     * @param color token color 
+     * @return required token count, or 0 if the color is absent
      */
     public int get(GemColor color) {
         return amounts.getOrDefault(color, 0);
     }
 
     /**
-     * Returns an unmodifiable view of the recorded costs.
+     * Returns an immutable overview of the recorded required tokens for each token color 
      *
-     * @return the cost values keyed by color
+     * @return the cost values based on color
      */
     public Map<GemColor, Integer> asMap() {
         return Collections.unmodifiableMap(amounts);
@@ -67,7 +67,7 @@ public class Cost implements Serializable {
     /**
      * Returns the total number of tokens required across all colors.
      *
-     * @return the total token cost
+     * @return total number of tokens cost
      */
     public int total() {
         int sum = 0;
@@ -78,18 +78,17 @@ public class Cost implements Serializable {
     }
 
     /**
-     * Indicates whether the cost has no required tokens.
+     * Indicates whether the cost has no required tokens (if player has enough bonus color points to fulfill cost).
      *
-     * @return {@code true} when no costs are recorded
+     * @return true when no costs are recorded
      */
     public boolean isEmpty() {
         return amounts.isEmpty();
     }
 
     /**
-     * Returns a textual representation of the stored costs.
+     * Returns a string the stored costs.
      *
-     * @return string form of this cost
      */
     @Override
     public String toString() {
@@ -97,10 +96,10 @@ public class Cost implements Serializable {
     }
 
     /**
-     * Compares this cost with another object for value equality.
+     * Compares this cost with another object cost
      *
-     * @param obj object to compare against
-     * @return {@code true} when both costs contain the same color amounts
+     * @param obj object to compare with
+     * @return true when both costs contain the same token color amounts
      */
     @Override
     public boolean equals(Object obj) {
@@ -110,7 +109,7 @@ public class Cost implements Serializable {
     }
 
     /**
-     * Returns a hash code consistent with {@link #equals(Object)}.
+     * Returns a hash code that is in line with .equals method above.
      *
      * @return hash code for this cost
      */

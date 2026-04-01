@@ -6,15 +6,14 @@ import java.util.*;
 /**
  * Captures the entire Splendor game state at a specific moment.
  * 
- * Serves as the engine's authoritative state container. Every rule check and move
- * execution reads and writes to the same data in this class.
+ * Every move and check that occurs in the game will read, write and modify the data in this class
  * 
- * Centralizes the core game objects and flags:
- * - Players (in turn order)
+ * Centralizes the whole game:
+ * - Players (in turns)
  * - Board (decks, face-up cards, nobles)
  * - Bank (gem token supply)
  * - Current player turn
- * - Final round flag
+ * - Final round indicator
  */
 public class GameState implements Serializable {
     
@@ -25,8 +24,8 @@ public class GameState implements Serializable {
     private boolean finalRound;
     
     /**
-     * Creates a new game state with initialized players, board, and bank.
-     * Starts with player 0 as the current player and finalRound as false.
+     * Creates a new game state with the players, board, and the gem bank.
+     * Starts with player 0 as the current player and finalRound indicator as false.
      * 
      * @param players the ordered list of players (defines turn order)
      * @param board the shared board state
@@ -41,68 +40,56 @@ public class GameState implements Serializable {
     }
     
     /**
-     * Returns an unmodifiable view of the ordered list of players.
-     * The list order defines turn order.
+     * Returns the list of players (ordered by turns order)
      * 
-     * @return an unmodifiable view of the players list
      */
     public List<Player> getPlayers() {
         return Collections.unmodifiableList(players);
     }
     
     /**
-     * Returns the player at the specified index.
+     * Returns the player based on player index.
      * 
-     * @param index the player index
-     * @return the player at that index
-     * @throws IndexOutOfBoundsException if index is out of range
      */
     public Player getPlayer(int index) {
         return players.get(index);
     }
     
     /**
-     * Returns the shared board reference.
-     * Includes decks, face-up cards, and available nobles.
-     * 
-     * @return the board
+     * Returns the shared board.
+     *
      */
     public Board getBoard() {
         return board;
     }
     
     /**
-     * Returns the shared gem bank reference.
-     * Players draw tokens from it and return tokens to it.
+     * Returns the shared gem bank.
      * 
-     * @return the gem bank
      */
     public GemBank getBank() {
         return bank;
     }
     
     /**
-     * Returns the index of the player whose turn it currently is.
+     * Returns the index of the player whose turn is up.
      * 
-     * @return the current player index
      */
     public int getCurrentPlayerIndex() {
         return currentPlayerIndex;
     }
     
     /**
-     * Returns the player whose turn it is.
-     * Derived from currentPlayerIndex.
+     * Returns the player whose turn is up.
      * 
-     * @return the current player
      */
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
     }
     
     /**
-     * Updates the current player index.
-     * Typically controlled by TurnManager or GameEngine.
+     * set the current player's index.
+     * To be used by TurnManager or GameEngine.
      * 
      * @param index the new current player index
      */
@@ -112,21 +99,19 @@ public class GameState implements Serializable {
     
     /**
      * Returns whether the final round flag is set.
-     * The final round is triggered once a player reaches the winning prestige threshold.
-     * The game continues until turn order returns to the triggering point.
+     * The final round starts when a player meets the required prestige points to win the game
+     * Game ends when the final round ends.
      * 
-     * @return true if the final round has been triggered, false otherwise
+     * @return true if game is in final round
      */
     public boolean isFinalRound() {
         return finalRound;
     }
     
     /**
-     * Sets the final round flag.
-     * Typically set when a player first reaches the configured winning prestige points.
-     * The TurnManager enforces the actual end-of-game logic.
-     * 
-     * @param value true to enable final round, false to disable
+     * Sets the final round indicator.
+    *
+     * @param value true to start final round, false otherwise
      */
     public void setFinalRound(boolean value) {
         this.finalRound = value;
