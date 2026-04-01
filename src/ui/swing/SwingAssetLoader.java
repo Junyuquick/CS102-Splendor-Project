@@ -38,7 +38,7 @@ final class SwingAssetLoader {
      * Loads the icon used for a token button.
      *
      * @param color gem color to load
-     * @return token icon, or {@code null} if none could be found
+     * @return token icon, or null if none could be found
      */
     ImageIcon loadTokenIcon(GemColor color) {
         String filename = switch (color) {
@@ -93,7 +93,7 @@ final class SwingAssetLoader {
      * Loads the artwork for a development card.
      *
      * @param card card whose artwork should be loaded
-     * @return card icon, or {@code null} if no image is available
+     * @return card icon, or null if no image is available
      */
     ImageIcon loadCardIcon(DevelopmentCard card) {
         String filename = "card_" + card.getId() + ".png";
@@ -114,7 +114,7 @@ final class SwingAssetLoader {
      * Loads the artwork for a noble tile.
      *
      * @param noble noble whose artwork should be loaded
-     * @return noble icon, or {@code null} if no image is available
+     * @return noble icon, or null if no image is available
      */
     ImageIcon loadNobleIcon(NobleTile noble) {
         String filename = "card_" + noble.getId() + ".png";

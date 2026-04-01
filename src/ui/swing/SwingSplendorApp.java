@@ -322,7 +322,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     /**
      * Indicates that token buttons should include live bank counts in their labels.
      *
-     * @return always {@code true} for local Swing mode
+     * @return always true for local Swing mode
      */
     @Override
     protected boolean showTokenBankCountsOnButtons() {
@@ -403,7 +403,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     /**
      * Indicates whether the current turn belongs to an AI-controlled player.
      *
-     * @return {@code true} when the current player is computer-controlled
+     * @return true when the current player is computer-controlled
      */
     private boolean isComputerTurn() {
         return computerPlayers.contains(state.getCurrentPlayer());
