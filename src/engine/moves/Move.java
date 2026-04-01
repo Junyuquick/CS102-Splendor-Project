@@ -24,8 +24,6 @@ public abstract class Move implements Serializable {
     /**
      * Returns the tokens involved in this move (for token-taking moves).
      *
-     * Returns a defensive copy to prevent external mutation.
-     *
      * @return the token map, or empty map if not applicable
      */
     public Map<GemColor, Integer> getTokens() {
@@ -44,7 +42,6 @@ public abstract class Move implements Serializable {
     /**
      * Returns the payment token breakdown for a buy move.
      * Maps color to the number of tokens of that color used to pay.
-     * Returns a defensive copy to prevent external mutation.
      *
      * @return the payment token map, or empty map if not applicable
      */

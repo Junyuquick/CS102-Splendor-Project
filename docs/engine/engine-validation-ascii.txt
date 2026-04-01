@@ -1,0 +1,136 @@
+Engine Validation UML
+=====================
+
+Package Structure
+-----------------
+
++------------------------+
+|     MoveValidator      |
++------------------------+
+| - takeDifferentRule    |
+| - takeSameRule         |
+| - reserveRule          |
+| - buyRule              |
+| - returnTokensRule     |
+| - passRule             |
++------------------------+
+| + validate(...)        |
+| + isLegal(...)         |
++-----------+------------+
+            |
+            | delegates to
+            v
+  +-------------------------+      +-------------------+
+  | TakeDifferentMoveRule   |----->|AvailableMovesInsp.|
+  +-------------------------+      +-------------------+
+  | + validate(...)         |      | + hasAnyLegal...  |
+  +-------------------------+      +---------+---------+
+            |                               /|\
+            |                                |
+            | uses                           |
+            v                                |
+  +----------------------+                   |
+  | ReserveMoveRule      |<------------------+
+  +----------------------+
+  | + validate(...)      |
+  +----------------------+
+
+  +----------------------+          +----------------------+
+  | BuyMoveRule          |<---------| AvailableMovesInsp.  |
+  +----------------------+          +----------------------+
+  | + validate(...)      |
+  +----------+-----------+
+             |
+             | uses
+             v
+  +----------------------+
+  | PaymentCalculator    |
+  +----------------------+
+
+  +-------------------------+
+  | ReturnTokensMoveRule    |
+  +-------------------------+
+  | + validate(...)         |
+  | + canUseReturnTurn(...) |
+  +-------------------------+
+
+  +----------------------+
+  | PassMoveRule         |
+  +----------------------+
+  | + validate()         |
+  +----------------------+
+
+  +----------------------+
+  | TakeSameMoveRule     |
+  +----------------------+
+  | + validate(...)      |
+  +----------------------+
+
+
+File Coverage
+-------------
+
+MoveValidator.java
+  central entry point for validation
+  dispatches by concrete Move subtype
+
+AvailableMovesInspector.java
+  answers whether fallback alternatives exist
+  used by TakeDifferentMoveRule
+
+BuyMoveRule.java
+  validates card purchase source, affordability, payment correctness
+
+ReserveMoveRule.java
+  validates reserve source and reserved-card limit
+
+TakeDifferentMoveRule.java
+  validates different-token take and fallback special case
+
+TakeSameMoveRule.java
+  validates two-of-a-kind take
+
+ReturnTokensMoveRule.java
+  validates voluntary return-token turns
+
+PassMoveRule.java
+  validates pass turns
+
+
+Dependency Details
+------------------
+
+MoveValidator
+  depends on -> all rule classes
+  depends on -> Move hierarchy
+
+TakeDifferentMoveRule
+  depends on -> Config
+  depends on -> AvailableMovesInspector
+  depends on -> GameState, Player, GemBank, GemColor, Move
+
+TakeSameMoveRule
+  depends on -> Config
+  depends on -> GameState, Player, GemBank, GemColor, Move
+
+ReserveMoveRule
+  depends on -> Config
+  depends on -> GameState, Player, Board, DevelopmentCard, Move
+
+BuyMoveRule
+  depends on -> PaymentCalculator
+  depends on -> GameState, Player, Board, DevelopmentCard, GemColor, Move
+
+ReturnTokensMoveRule
+  depends on -> Config
+  depends on -> Player, GemColor, Move
+
+PassMoveRule
+  depends on -> no domain collaborators
+
+AvailableMovesInspector
+  depends on -> ReserveMoveRule
+  depends on -> BuyMoveRule
+  depends on -> ReturnTokensMoveRule
+  depends on -> PaymentCalculator
+  depends on -> GameState, Player, DevelopmentCard, GemColor, Move

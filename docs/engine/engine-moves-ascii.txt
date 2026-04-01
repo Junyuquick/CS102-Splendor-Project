@@ -1,0 +1,96 @@
+Engine Moves UML
+================
+
+Class Hierarchy
+---------------
+
+                            +----------------------+
+                            |        Move          |
+                            +----------------------+
+                            | + getTypeName()      |
+                            | + getTokens()        |
+                            | + getCard()          |
+                            | + getPaymentTokens() |
+                            | + isFromReserved()   |
+                            | + getCardLevel()     |
+                            | + takeDifferent(...) |
+                            | + takeSame(...)      |
+                            | + reserveFaceUp(...) |
+                            | + reserveFromDeck... |
+                            | + buy(...)           |
+                            | + pass()             |
+                            | + returnTokens(...)  |
+                            +----------+-----------+
+                                       |
+         +-----------------------------+------------------------------+
+         |                |                |            |             |
+         v                v                v            v             v
++----------------+ +---------------+ +---------------+ +---------+ +------------------+
+| BuyMove        | | ReserveMove   | | TakeDifferent | | PassMove| | ReturnTokensMove |
++----------------+ +---------------+ | Move          | +---------+ +------------------+
+| - card         | | - card        | +---------------+             | - tokens         |
+| - paymentTokens| | - cardLevel   | | - tokens      |             +------------------+
+| - fromReserved | +---------------+ +---------------+
++----------------+                         |
+         |                                  |
+         |                                  v
+         |                        +----------------+
+         |                        | TakeSameMove   |
+         |                        +----------------+
+         |                        | - tokens       |
+         |                        +----------------+
+         |
+         +--> represents purchase from board or reserved cards
+
+
+Per-Class Dependencies
+----------------------
+
+Move
+  uses -> DevelopmentCard
+  uses -> GemColor
+  uses -> Map<GemColor, Integer>
+  creates -> BuyMove
+  creates -> ReserveMove
+  creates -> TakeDifferentMove
+  creates -> TakeSameMove
+  creates -> PassMove
+  creates -> ReturnTokensMove
+
+BuyMove
+  extends -> Move
+  stores -> DevelopmentCard
+  stores -> Map<GemColor, Integer>
+
+ReserveMove
+  extends -> Move
+  stores -> DevelopmentCard
+
+TakeDifferentMove
+  extends -> Move
+  stores -> Map<GemColor, Integer>
+
+TakeSameMove
+  extends -> Move
+  stores -> Map<GemColor, Integer>
+
+PassMove
+  extends -> Move
+  stores -> no extra state
+
+ReturnTokensMove
+  extends -> Move
+  stores -> Map<GemColor, Integer>
+
+
+Usage Summary
+-------------
+
+Validation package
+  reads Move subclasses to decide legality.
+
+Turn package
+  reads Move subclasses to execute the state change.
+
+UI / AI / Network layers
+  create Move objects and pass them into engine services.

@@ -1,0 +1,92 @@
+PaymentCalculator UML
+=====================
+
+Class Diagram
+-------------
+
+                                   uses
+  +--------------------------------------------------+   +----------------------+
+  |                PaymentCalculator                 |-->|       Player          |
+  +--------------------------------------------------+   +----------------------+
+  | - PaymentCalculator()                            |   | + getBonusCount(...) |
+  +--------------------------------------------------+   | + getTokenCount(...) |
+  | + computePaymentTokens(                          |   +----------------------+
+  |     player: Player,                              |
+  |     cost: Map<GemColor, Integer>                 |              uses
+  |   ) : Map<GemColor, Integer>                     |------------------------------+
+  |                                                  |                              |
+  | + canAfford(                                     |                              v
+  |     player: Player,                              |                   +----------------------+
+  |     cost: Map<GemColor, Integer>                 |------------------>|      GemColor        |
+  |   ) : boolean                                    |                   +----------------------+
+  +--------------------------------------------------+
+                       |
+                       | uses
+                       v
+          +----------------------------------+
+          |    Map<GemColor, Integer>        |
+          +----------------------------------+
+
+
+Behavior / Dependency Flow
+--------------------------
+
+  canAfford(player, cost)
+          |
+          v
+  computePaymentTokens(player, cost)
+          |
+          +--> reads Player bonus counts
+          |      Player.getBonusCount(color)
+          |
+          +--> reads Player token counts
+          |      Player.getTokenCount(color)
+          |
+          +--> builds Map<GemColor, Integer> payment
+          |
+          v
+  extracts GOLD requirement from payment map
+          |
+          v
+  compares against Player.getTokenCount(GOLD)
+          |
+          v
+       returns boolean
+
+
+Sequence View
+-------------
+
+  Caller
+    |
+    | canAfford(player, cost)
+    v
+  PaymentCalculator
+    |
+    | computePaymentTokens(player, cost)
+    v
+  PaymentCalculator
+    |
+    | getBonusCount(color)
+    | getTokenCount(color)
+    v
+  Player
+    |
+    | returns counts
+    v
+  PaymentCalculator
+    |
+    | builds payment map
+    | checks GOLD needed
+    |
+    v
+  returns true / false to Caller
+
+
+Notes
+-----
+
+- PaymentCalculator is a stateless utility class.
+- It does not mutate Player.
+- It depends on Player data and GemColor keys.
+- It produces and reads Map<GemColor, Integer> structures.

@@ -1,0 +1,107 @@
+Engine Turn UML
+===============
+
+Main Turn Flow
+--------------
+
+           +------------------------+
+           | TurnResolutionService  |
+           +------------------------+
+           | - validator            |
+           | - executor             |
+           | - turnPostProcessor    |
+           | - winnerChecker        |
+           | - turnManager          |
+           | - turnProgressionSvc   |
+           +-----------+------------+
+                       |
+                       | validate(move)
+                       v
+               +---------------+
+               | MoveValidator |
+               +---------------+
+                       |
+                       | execute(move)
+                       v
+               +---------------+
+               | MoveExecutor  |
+               +---------------+
+                       |
+                       | post-turn cleanup
+                       v
+             +----------------------+
+             | TurnPostProcessor    |
+             +----------+-----------+
+                        |
+                        | nobles
+                        v
+                 +--------------+
+                 | NobleAssigner|
+                 +--------------+
+                        |
+                        | advance / winner
+                        v
+            +-------------------------+
+            | TurnProgressionService  |
+            +-----------+-------------+
+                        |
+           +------------+------------+
+           |                         |
+           v                         v
+   +---------------+         +---------------+
+   | TurnManager   |         | WinnerChecker |
+   +---------------+         +---------------+
+
+
+Result Objects
+--------------
+
++-------------------------+          +---------------------------+
+| TurnAdvanceResult       |          | TurnResolutionResult      |
++-------------------------+          +---------------------------+
+| - finalRoundTriggered   |          | - success                 |
+| - winner                |          | - validationError         |
++-------------------------+          | - discardedTokens         |
+                                     | - assignedNobles          |
+                                     | - finalRoundTriggered     |
+                                     | - winner                  |
+                                     +---------------------------+
+
+
+Per-Class Notes
+---------------
+
+MoveExecutor.java
+  applies legal move effects to GameState
+  depends on -> Move subclasses, Board, GemBank, Player, Config
+
+NobleAssigner.java
+  finds eligible nobles and assigns them
+  depends on -> Board, GameState, Player, NobleTile
+
+TurnAdvanceResult.java
+  small immutable-like result for turn progression
+
+TurnManager.java
+  controls current player index and final-round marker
+  depends on -> GameState
+
+TurnPostProcessor.java
+  handles post-move token limit and noble assignment
+  depends on -> Config, NobleAssigner, GameState, Player
+
+TurnProgressionService.java
+  triggers final round, advances turn, decides whether winner exists
+  depends on -> WinnerChecker, TurnManager, GameState
+
+TurnResolutionResult.java
+  full outcome container for one resolved move
+
+TurnResolutionService.java
+  orchestrates validator + executor + post-processor + progression
+  depends on -> MoveValidator, MoveExecutor, TurnPostProcessor,
+                WinnerChecker, TurnManager, TurnProgressionService
+
+WinnerChecker.java
+  decides final-round trigger and winner selection
+  depends on -> Config, GameState, Player
