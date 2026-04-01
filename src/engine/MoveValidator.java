@@ -48,6 +48,12 @@ public class MoveValidator {
         if (move instanceof BuyMove) {
             return validateBuy(state, player, move);
         }
+        if (move instanceof ReturnTokensMove) {
+            return validateReturnTokens(player, move);
+        }
+        if (move instanceof PassMove) {
+            return null;
+        }
 
         return "Unknown move type: " + move.getTypeName();
     }
@@ -76,12 +82,12 @@ public class MoveValidator {
         Map<GemColor, Integer> tokens = move.getTokens();
         
         if (tokens == null || tokens.isEmpty()) {
-            return "TAKE_THREE_DIFFERENT requires tokens";
+            return "TAKE_DIFFERENT requires tokens";
         }
         
-        int requiredColors = config.getTakeDifferentCount();
-        if (tokens.size() != requiredColors) {
-            return "TAKE_THREE_DIFFERENT requires exactly " + requiredColors + " different colors, got " + tokens.size();
+        int maxColors = config.getTakeDifferentCount();
+        if (tokens.size() > maxColors) {
+            return "TAKE_DIFFERENT allows at most " + maxColors + " different colors, got " + tokens.size();
         }
         
         GemBank bank = state.getBank();
@@ -91,17 +97,31 @@ public class MoveValidator {
             int requested = entry.getValue();
             
             if (requested != 1) {
-                return "TAKE_THREE_DIFFERENT: each color must have count 1, got " + color + " = " + requested;
+                return "TAKE_DIFFERENT: each color must have count 1, got " + color + " = " + requested;
             }
             
             if (bank.getTokenCount(color) < 1) {
                 return "Bank has no " + color + " tokens available";
             }
         }
-        
-        int totalAfter = player.getTotalTokens() + config.getTakeDifferentCount();
+
+        int availableNormalColors = countAvailableNormalColors(bank);
+        if (tokens.size() != maxColors) {
+            if (tokens.size() < 1) {
+                return "TAKE_DIFFERENT requires at least 1 color";
+            }
+            if (availableNormalColors >= maxColors) {
+                return "TAKE_DIFFERENT requires exactly " + maxColors + " colors while that many are available";
+            }
+            if (hasAnyLegalReserve(state, player) || hasAnyLegalBuy(state, player) || hasAnyLegalReturnTokens(player)) {
+                return "TAKE_DIFFERENT may take only " + tokens.size()
+                        + " colors here only when reserve, buy, and return-tokens moves are all unavailable";
+            }
+        }
+
+        int totalAfter = player.getTotalTokens() + tokens.size();
         if (totalAfter > config.getMaxTokensPerPlayer()) {
-            return "Taking " + config.getTakeDifferentCount() + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
+            return "Taking " + tokens.size() + " tokens would exceed max tokens per player (" + config.getMaxTokensPerPlayer() + ")";
         }
         
         return null;
@@ -239,6 +259,29 @@ public class MoveValidator {
         return validatePaymentTokens(player, cost, move.getPaymentTokens());
     }
 
+    private String validateReturnTokens(Player player, Move move) {
+        if (player.getTotalTokens() < config.getMaxTokensPerPlayer()) {
+            return "RETURN_TOKENS is only available when the player already has " + config.getMaxTokensPerPlayer() + " or more tokens";
+        }
+
+        Map<GemColor, Integer> tokens = normalizeTokenMap(move.getTokens());
+        if (tokens.isEmpty()) {
+            return "RETURN_TOKENS requires at least 1 token";
+        }
+
+        for (Map.Entry<GemColor, Integer> entry : tokens.entrySet()) {
+            GemColor color = entry.getKey();
+            int requested = entry.getValue();
+            if (requested <= 0) {
+                return "RETURN_TOKENS counts must be positive";
+            }
+            if (player.getTokenCount(color) < requested) {
+                return "Player has only " + player.getTokenCount(color) + " " + color + " tokens, cannot return " + requested;
+            }
+        }
+        return null;
+    }
+
     private String validatePaymentTokens(Player player, Map<GemColor, Integer> cost, Map<GemColor, Integer> paymentTokens) {
         Map<GemColor, Integer> expected = PaymentCalculator.computePaymentTokens(player, cost);
         Map<GemColor, Integer> provided = normalizeTokenMap(paymentTokens);
@@ -272,6 +315,55 @@ public class MoveValidator {
             }
         }
         return normalized;
+    }
+
+    private int countAvailableNormalColors(GemBank bank) {
+        int count = 0;
+        for (GemColor color : List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK)) {
+            if (bank.getTokenCount(color) > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean hasAnyLegalReserve(GameState state, Player player) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            if (validateReserve(state, player, Move.reserveFaceUp(card)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnyLegalBuy(GameState state, Player player) {
+        for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
+            if (validateBuy(state, player, Move.buy(card, PaymentCalculator.computePaymentTokens(player, card.getCost()), false)) == null) {
+                return true;
+            }
+        }
+        for (DevelopmentCard card : player.getReservedCards()) {
+            if (validateBuy(state, player, Move.buy(card, PaymentCalculator.computePaymentTokens(player, card.getCost()), true)) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnyLegalReturnTokens(Player player) {
+        if (player.getTotalTokens() < config.getMaxTokensPerPlayer()) {
+            return false;
+        }
+        for (Map.Entry<GemColor, Integer> entry : player.getTokens().entrySet()) {
+            if (entry.getValue() > 0) {
+                Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+                tokens.put(entry.getKey(), 1);
+                if (validateReturnTokens(player, Move.returnTokens(tokens)) == null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     /**

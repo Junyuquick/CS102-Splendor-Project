@@ -51,6 +51,7 @@ public class GreedyStrategy {
         List<Move> buyMoves = new ArrayList<>();
         List<Move> reserveMoves = new ArrayList<>();
         List<Move> takeMoves = new ArrayList<>();
+        List<Move> returnMoves = new ArrayList<>();
 
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
             Move buy = Move.buy(card, computePaymentTokens(player, card.getCost()), false);
@@ -80,6 +81,20 @@ public class GreedyStrategy {
             takeMoves.add(takeThree);
         }
 
+        if (player.getTotalTokens() >= config.getMaxTokensPerPlayer()) {
+            for (GemColor color : allColors()) {
+                if (player.getTokenCount(color) <= 0) {
+                    continue;
+                }
+                Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+                tokens.put(color, 1);
+                Move returnMove = Move.returnTokens(tokens);
+                if (validator.validate(state, player, returnMove) == null) {
+                    returnMoves.add(returnMove);
+                }
+            }
+        }
+
         int roll = random.nextInt(100);
         if (roll < 60 && !takeMoves.isEmpty()) {
             return takeMoves.get(random.nextInt(takeMoves.size()));
@@ -96,8 +111,10 @@ public class GreedyStrategy {
         if (!reserveMoves.isEmpty()) {
             return reserveMoves.get(random.nextInt(reserveMoves.size()));
         }
-
-        throw new IllegalStateException("No legal moves available for AI");
+        if (!returnMoves.isEmpty()) {
+            return returnMoves.get(random.nextInt(returnMoves.size()));
+        }
+        return Move.pass();
     }
 
     /**
@@ -262,6 +279,17 @@ public class GreedyStrategy {
             if (c != GemColor.GOLD) {
                 colors.add(c);
             }
+        }
+        return colors;
+    }
+
+    /**
+     * Returns all token colors, including gold.
+     */
+    private List<GemColor> allColors() {
+        List<GemColor> colors = new ArrayList<>();
+        for (GemColor color : GemColor.values()) {
+            colors.add(color);
         }
         return colors;
     }

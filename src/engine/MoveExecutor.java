@@ -48,6 +48,13 @@ public class MoveExecutor {
             applyBuy(state, player, move);
             return;
         }
+        if (move instanceof ReturnTokensMove) {
+            applyTokenReturn(state, player, move);
+            return;
+        }
+        if (move instanceof PassMove) {
+            return;
+        }
 
         throw new IllegalArgumentException("Unsupported move type: " + move.getTypeName());
     }
@@ -113,5 +120,18 @@ public class MoveExecutor {
         if (!move.isFromReserved()) {
             board.refillSlot(cardToBuy);
         }
+    }
+
+    /**
+     * Handles voluntarily returning tokens to the bank as the player's full turn.
+     *
+     * @param state game state to update
+     * @param player player returning the tokens
+     * @param move move containing the chosen return tokens
+     */
+    private void applyTokenReturn(GameState state, Player player, Move move) {
+        Map<GemColor, Integer> returnedTokens = move.getTokens();
+        player.removeTokens(returnedTokens);
+        state.getBank().addTokens(returnedTokens);
     }
 }

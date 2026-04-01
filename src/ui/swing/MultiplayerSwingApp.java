@@ -329,6 +329,8 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         actionTakeTwo.setEnabled(myTurn && hasAnyLegalTakeTwo(current));
         actionReserve.setEnabled(myTurn && hasAnyLegalReserve(current));
         actionBuy.setEnabled(myTurn && hasAnyLegalBuy(current));
+        actionReturnTokens.setEnabled(myTurn && hasAnyLegalReturnTokens(current));
+        actionPass.setEnabled(myTurn);
         actionCancel.setEnabled(myTurn && mode != SwingGameMode.IDLE);
         reservedList.setEnabled(myTurn && mode == SwingGameMode.BUY);
 

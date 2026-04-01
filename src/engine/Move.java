@@ -118,6 +118,25 @@ public abstract class Move implements Serializable {
     public static Move buy(DevelopmentCard card, Map<GemColor, Integer> paymentTokens, boolean fromReserved) {
         return new BuyMove(card, paymentTokens, fromReserved);
     }
+
+    /**
+     * Creates a PASS move that ends the player's turn without changing state.
+     *
+     * @return the move
+     */
+    public static Move pass() {
+        return new PassMove();
+    }
+
+    /**
+     * Creates a RETURN_TOKENS move for voluntarily giving tokens back to the bank.
+     *
+     * @param tokens the tokens to return
+     * @return the move
+     */
+    public static Move returnTokens(Map<GemColor, Integer> tokens) {
+        return new ReturnTokensMove(tokens);
+    }
     
     /**
      * Returns a debug-friendly description of the move contents.
