@@ -9,6 +9,8 @@ import engine.TurnPostProcessor;
 import engine.TurnProgressionService;
 import engine.TurnManager;
 import engine.TurnAdvanceResult;
+import engine.TurnResolutionResult;
+import engine.TurnResolutionService;
 import engine.WinnerChecker;
 import model.DevelopmentCard;
 import model.GameState;
@@ -42,6 +44,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     private final WinnerChecker winnerChecker;
     private final TurnManager turnManager;
     private final TurnProgressionService turnProgressionService;
+    private final TurnResolutionService turnResolutionService;
     private final GreedyStrategy aiStrategy;
     private final Map<Player, JPanel> playerCardPanels = new LinkedHashMap<>();
     private final Map<Player, javax.swing.JEditorPane> playerCardAreas = new LinkedHashMap<>();
@@ -82,6 +85,14 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         this.winnerChecker = new WinnerChecker(config);
         this.turnManager = new TurnManager();
         this.turnProgressionService = new TurnProgressionService();
+        this.turnResolutionService = new TurnResolutionService(
+                validator,
+                executor,
+                turnPostProcessor,
+                winnerChecker,
+                turnManager,
+                turnProgressionService
+        );
         this.aiStrategy = new GreedyStrategy(config);
 
         buildSharedUi(false, false, state.getPlayers().size());
@@ -183,19 +194,15 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         }
 
         Player current = state.getCurrentPlayer();
-        String error = validator.validate(state, current, move);
-        if (error != null) {
-            log("Illegal move: " + error);
+        TurnResolutionResult turnResult = turnResolutionService.resolveTurn(state, current, move);
+        if (!turnResult.isSuccess()) {
+            log("Illegal move: " + turnResult.getValidationError());
             updateLegalUi();
             return;
         }
 
-        executor.execute(state, current, move);
         log(current.getName() + " played: " + move.getTypeName());
-        resolveTokenCapIfNeeded(current);
-        resolveNobleAttraction(current, false);
-
-        TurnAdvanceResult turnResult = turnProgressionService.progressTurn(state, winnerChecker, turnManager);
+        logTurnOutcome(current, turnResult);
         if (turnResult.isFinalRoundTriggered()) {
             log("Final round triggered by " + current.getName());
         }
@@ -256,62 +263,13 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         return true;
     }
 
-    /**
-     * Enforces the token cap after a move and logs any forced discards.
-     *
-     * @param player player whose tokens may need to be reduced
-     */
-    private void resolveTokenCapIfNeeded(Player player) {
-        Map<GemColor, Integer> discard = turnPostProcessor.enforceTokenLimit(state, player);
-        if (!discard.isEmpty()) {
-            log(player.getName() + " discarded " + discard);
+    private void logTurnOutcome(Player player, TurnResolutionResult turnResult) {
+        if (!turnResult.getDiscardedTokens().isEmpty()) {
+            log(player.getName() + " discarded " + turnResult.getDiscardedTokens());
         }
-    }
-
-    /**
-     * Assigns any nobles the player qualifies for, prompting only when multiple choices exist.
-     *
-     * @param player player who may attract nobles
-     * @param automaticChoice whether to auto-pick the best noble instead of prompting
-     */
-    private void resolveNobleAttraction(Player player, boolean automaticChoice) {
-        List<NobleTile> eligible = new ArrayList<>(nobleAssigner.findEligibleNobles(state, player));
-        if (eligible.isEmpty() || config.getMaxNoblesPerTurn() <= 0) {
-            return;
+        for (NobleTile noble : turnResult.getAssignedNobles()) {
+            log(player.getName() + " attracted noble: " + noble);
         }
-        int noblesToAssign = Math.min(config.getMaxNoblesPerTurn(), eligible.size());
-        for (int i = 0; i < noblesToAssign; i++) {
-            NobleTile chosen = chooseNoble(eligible, automaticChoice);
-            nobleAssigner.assignNoble(state, player, chosen);
-            eligible.remove(chosen);
-            log(player.getName() + " attracted noble: " + chosen);
-        }
-    }
-
-    /**
-     * Chooses a noble from the current eligible set.
-     *
-     * @param eligible nobles the player can currently claim
-     * @param automaticChoice whether to choose automatically
-     * @return selected noble
-     */
-    private NobleTile chooseNoble(List<NobleTile> eligible, boolean automaticChoice) {
-        if (eligible.size() == 1) {
-            return eligible.get(0);
-        }
-        if (automaticChoice) {
-            return turnPostProcessor.chooseBestNoble(eligible);
-        }
-        Object pick = JOptionPane.showInputDialog(
-                this,
-                "Choose a noble",
-                "Noble Choice",
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                eligible.toArray(),
-                eligible.get(0)
-        );
-        return pick instanceof NobleTile ? (NobleTile) pick : eligible.get(0);
     }
 
     /**
@@ -438,14 +396,12 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                 log(current.getName() + " could not find a legal move.");
                 return;
             }
-            String error = validator.validate(state, current, move);
-            if (error != null) {
-                log("Computer produced illegal move: " + error);
+            TurnResolutionResult turnResult = turnResolutionService.resolveTurn(state, current, move);
+            if (!turnResult.isSuccess()) {
+                log("Computer produced illegal move: " + turnResult.getValidationError());
                 return;
             }
 
-            executor.execute(state, current, move);
-            resolveTokenCapIfNeeded(current);
             String moveSummary = current.getName() + " played: " + move.getTypeName();
             log(moveSummary);
             JOptionPane.showMessageDialog(
@@ -454,9 +410,8 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                     "Computer Move",
                     JOptionPane.INFORMATION_MESSAGE
             );
-            resolveNobleAttraction(current, true);
+            logTurnOutcome(current, turnResult);
 
-            TurnAdvanceResult turnResult = turnProgressionService.progressTurn(state, winnerChecker, turnManager);
             if (turnResult.isFinalRoundTriggered()) {
                 log("Final round triggered by " + current.getName());
             }

@@ -33,11 +33,11 @@ public class MoveExecutor {
      */
     public void execute(GameState state, Player player, Move move) {
         if (move instanceof TakeDifferentMove) {
-            applyTakeThreeDiff(state, player, move);
+            applyTokenTake(state, player, move);
             return;
         }
         if (move instanceof TakeSameMove) {
-            applyTakeTwoSame(state, player, move);
+            applyTokenTake(state, player, move);
             return;
         }
         if (move instanceof ReserveMove) {
@@ -59,21 +59,7 @@ public class MoveExecutor {
      * @param player player receiving the tokens
      * @param move move containing the chosen colors
      */
-    private void applyTakeThreeDiff(GameState state, Player player, Move move) {
-        GemBank bank = state.getBank();
-        Map<GemColor, Integer> tokensTaken = move.getTokens();
-        bank.removeTokens(tokensTaken);
-        player.addTokens(tokensTaken);
-    }
-    
-    /**
-     * Handles the move where the player takes two tokens of the same color.
-     *
-     * @param state game state to update
-     * @param player player receiving the tokens
-     * @param move move containing the chosen color
-     */
-    private void applyTakeTwoSame(GameState state, Player player, Move move) {
+    private void applyTokenTake(GameState state, Player player, Move move) {
         GemBank bank = state.getBank();
         Map<GemColor, Integer> tokensTaken = move.getTokens();
         bank.removeTokens(tokensTaken);

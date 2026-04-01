@@ -57,7 +57,7 @@ public class WinnerChecker {
      * @param state the game state
      * @return true if the game is over, false otherwise
      */
-    public boolean isGameOver(GameState state) {
+    public boolean isFinalRoundActive(GameState state) {
         return state.isFinalRound();
     }
     
@@ -71,8 +71,8 @@ public class WinnerChecker {
      * @throws IllegalStateException if the game is not over
      */
     public Player determineWinner(GameState state) {
-        if (!isGameOver(state)) {
-            throw new IllegalStateException("Cannot determine winner: game is not over");
+        if (!isFinalRoundActive(state)) {
+            throw new IllegalStateException("Cannot determine winner: final round is not active");
         }
         
         List<Player> players = state.getPlayers();

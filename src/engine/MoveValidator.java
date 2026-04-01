@@ -174,11 +174,15 @@ public class MoveValidator {
         }
         
         Board board = state.getBoard();
-        
-        List<DevelopmentCard> faceUp = board.getFaceUpCards();
-        if (!faceUp.contains(card)) {
-            // Hidden-deck reservations are handled elsewhere because the board API does not
-            // expose deck contents in a way that lets us verify a specific hidden card here.
+        int cardLevel = move.getCardLevel();
+
+        if (cardLevel == -1) {
+            List<DevelopmentCard> faceUp = board.getFaceUpCards();
+            if (!faceUp.contains(card)) {
+                return "Card is not face-up on the board";
+            }
+        } else if (cardLevel < 1 || cardLevel > config.getNumLevels()) {
+            return "Invalid reserve deck level: " + cardLevel;
         }
         
         List<DevelopmentCard> reserved = player.getReservedCards();
@@ -223,11 +227,51 @@ public class MoveValidator {
         
         Map<GemColor, Integer> cost = card.getCost();
         if (cost == null || cost.isEmpty()) {
+            if (!normalizeTokenMap(move.getPaymentTokens()).isEmpty()) {
+                return "BUY payment tokens must be empty for a free card";
+            }
             return null;
         }
-        
-        String affordabilityError = canAfford(player, cost);
-        return affordabilityError;
+
+        if (!PaymentCalculator.canAfford(player, cost)) {
+            return buildAffordabilityError(player, cost);
+        }
+        return validatePaymentTokens(player, cost, move.getPaymentTokens());
+    }
+
+    private String validatePaymentTokens(Player player, Map<GemColor, Integer> cost, Map<GemColor, Integer> paymentTokens) {
+        Map<GemColor, Integer> expected = PaymentCalculator.computePaymentTokens(player, cost);
+        Map<GemColor, Integer> provided = normalizeTokenMap(paymentTokens);
+
+        for (Map.Entry<GemColor, Integer> entry : provided.entrySet()) {
+            if (entry.getValue() < 0) {
+                return "BUY payment tokens cannot be negative";
+            }
+        }
+
+        if (!provided.equals(expected)) {
+            return "BUY payment tokens do not match the required payment: expected " + expected + ", got " + provided;
+        }
+        return null;
+    }
+
+    private Map<GemColor, Integer> normalizeTokenMap(Map<GemColor, Integer> tokens) {
+        Map<GemColor, Integer> normalized = new EnumMap<>(GemColor.class);
+        if (tokens == null) {
+            return normalized;
+        }
+
+        for (Map.Entry<GemColor, Integer> entry : tokens.entrySet()) {
+            GemColor color = entry.getKey();
+            Integer amount = entry.getValue();
+            if (color == null || amount == null) {
+                continue;
+            }
+            if (amount != 0) {
+                normalized.put(color, amount);
+            }
+        }
+        return normalized;
     }
     
     /**
@@ -241,7 +285,7 @@ public class MoveValidator {
      * @param cost the cost map (color -> quantity needed)
      * @return null if affordable, error message otherwise
      */
-    private String canAfford(Player player, Map<GemColor, Integer> cost) {
+    private String buildAffordabilityError(Player player, Map<GemColor, Integer> cost) {
         int goldNeeded = 0;
         
         for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {

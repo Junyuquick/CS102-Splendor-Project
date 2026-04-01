@@ -10,9 +10,13 @@ import engine.TurnPostProcessor;
 import engine.TurnProgressionService;
 import engine.TurnManager;
 import engine.TurnAdvanceResult;
+import engine.TurnResolutionResult;
+import engine.TurnResolutionService;
 import engine.WinnerChecker;
 import model.GameState;
+import model.NobleTile;
 import model.Player;
+import model.GemColor;
 import setup.GameStateFactory;
 
 import java.io.IOException;
@@ -42,6 +46,14 @@ public class GameServer {
     private final WinnerChecker winnerChecker = new WinnerChecker(config);
     private final TurnManager turnManager = new TurnManager();
     private final TurnProgressionService turnProgressionService = new TurnProgressionService();
+    private final TurnResolutionService turnResolutionService = new TurnResolutionService(
+            validator,
+            executor,
+            turnPostProcessor,
+            winnerChecker,
+            turnManager,
+            turnProgressionService
+    );
 
     /**
      * Creates a server that listens on the supplied port.
@@ -170,17 +182,12 @@ public class GameServer {
         }
 
         Player currentPlayer = gameState.getCurrentPlayer();
-        String error = validator.validate(gameState, currentPlayer, move);
-        if (error != null) {
-            client.sendMessage(NetworkMessage.error(error));
+        TurnResolutionResult turnResult = turnResolutionService.resolveTurn(gameState, currentPlayer, move);
+        if (!turnResult.isSuccess()) {
+            client.sendMessage(NetworkMessage.error(turnResult.getValidationError()));
             return;
         }
-
-        executor.execute(gameState, currentPlayer, move);
-        turnPostProcessor.enforceTokenLimit(gameState, currentPlayer);
-        turnPostProcessor.assignBestAvailableNobles(gameState, currentPlayer);
-
-        TurnAdvanceResult turnResult = turnProgressionService.progressTurn(gameState, winnerChecker, turnManager);
+        logTurnOutcome(currentPlayer, turnResult);
         if (turnResult.getWinner() != null) {
             Player winner = turnResult.getWinner();
             System.out.println("Game over! Winner: " + winner.getName());
@@ -194,6 +201,18 @@ public class GameServer {
         }
 
         broadcastState();
+    }
+
+    private void logTurnOutcome(Player player, TurnResolutionResult turnResult) {
+        if (!turnResult.getDiscardedTokens().isEmpty()) {
+            System.out.println(player.getName() + " discarded " + turnResult.getDiscardedTokens());
+        }
+        for (NobleTile noble : turnResult.getAssignedNobles()) {
+            System.out.println(player.getName() + " attracted noble: " + noble);
+        }
+        if (turnResult.isFinalRoundTriggered()) {
+            System.out.println("Final round triggered by " + player.getName());
+        }
     }
 
     /**

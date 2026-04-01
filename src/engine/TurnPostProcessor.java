@@ -54,15 +54,19 @@ public class TurnPostProcessor {
      *
      * @param state current game state
      * @param player player receiving nobles
+     * @return nobles assigned during this turn
      */
-    public void assignBestAvailableNobles(GameState state, Player player) {
+    public List<NobleTile> assignBestAvailableNobles(GameState state, Player player) {
         List<NobleTile> eligibleNobles = new ArrayList<>(nobleAssigner.findEligibleNobles(state, player));
+        List<NobleTile> assignedNobles = new ArrayList<>();
         int noblesThisTurn = Math.min(config.getMaxNoblesPerTurn(), eligibleNobles.size());
         for (int i = 0; i < noblesThisTurn; i++) {
             NobleTile chosen = chooseBestNoble(eligibleNobles);
             nobleAssigner.assignNoble(state, player, chosen);
             eligibleNobles.remove(chosen);
+            assignedNobles.add(chosen);
         }
+        return assignedNobles;
     }
 
     /**

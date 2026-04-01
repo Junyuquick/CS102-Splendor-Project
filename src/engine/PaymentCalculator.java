@@ -44,4 +44,17 @@ public final class PaymentCalculator {
         }
         return payment;
     }
+
+    /**
+     * Returns whether the player can fully pay the supplied cost using bonuses, colored tokens, and gold.
+     *
+     * @param player player attempting to pay
+     * @param cost card cost by gem color
+     * @return true if the player can afford the cost, false otherwise
+     */
+    public static boolean canAfford(Player player, Map<GemColor, Integer> cost) {
+        Map<GemColor, Integer> payment = computePaymentTokens(player, cost);
+        int goldRequired = payment.getOrDefault(GemColor.GOLD, 0);
+        return player.getTokenCount(GemColor.GOLD) >= goldRequired;
+    }
 }
