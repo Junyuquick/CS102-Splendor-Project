@@ -10,10 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Handles nobles that may be attracted at the end of a turn.
+/*
  *
- * <p>This class figures out which nobles a player qualifies for and can assign one to them.
+ * This class figures out which nobles a player qualifies for and can assign one to them.
  */
 public class NobleAssigner {
     /**
