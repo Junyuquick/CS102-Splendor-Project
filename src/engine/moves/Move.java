@@ -14,15 +14,15 @@ import java.util.Map;
  * tokens, the targeted card, and any payment-token breakdown for purchases.
  */
 public abstract class Move implements Serializable {
-    /**
-     * Returns a stable label for the concrete move class.
+    /** 
+     * Returns the type name of this move, such as "TAKE_DIFFERENT" or "BUY".
      *
      * @return display name used in logs and messages
      */
     public abstract String getTypeName();
 
     /**
-     * Returns the tokens involved in this move (for token-taking moves).
+     * Returns the tokens involved in this move (for token taking moves).
      *
      * @return the token map, or empty map if not applicable
      */
@@ -50,9 +50,6 @@ public abstract class Move implements Serializable {
     }
 
     /**
-     * Returns whether the card is being bought from reserved cards (true) or from the board (false).
-     * Only applicable for buy moves.
-     *
      * @return true if buying from reserved, false otherwise
      */
     public boolean isFromReserved() {
@@ -60,10 +57,10 @@ public abstract class Move implements Serializable {
     }
 
     /**
-     * Returns the deck level to reserve from (1, 2, or 3), or -1 if reserving a face-up card.
-     * Only applicable for reserve moves.
+     * Returns the deck level to reserve from (1, 2, or 3)
+     * or -1 if reserving a card already on the board.
      *
-     * @return the level (1-3) or -1 for face-up
+     * @return the level (1-3) or -1 for face up
      */
     public int getCardLevel() {
         return -1;
@@ -142,7 +139,6 @@ public abstract class Move implements Serializable {
     }
 
     /**
-     * Returns a debug-friendly description of the move contents.
      *
      * @return string form of this move
      */
