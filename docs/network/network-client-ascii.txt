@@ -1,0 +1,75 @@
+Network Client UML
+==================
+
+Client Startup Flow
+-------------------
+
+     +--------------------+
+     | ClientMain         |
+     +--------------------+
+     | + main(...)        |
+     | + showConnection...|
+     | - startLocalServer |
+     +---------+----------+
+               |
+               | creates
+               v
+     +--------------------+
+     | GameClient         |
+     +--------------------+
+     | - host             |
+     | - port             |
+     | - playerName       |
+     | - socket           |
+     | - in / out         |
+     | - currentState     |
+     | - myPlayerIndex    |
+     | - connected        |
+     +--------------------+
+     | + connect()        |
+     | + disconnect()     |
+     | + sendMove(...)    |
+     | + sendStartRequest |
+     | + receiveMessage() |
+     +---------+----------+
+               |
+               | sends / receives
+               v
+     +--------------------+
+     | NetworkMessage     |
+     +--------------------+
+
+
+UI / Dependency Notes
+---------------------
+
+ClientMain
+  shows the connection dialog
+  optionally starts a local GameServer for host mode
+  launches MultiplayerSwingApp after a successful connect
+  depends on -> GameClient, GameServer, MultiplayerSwingApp, Swing UI classes
+
+GameClient
+  hides raw socket and object-stream details from the UI
+  stores the latest server snapshot and local player index
+  depends on -> Socket, ObjectInputStream, ObjectOutputStream,
+                NetworkMessage, Move, GameState
+
+
+Simple Client Sequence
+----------------------
+
+ClientMain
+   |
+   | collect host / port / player name
+   v
+GameClient.connect()
+   |
+   | open socket
+   | send JOIN
+   v
+NetworkMessage.join(...)
+   |
+   | later receive
+   v
+NetworkMessage.joinAck(...) / stateUpdate(...) / gameStart(...)

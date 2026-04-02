@@ -1,0 +1,85 @@
+Network Protocol UML
+====================
+
+Message Type Structure
+----------------------
+
+           +----------------------------------+
+           | NetworkMessage                   |
+           +----------------------------------+
+           | - type : Type                    |
+           | - playerName : String            |
+           | - move : Move                    |
+           | - gameState : GameState          |
+           | - errorMessage : String          |
+           | - playerIndex : Integer          |
+           | - playerNames : List<String>     |
+           | - hostIndex : Integer            |
+           | - minPlayers : Integer           |
+           +----------------------------------+
+           | + join(...)                      |
+           | + joinAck(...)                   |
+           | + move(...)                      |
+           | + lobbyUpdate(...)               |
+           | + stateUpdate(...)               |
+           | + error(...)                     |
+           | + gameStart(...)                 |
+           | + gameOver(...)                  |
+           | + startRequest()                 |
+           | + disconnect()                   |
+           | + getters...                     |
+           +----------------+-----------------+
+                            |
+                            | uses
+                            v
+                +---------------------------+
+                | Type                      |
+                +---------------------------+
+                | JOIN                      |
+                | JOIN_ACK                  |
+                | MOVE                      |
+                | START_REQUEST             |
+                | LOBBY_UPDATE              |
+                | STATE_UPDATE              |
+                | ERROR                     |
+                | GAME_START                |
+                | GAME_OVER                 |
+                | DISCONNECT                |
+                +---------------------------+
+
+
+Protocol Dependencies
+---------------------
+
+NetworkMessage
+   |
+   +--> Move
+   |
+   +--> GameState
+   |
+   +--> List<String>
+
+
+Typical Message Flow
+--------------------
+
+client                          server
+------                          ------
+JOIN            ------------->  handleJoin
+JOIN_ACK         <-------------  assign lobby index
+LOBBY_UPDATE     <-------------  send lobby state
+START_REQUEST    ------------->  host asks to start
+GAME_START       <-------------  initial state + player index
+MOVE             ------------->  handleMove
+STATE_UPDATE     <-------------  new state snapshot
+GAME_OVER        <-------------  winner announcement
+DISCONNECT       ------------->  remove client
+
+
+Per-Class Notes
+---------------
+
+NetworkMessage.java
+  the shared wire-format object for the multiplayer protocol
+  factory methods make each message type explicit at the call site
+  depends on -> Move, GameState, Serializable, List

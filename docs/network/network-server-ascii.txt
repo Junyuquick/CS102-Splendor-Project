@@ -1,0 +1,110 @@
+Network Server UML
+==================
+
+Main Server Structure
+---------------------
+
+                     +----------------------+
+                     | GameServer           |
+                     +----------------------+
+                     | - config             |
+                     | - port               |
+                     | - serverSocket       |
+                     | - lobbyManager       |
+                     | - broadcaster        |
+                     | - gameState          |
+                     | - gameStarted        |
+                     | - validator          |
+                     | - executor           |
+                     | - turnPostProcessor  |
+                     | - winnerChecker      |
+                     | - turnManager        |
+                     | - turnProgressionSvc |
+                     | - turnResolutionSvc  |
+                     +----------+-----------+
+                                |
+            +-------------------+-------------------+
+            |                                       |
+            | owns                                  | owns
+            v                                       v
+  +---------------------+                 +----------------------+
+  | LobbyManager        |                 | ServerBroadcaster    |
+  +---------------------+                 +----------------------+
+  | - config            |                 | - config             |
+  | - clients           |                 | - lobbyManager       |
+  +---------------------+                 +----------------------+
+  | + addClient(...)    |                 | + broadcastState(...)|
+  | + removeClient(...) |                 | + broadcastGameOver()|
+  | + isHost(...)       |                 | + broadcastLobby...  |
+  | + buildPlayers()    |                 | + rejectConnection() |
+  | + getClients()      |                 +----------------------+
+  +----------+----------+
+             |
+             | stores
+             v
+      +--------------+
+      | ClientHandler|
+      +--------------+
+      | - socket     |
+      | - server     |
+      | - in / out   |
+      | - playerName |
+      | - playerIndex|
+      +--------------+
+      | + run()      |
+      | + sendMessage|
+      +--------------+
+
+
+Server Turn Flow
+----------------
+
+ClientHandler
+   |
+   | handleMove(...)
+   v
++----------------------+
+| GameServer           |
++----------------------+
+   |
+   | resolveTurn(...)
+   v
++----------------------+
+| TurnResolutionService|
++----------------------+
+   |
+   | result
+   v
++----------------------+
+| ServerBroadcaster    |
++----------------------+
+   |
+   | broadcastState / gameOver / lobby
+   v
+all connected clients
+
+
+Per-Class Notes
+---------------
+
+GameServer.java
+  central multiplayer coordinator
+  accepts sockets, starts games, validates turn ownership,
+  delegates turn resolution to the engine, and reacts to disconnects
+  depends on -> LobbyManager, ServerBroadcaster, ClientHandler,
+                TurnResolutionService and related engine classes,
+                GameStateFactory, ServerSocket
+
+LobbyManager.java
+  owns the connected-client roster and lobby rules
+  builds player names and Player objects in lobby order
+  depends on -> Config, ClientHandler, Player
+
+ServerBroadcaster.java
+  sends shared server messages to the lobby or specific sockets
+  depends on -> LobbyManager, NetworkMessage, GameState, Socket
+
+ClientHandler.java
+  one runnable per connected socket
+  reads client messages and forwards them into GameServer
+  depends on -> GameServer, NetworkMessage, Socket, object streams

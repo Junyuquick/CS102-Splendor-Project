@@ -87,7 +87,7 @@ public final class TurnResolutionResult {
     /**
      * Returns whether the move resolved successfully.
      *
-     * @return {@code true} if turn resolution succeeded
+     * @return true if turn resolution succeeded
      */
     public boolean isSuccess() {
         return success;
@@ -123,7 +123,7 @@ public final class TurnResolutionResult {
     /**
      * Returns whether this move started the final round.
      *
-     * @return {@code true} if the final round was triggered
+     * @return true if the final round was triggered
      */
     public boolean isFinalRoundTriggered() {
         return finalRoundTriggered;
@@ -132,7 +132,7 @@ public final class TurnResolutionResult {
     /**
      * Returns the winner if the game ended after this turn.
      *
-     * @return winner, or {@code null} if the game continues
+     * @return winner, or null if the game continues
      */
     public Player getWinner() {
         return winner;

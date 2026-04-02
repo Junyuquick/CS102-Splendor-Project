@@ -5,7 +5,7 @@ import model.GameState;
 /**
  * Keeps track of whose turn it is and remembers who started the final round.
  *
- * <p>That lets the game detect when turn order has looped all the way back and the match
+ * That lets the game detect when turn order has looped all the way back and the match
  * should end.
  */
 public class TurnManager {
