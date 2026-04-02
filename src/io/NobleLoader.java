@@ -14,16 +14,18 @@ import model.NobleTile;
  */
 public class NobleLoader {
     /**
-     * Loads nobles from CSV file.
+     * Loads nobles from a CSV file.
      *
      * @param csvPath path to the noble CSV file
-     * @return nobles based on the data in file
+     * @return nobles based on the data in the file
      * @throws IOException if the file cannot be read
      */
     public List<NobleTile> load(Path csvPath) throws IOException {
         List<String> lines = Files.readAllLines(csvPath);
         if (lines.isEmpty()) {
-            throw new IllegalArgumentException("Noble CSV is empty: " + csvPath);
+            throw new IllegalArgumentException(
+                    "Noble CSV is empty: " + csvPath
+            );
         }
 
         List<NobleTile> nobles = new ArrayList<>();
@@ -35,7 +37,9 @@ public class NobleLoader {
 
             String[] cols = raw.split(",");
             if (cols.length < 7) {
-                throw new IllegalArgumentException("Invalid noble row at line " + (i + 1) + ": " + raw);
+                throw new IllegalArgumentException(
+                        "Invalid noble row at line " + (i + 1) + ": " + raw
+                );
             }
 
             int id = parseCardId(cols[0]);
@@ -55,7 +59,7 @@ public class NobleLoader {
     }
 
     /**
-     * Converts id in string from data file to int
+     * Converts the CSV card id value into an integer noble id.
      */
     private int parseCardId(String raw) {
         String trimmed = raw.trim();

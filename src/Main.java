@@ -1,11 +1,12 @@
-import network.ClientMain;
 import config.ConfigSupport;
+import java.awt.GraphicsEnvironment;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import java.awt.GraphicsEnvironment;
+import network.ClientMain;
 
 /**
- * Launcher that lets the user choose between single-player and multiplayer modes.
+ * Launcher that lets the user choose between single-player and multiplayer
+ * modes.
  */
 public class Main {
     /**
@@ -15,12 +16,14 @@ public class Main {
      */
     public static void main(String[] args) {
         if (GraphicsEnvironment.isHeadless()) {
-            System.err.println("Splendor requires a graphical desktop environment to launch the Swing UI.");
+            System.err.println(
+                    "Splendor requires a graphical desktop environment to "
+                    + "launch the Swing UI."
+            );
             System.exit(1);
             return;
         }
 
-        // this is to invoke the showModeDialog function on the Event Dispatch Thread which is required for swing GUI, to prevent unexpected crashes 
         SwingUtilities.invokeLater(Main::showModeDialog);
     }
 
@@ -30,11 +33,16 @@ public class Main {
     private static void showModeDialog() {
         while (true) {
             String[] options = {"Single Player", "Multiplayer", "Exit"};
-            int selected = showOptionDialog("Choose game mode", "Splendor", options);
+            int selected = showOptionDialog(
+                    "Choose game mode",
+                    "Splendor",
+                    options
+            );
 
             switch (selected) {
                 case 0 -> {
-                    ui.swing.SingleplayerSwingApp app = new ui.swing.SingleplayerSwingApp();
+                    ui.swing.SingleplayerSwingApp app =
+                            new ui.swing.SingleplayerSwingApp();
                     app.setVisible(true);
                     return;
                 }
@@ -62,8 +70,16 @@ public class Main {
      */
     private static boolean showMultiplayerModeDialog() {
         while (true) {
-            String[] options = {"Multiplayer over Network", "Multiplayer on Same Laptop", "Back"};
-            int selected = showOptionDialog("Choose multiplayer mode", "Multiplayer", options);
+            String[] options = {
+                    "Multiplayer over Network",
+                    "Multiplayer on Same Laptop",
+                    "Back"
+            };
+            int selected = showOptionDialog(
+                    "Choose multiplayer mode",
+                    "Multiplayer",
+                    options
+            );
 
             switch (selected) {
                 case 0 -> {
@@ -94,9 +110,12 @@ public class Main {
     private static boolean showNetworkModeDialog() {
         while (true) {
             String[] options = {"Host Server", "Join Server", "Back"};
-            int selected = showOptionDialog("Choose network mode", "Multiplayer over Network", options);
+            int selected = showOptionDialog(
+                    "Choose network mode",
+                    "Multiplayer over Network",
+                    options
+            );
 
-            //new switch in java btw
             switch (selected) {
                 case 0 -> {
                     ClientMain.showHostConnectionDialog();
@@ -147,10 +166,16 @@ public class Main {
 
         try {
             int playerCount = Integer.parseInt(selected.toString());
-            ui.swing.SingleplayerSwingApp app = new ui.swing.SingleplayerSwingApp(playerCount);
+            ui.swing.SingleplayerSwingApp app =
+                    new ui.swing.SingleplayerSwingApp(playerCount);
             app.setVisible(true);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(null, "Invalid player count: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Invalid player count: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
@@ -160,9 +185,13 @@ public class Main {
      * @param message message shown in the dialog body
      * @param title dialog window title
      * @param options button labels presented to the user
-     * @return selected option index, or {@code -1} if the dialog is closed
+     * @return selected option index, or -1 if the dialog is closed
      */
-    private static int showOptionDialog(String message, String title, String[] options) {
+    private static int showOptionDialog(
+            String message,
+            String title,
+            String[] options
+    ) {
         return JOptionPane.showOptionDialog(
                 null,
                 message,

@@ -5,14 +5,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Convenience helpers for locating and loading a default Splendor configuration.
+ * Convenience helpers for locating and loading a default Splendor
+ * configuration.
  */
 public final class ConfigSupport {
     private ConfigSupport() {
     }
 
     /**
-     * Loads the default configuration file, falling back to hard-coded defaults if loading fails.
+     * Loads the default configuration file and falls back to hard-coded
+     * defaults if loading fails.
      *
      * @return the loaded or fallback configuration
      */
@@ -21,7 +23,11 @@ public final class ConfigSupport {
         try {
             return new ConfigLoader().load(configPath);
         } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load " + configPath + ". Falling back to defaults. Reason: " + e.getMessage());
+            System.err.println(
+                    "Failed to load " + configPath
+                    + ". Falling back to defaults. Reason: "
+                    + e.getMessage()
+            );
         }
 
         Path here = Path.of(".");
@@ -36,12 +42,14 @@ public final class ConfigSupport {
     }
 
     /**
-     * Locates the configuration file using the standard search paths for the project.
+     * Locates the configuration file using the standard search paths for the
+     * project.
      *
-     * @return the first matching configuration path, or the primary candidate if none exists yet
+     * @return the first matching configuration path, or the primary candidate
+     *         if none exists yet
      */
     public static Path locateConfigFile() {
-        Path[] candidates = new Path[]{
+        Path[] candidates = new Path[] {
                 Path.of("config.properties"),
                 Path.of("SplendorProject", "config.properties")
         };

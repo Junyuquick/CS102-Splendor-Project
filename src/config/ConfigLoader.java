@@ -8,12 +8,13 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * Loads and validates {@link Config} values from a properties file.
+ * Loads and validates Config values from a properties file.
  */
 public final class ConfigLoader {
 
     /**
-     * Reads, validates, and resolves configuration values from the supplied properties file.
+     * Reads, validates, and resolves configuration values from the supplied
+     * properties file.
      *
      * @param configPath path to the configuration file
      * @return the validated configuration object
@@ -21,7 +22,9 @@ public final class ConfigLoader {
      */
     public Config load(Path configPath) throws IOException {
         Properties p = new Properties();
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(configPath))) {
+        try (InputStream in = new BufferedInputStream(
+                Files.newInputStream(configPath)
+        )) {
             p.load(in);
         }
 
@@ -35,7 +38,9 @@ public final class ConfigLoader {
         int minPlayers = requireInt(p, "minPlayers", 2, 4);
         int maxPlayers = requireInt(p, "maxPlayers", 2, 4);
         if (minPlayers > maxPlayers) {
-            throw new IllegalArgumentException("minPlayers cannot exceed maxPlayers");
+            throw new IllegalArgumentException(
+                    "minPlayers cannot exceed maxPlayers"
+            );
         }
 
         int numLevels = requireInt(p, "numLevels", 3, 3);
@@ -66,15 +71,32 @@ public final class ConfigLoader {
         Path nobleImageDir = requirePath(p, "nobleImageDir", baseDir);
 
         return new Config(
-                pointsToWin, maxTokensPerPlayer, maxReservedCards, maxNoblesPerTurn,
-                minPlayers, maxPlayers,
-                numLevels, openCardsPerLevel,
-                nobles2, nobles3, nobles4,
-                bank2, bank3, bank4, bankGold,
-                takeDiff, takeSame, takeSameMin,
+                pointsToWin,
+                maxTokensPerPlayer,
+                maxReservedCards,
+                maxNoblesPerTurn,
+                minPlayers,
+                maxPlayers,
+                numLevels,
+                openCardsPerLevel,
+                nobles2,
+                nobles3,
+                nobles4,
+                bank2,
+                bank3,
+                bank4,
+                bankGold,
+                takeDiff,
+                takeSame,
+                takeSameMin,
                 reserveGoldBonus,
-                level1, level2, level3, nobles,
-                cardImageDir, tokenImageDir, nobleImageDir
+                level1,
+                level2,
+                level3,
+                nobles,
+                cardImageDir,
+                tokenImageDir,
+                nobleImageDir
         );
     }
 
@@ -88,7 +110,9 @@ public final class ConfigLoader {
      */
     private String require(Properties p, String key) {
         String v = p.getProperty(key);
-        if (v == null || v.isBlank()) throw new IllegalArgumentException("Missing config key: " + key);
+        if (v == null || v.isBlank()) {
+            throw new IllegalArgumentException("Missing config key: " + key);
+        }
         return v.trim();
     }
 
@@ -100,21 +124,29 @@ public final class ConfigLoader {
      * @param min inclusive minimum value
      * @param max inclusive maximum value
      * @return the parsed integer value
-     * @throws IllegalArgumentException if the key is missing, non-numeric, or outside the allowed range
+     * @throws IllegalArgumentException if the key is missing, non-numeric, or
+     *         outside the allowed range
      */
     private int requireInt(Properties p, String key, int min, int max) {
         String raw = require(p, key);
         try {
             int val = Integer.parseInt(raw);
-            if (val < min || val > max) throw new IllegalArgumentException(key + " out of range: " + val);
+            if (val < min || val > max) {
+                throw new IllegalArgumentException(
+                        key + " out of range: " + val
+                );
+            }
             return val;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(key + " must be an integer, got: " + raw);
+            throw new IllegalArgumentException(
+                    key + " must be an integer, got: " + raw
+            );
         }
     }
 
     /**
-     * Returns a required path property, resolving relative paths against the configuration file directory.
+     * Returns a required path property and resolves relative paths against the
+     * configuration file directory.
      *
      * @param p loaded properties
      * @param key property key to read
@@ -123,7 +155,9 @@ public final class ConfigLoader {
      */
     private Path requirePath(Properties p, String key, Path baseDir) {
         Path path = Path.of(require(p, key));
-        if (!path.isAbsolute()) path = baseDir.resolve(path);
+        if (!path.isAbsolute()) {
+            path = baseDir.resolve(path);
+        }
         return path.normalize();
     }
 }
