@@ -52,6 +52,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
 
     private boolean finalGameOver = false;
     private boolean computerThinking = false;
+    private boolean pendingInitialSameLaptopTurnPopup = false;
     private final LocalMode localMode;
     private final List<String> sameLaptopFixedNames;
     private final String singlePlayerFixedHumanName;
@@ -122,6 +123,16 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
         initialisePlayerPanels();
         bindSharedActions();
         refreshAll();
+        pendingInitialSameLaptopTurnPopup = (localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible);
+        if (visible && pendingInitialSameLaptopTurnPopup) {
+            pendingInitialSameLaptopTurnPopup = false;
+            java.awt.EventQueue.invokeLater(() -> maybeShowSameLaptopTurnPopup(-1));
+        }
     }
 
     /**
@@ -244,6 +255,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
             return;
         }
 
+        int previousCurrentPlayerIndex = state.getCurrentPlayerIndex();
         Player current = state.getCurrentPlayer();
         Move move = buildPendingMove();
         String pendingMessage = pendingMoveValidationMessage(move, null);
@@ -274,6 +286,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
 
         clearSelection();
         refreshAll();
+        maybeShowSameLaptopTurnPopup(previousCurrentPlayerIndex);
     }
 
     /**
@@ -545,5 +558,27 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
             throw new IllegalStateException(error);
         }
         return move;
+    }
+
+    /**
+     * Shows a popup when same-laptop multiplayer control passes to a different player.
+     *
+     * @param previousCurrentPlayerIndex player whose turn it was before the latest update
+     */
+    private void maybeShowSameLaptopTurnPopup(int previousCurrentPlayerIndex) {
+        if (localMode != LocalMode.SAME_LAPTOP_MULTIPLAYER || state == null) {
+            return;
+        }
+
+        int currentPlayerIndex = state.getCurrentPlayerIndex();
+        if (currentPlayerIndex != previousCurrentPlayerIndex) {
+            String currentPlayerName = state.getCurrentPlayer().getName();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "It's your turn, " + currentPlayerName + ".",
+                    "Your Turn",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        }
     }
 }
