@@ -34,7 +34,7 @@ public class Main {
 
             switch (selected) {
                 case 0 -> {
-                    ui.swing.SwingSplendorApp app = new ui.swing.SwingSplendorApp();
+                    ui.swing.SingleplayerSwingApp app = new ui.swing.SingleplayerSwingApp();
                     app.setVisible(true);
                     return;
                 }
@@ -147,7 +147,7 @@ public class Main {
 
         try {
             int playerCount = Integer.parseInt(selected.toString());
-            ui.swing.SwingSplendorApp app = new ui.swing.SwingSplendorApp(playerCount);
+            ui.swing.SingleplayerSwingApp app = new ui.swing.SingleplayerSwingApp(playerCount);
             app.setVisible(true);
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "Invalid player count: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

@@ -77,7 +77,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected final JList<DevelopmentCard> reservedList = new JList<>(reservedModel);
     protected final JLabel reservedLabel = new JLabel();
 
-    protected SwingGameMode mode = SwingGameMode.IDLE;
+    protected SwingInteractionMode mode = SwingInteractionMode.IDLE;
     protected DevelopmentCard selectedBoardCard;
     protected DevelopmentCard selectedReservedCard;
 
@@ -343,13 +343,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * Binds listeners for shared buttons, token controls, and reserved-card selection.
      */
     protected final void bindSharedActions() {
-        actionTakeThree.addActionListener(e -> switchMode(SwingGameMode.TAKE_THREE));
-        actionTakeTwo.addActionListener(e -> switchMode(SwingGameMode.TAKE_TWO));
-        actionReserve.addActionListener(e -> switchMode(SwingGameMode.RESERVE));
-        actionBuy.addActionListener(e -> switchMode(SwingGameMode.BUY));
-        actionReturnTokens.addActionListener(e -> switchMode(SwingGameMode.RETURN_TOKENS));
-        actionPass.addActionListener(e -> switchMode(SwingGameMode.PASS));
-        actionCancel.addActionListener(e -> switchMode(SwingGameMode.IDLE));
+        actionTakeThree.addActionListener(e -> switchMode(SwingInteractionMode.TAKE_THREE));
+        actionTakeTwo.addActionListener(e -> switchMode(SwingInteractionMode.TAKE_TWO));
+        actionReserve.addActionListener(e -> switchMode(SwingInteractionMode.RESERVE));
+        actionBuy.addActionListener(e -> switchMode(SwingInteractionMode.BUY));
+        actionReturnTokens.addActionListener(e -> switchMode(SwingInteractionMode.RETURN_TOKENS));
+        actionPass.addActionListener(e -> switchMode(SwingInteractionMode.PASS));
+        actionCancel.addActionListener(e -> switchMode(SwingInteractionMode.IDLE));
         actionConfirm.addActionListener(e -> handleConfirmAction());
 
         for (Map.Entry<GemColor, JButton> entry : tokenButtons.entrySet()) {
@@ -375,7 +375,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      *
      * @param newMode requested mode
      */
-    protected void switchMode(SwingGameMode newMode) {
+    protected void switchMode(SwingInteractionMode newMode) {
         if (!canSwitchMode(newMode)) {
             onModeSwitchRejected(newMode);
             return;
@@ -390,7 +390,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @param newMode requested mode
      * @return true if the mode change should proceed
      */
-    protected boolean canSwitchMode(SwingGameMode newMode) {
+    protected boolean canSwitchMode(SwingInteractionMode newMode) {
         return true;
     }
 
@@ -400,14 +400,14 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      *
      * @param newMode rejected mode
      */
-    protected void onModeSwitchRejected(SwingGameMode newMode) {
+    protected void onModeSwitchRejected(SwingInteractionMode newMode) {
     }
 
     /**
      * Clears the current interaction state and returns the UI to idle mode.
      */
     protected final void clearSelection() {
-        setMode(SwingGameMode.IDLE);
+        setMode(SwingInteractionMode.IDLE);
         updateLegalUi();
     }
 
@@ -416,7 +416,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      *
      * @param newMode next UI interaction mode
      */
-    private void setMode(SwingGameMode newMode) {
+    private void setMode(SwingInteractionMode newMode) {
         mode = newMode;
         selectedBoardCard = null;
         selectedReservedCard = null;
@@ -430,27 +430,27 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @param color token color that was clicked
      */
     protected void onTokenButtonClicked(GemColor color) {
-        if (color == GemColor.GOLD && mode != SwingGameMode.RETURN_TOKENS) {
+        if (color == GemColor.GOLD && mode != SwingInteractionMode.RETURN_TOKENS) {
             return;
         }
-        if (mode != SwingGameMode.TAKE_THREE && mode != SwingGameMode.TAKE_TWO && mode != SwingGameMode.RETURN_TOKENS) {
+        if (mode != SwingInteractionMode.TAKE_THREE && mode != SwingInteractionMode.TAKE_TWO && mode != SwingInteractionMode.RETURN_TOKENS) {
             return;
         }
 
         int current = selectedTokenCounts.getOrDefault(color, 0);
         if (current > 0) {
-            if (mode == SwingGameMode.RETURN_TOKENS) {
+            if (mode == SwingInteractionMode.RETURN_TOKENS) {
                 int held = state == null || state.getCurrentPlayer() == null ? 0 : state.getCurrentPlayer().getTokenCount(color);
                 selectedTokenCounts.put(color, current >= held ? 0 : current + 1);
             } else {
                 selectedTokenCounts.put(color, 0);
             }
-        } else if (mode == SwingGameMode.TAKE_TWO) {
+        } else if (mode == SwingInteractionMode.TAKE_TWO) {
             for (GemColor gemColor : selectedTokenCounts.keySet()) {
                 selectedTokenCounts.put(gemColor, 0);
             }
             selectedTokenCounts.put(color, config.getTakeSameCount());
-        } else if (mode == SwingGameMode.RETURN_TOKENS) {
+        } else if (mode == SwingInteractionMode.RETURN_TOKENS) {
             if (state != null && state.getCurrentPlayer() != null && state.getCurrentPlayer().getTokenCount(color) > 0) {
                 selectedTokenCounts.put(color, 1);
             }
@@ -473,11 +473,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             return null;
         }
         Player current = state.getCurrentPlayer();
-        if (mode == SwingGameMode.TAKE_THREE) {
+        if (mode == SwingInteractionMode.TAKE_THREE) {
             Map<GemColor, Integer> tokens = selectedTokens();
             return tokens.isEmpty() ? null : Move.takeDifferent(tokens);
         }
-        if (mode == SwingGameMode.TAKE_TWO) {
+        if (mode == SwingInteractionMode.TAKE_TWO) {
             Map<GemColor, Integer> selected = selectedTokens();
             if (selected.size() != 1) {
                 return null;
@@ -487,10 +487,10 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             tokens.put(color, config.getTakeSameCount());
             return Move.takeSame(tokens);
         }
-        if (mode == SwingGameMode.RESERVE) {
+        if (mode == SwingInteractionMode.RESERVE) {
             return selectedBoardCard == null ? null : Move.reserveFaceUp(selectedBoardCard);
         }
-        if (mode == SwingGameMode.BUY) {
+        if (mode == SwingInteractionMode.BUY) {
             if (selectedBoardCard != null) {
                 return Move.buy(selectedBoardCard, computePaymentTokens(current, selectedBoardCard.getCost()), false);
             }
@@ -498,11 +498,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
                 return Move.buy(selectedReservedCard, computePaymentTokens(current, selectedReservedCard.getCost()), true);
             }
         }
-        if (mode == SwingGameMode.RETURN_TOKENS) {
+        if (mode == SwingInteractionMode.RETURN_TOKENS) {
             Map<GemColor, Integer> tokens = selectedTokens();
             return tokens.isEmpty() ? null : Move.returnTokens(tokens);
         }
-        if (mode == SwingGameMode.PASS) {
+        if (mode == SwingInteractionMode.PASS) {
             return Move.pass();
         }
         return null;
@@ -859,7 +859,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @param button market button to update
      */
     private void updateCardButtonState(Player current, DevelopmentCard card, JButton button) {
-        Move move = mode == SwingGameMode.RESERVE
+        Move move = mode == SwingInteractionMode.RESERVE
                 ? Move.reserveFaceUp(card)
                 : Move.buy(card, computePaymentTokens(current, card.getCost()), false);
         boolean legal = validator.validate(state, current, move) == null;
@@ -879,11 +879,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             button.setBorder(new LineBorder(SwingUiTheme.ACCENT_BLUE, 4));
             return;
         }
-        if (mode == SwingGameMode.BUY && legal) {
+        if (mode == SwingInteractionMode.BUY && legal) {
             button.setBorder(new LineBorder(SwingUiTheme.ACCENT_GREEN, 3));
             return;
         }
-        if (mode == SwingGameMode.BUY) {
+        if (mode == SwingInteractionMode.BUY) {
             button.setBorder(new LineBorder(SwingUiTheme.ACCENT_RED, 2));
         }
     }
@@ -921,13 +921,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         if (!allowInteractions || color == GemColor.GOLD || state == null) {
             return false;
         }
-        if (mode == SwingGameMode.TAKE_THREE) {
+        if (mode == SwingInteractionMode.TAKE_THREE) {
             return isTakeThreeTokenEnabled(color, totalSelected);
         }
-        if (mode == SwingGameMode.TAKE_TWO) {
+        if (mode == SwingInteractionMode.TAKE_TWO) {
             return isTakeTwoTokenEnabled(current, color);
         }
-        if (mode == SwingGameMode.RETURN_TOKENS) {
+        if (mode == SwingInteractionMode.RETURN_TOKENS) {
             return current != null && current.getTokenCount(color) > 0;
         }
         return false;

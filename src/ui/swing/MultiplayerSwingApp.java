@@ -277,7 +277,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      * @return true when it is the local player's turn
      */
     @Override
-    protected boolean canSwitchMode(SwingGameMode newMode) {
+    protected boolean canSwitchMode(SwingInteractionMode newMode) {
         return state != null && myPlayerIndex == state.getCurrentPlayerIndex();
     }
 
@@ -287,7 +287,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      * @param newMode rejected interaction mode
      */
     @Override
-    protected void onModeSwitchRejected(SwingGameMode newMode) {
+    protected void onModeSwitchRejected(SwingInteractionMode newMode) {
         if (state == null) {
             log("Game has not started yet");
         } else {
@@ -361,10 +361,10 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         actionBuy.setEnabled(myTurn && hasAnyLegalBuy(current));
         actionReturnTokens.setEnabled(myTurn && hasAnyLegalReturnTokens(current));
         actionPass.setEnabled(myTurn);
-        actionCancel.setEnabled(myTurn && mode != SwingGameMode.IDLE);
-        reservedList.setEnabled(myTurn && mode == SwingGameMode.BUY);
+        actionCancel.setEnabled(myTurn && mode != SwingInteractionMode.IDLE);
+        reservedList.setEnabled(myTurn && mode == SwingInteractionMode.BUY);
 
-        boolean cardMode = mode == SwingGameMode.RESERVE || mode == SwingGameMode.BUY;
+        boolean cardMode = mode == SwingInteractionMode.RESERVE || mode == SwingInteractionMode.BUY;
         updateCardSelectionState(current, myTurn, cardMode);
         applyTokenModeRules(current, myTurn);
 
@@ -402,13 +402,13 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      */
     private Move buildAndValidatePendingMove(Player current) {
         Move move = buildPendingMove();
-        String pendingMessage = SwingSplendorApp.pendingMoveValidationMessage(move, null);
+        String pendingMessage = SingleplayerSwingApp.pendingMoveValidationMessage(move, null);
         if (pendingMessage != null) {
             log(pendingMessage);
             return null;
         }
         String error = validator.validate(state, current, move);
-        String errorMessage = SwingSplendorApp.pendingMoveValidationMessage(move, error);
+        String errorMessage = SingleplayerSwingApp.pendingMoveValidationMessage(move, error);
         if (errorMessage != null) {
             log(errorMessage);
             updateLegalUi();
@@ -437,7 +437,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      * @param current active player
      * @return true when confirm should be enabled
      */
-    private boolean canEnableConfirm(boolean myTurn, SwingGameMode mode, Move pending, Player current) {
+    private boolean canEnableConfirm(boolean myTurn, SwingInteractionMode mode, Move pending, Player current) {
         if (pending == null || current == null) {
             return false;
         }
@@ -449,8 +449,8 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         return !gameStarted && isHost && lobbySize >= minPlayersToStart;
     }
 
-    static boolean canConfirmMove(boolean myTurn, SwingGameMode mode, boolean pendingLegal) {
-        return myTurn && mode != SwingGameMode.IDLE && pendingLegal;
+    static boolean canConfirmMove(boolean myTurn, SwingInteractionMode mode, boolean pendingLegal) {
+        return myTurn && mode != SwingInteractionMode.IDLE && pendingLegal;
     }
 
     /**

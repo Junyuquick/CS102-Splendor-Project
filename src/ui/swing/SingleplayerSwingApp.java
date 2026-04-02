@@ -32,7 +32,7 @@ import java.util.Set;
 /**
  * Single-player Swing implementation that runs the full game loop locally.
  */
-public class SwingSplendorApp extends AbstractSwingSplendorFrame {
+public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
     private enum LocalMode {
         SINGLE_PLAYER_VS_AI,
         SAME_LAPTOP_MULTIPLAYER
@@ -60,7 +60,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
     /**
      * Creates a new single-player game window using the default configuration.
      */
-    public SwingSplendorApp() {
+    public SingleplayerSwingApp() {
         this(SwingConfigSupport.loadConfig(), LocalMode.SINGLE_PLAYER_VS_AI, -1, null, null, null);
     }
 
@@ -69,7 +69,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
      *
      * @param playerCount number of human players sharing the same laptop
      */
-    public SwingSplendorApp(int playerCount) {
+    public SingleplayerSwingApp(int playerCount) {
         this(SwingConfigSupport.loadConfig(), LocalMode.SAME_LAPTOP_MULTIPLAYER, playerCount, null, null, null);
     }
 
@@ -83,7 +83,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
      * @param singlePlayerFixedHumanName optional preserved single-player human name
      * @param singlePlayerFixedComputerCount optional preserved single-player AI count
      */
-    private SwingSplendorApp(
+    private SingleplayerSwingApp(
             config.Config config,
             LocalMode localMode,
             int requestedPlayerCount,
@@ -306,15 +306,15 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
         actionBuy.setEnabled(hasAnyLegalBuy(current));
         actionReturnTokens.setEnabled(hasAnyLegalReturnTokens(current));
         actionPass.setEnabled(true);
-        actionCancel.setEnabled(mode != SwingGameMode.IDLE);
-        reservedList.setEnabled(mode == SwingGameMode.BUY);
+        actionCancel.setEnabled(mode != SwingInteractionMode.IDLE);
+        reservedList.setEnabled(mode == SwingInteractionMode.BUY);
 
-        boolean cardMode = mode == SwingGameMode.RESERVE || mode == SwingGameMode.BUY;
+        boolean cardMode = mode == SwingInteractionMode.RESERVE || mode == SwingInteractionMode.BUY;
         updateCardSelectionState(current, true, cardMode);
         applyTokenModeRules(current, true);
 
         Move pending = buildPendingMove();
-        actionConfirm.setEnabled(mode != SwingGameMode.IDLE
+        actionConfirm.setEnabled(mode != SwingInteractionMode.IDLE
                 && pending != null
                 && validator.validate(state, current, pending) == null);
     }
@@ -426,7 +426,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
             java.awt.EventQueue.invokeLater(() -> {
                 if (localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER) {
                     List<String> names = state.getPlayers().stream().map(Player::getName).toList();
-                    new SwingSplendorApp(
+                    new SingleplayerSwingApp(
                             SwingConfigSupport.loadConfig(),
                             LocalMode.SAME_LAPTOP_MULTIPLAYER,
                             names.size(),
@@ -437,7 +437,7 @@ public class SwingSplendorApp extends AbstractSwingSplendorFrame {
                 } else {
                     String humanName = state.getPlayer(0).getName();
                     int computerCount = computerPlayers.size();
-                    new SwingSplendorApp(
+                    new SingleplayerSwingApp(
                             SwingConfigSupport.loadConfig(),
                             LocalMode.SINGLE_PLAYER_VS_AI,
                             -1,
