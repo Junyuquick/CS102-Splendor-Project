@@ -14,15 +14,14 @@ import java.util.Objects;
 /**
  * Represents the shared board state for a Splendor game.
  *
- * <p>The board tracks the visible market, the remaining decks for each tier,
- * available nobles, and the token supply mirrored in the {@link GemBank}.
+ * The board tracks the visible market, the remaining decks for each
+ * tier, available nobles, and the token supply mirrored in GemBank.
  */
 public class Board implements Serializable {
 
     private final Map<Integer, List<DevelopmentCard>> faceUpCards;
     private final List<NobleTile> nobles;
     private final Map<GemColor, Integer> gems;
-
     private final Map<Integer, Deque<DevelopmentCard>> decks;
     private final Map<Integer, Integer> lastRemovedFaceUpIndexByTier;
     private final GemBank bank;
@@ -32,23 +31,32 @@ public class Board implements Serializable {
      * Creates an empty board with the default four visible cards per tier.
      */
     public Board() {
-        this(new HashMap<>(), new ArrayList<>(), new EnumMap<>(GemColor.class), new GemBank(), 4);
+        this(
+                new HashMap<>(),
+                new ArrayList<>(),
+                new EnumMap<>(GemColor.class),
+                new GemBank(),
+                4
+        );
     }
 
     /**
      * Creates a board from prepared decks, nobles, and token counts.
      *
-     * @param deckCards cards remaining in each tier deck, ordered from next draw onward
+     * @param deckCards cards remaining in each tier deck, ordered from
+     *     next draw onward
      * @param nobles nobles currently available on the board
      * @param initialGems initial token counts shown on the board
      * @param bank shared bank used to mirror token inventory
      * @param openCardsPerTier number of face-up cards to maintain per tier
      */
-    public Board(Map<Integer, List<DevelopmentCard>> deckCards,
-                 List<NobleTile> nobles,
-                 Map<GemColor, Integer> initialGems,
-                 GemBank bank,
-                 int openCardsPerTier) {
+    public Board(
+            Map<Integer, List<DevelopmentCard>> deckCards,
+            List<NobleTile> nobles,
+            Map<GemColor, Integer> initialGems,
+            GemBank bank,
+            int openCardsPerTier
+    ) {
         if (openCardsPerTier <= 0) {
             throw new IllegalArgumentException("openCardsPerTier must be > 0");
         }
@@ -90,8 +98,11 @@ public class Board implements Serializable {
     private void initializeGemSupply(Map<GemColor, Integer> initialGems) {
         gems.clear();
         for (GemColor color : GemColor.values()) {
-            int count = initialGems == null ? 0 : Math.max(0, initialGems.getOrDefault(color, 0));
+            int count = initialGems == null
+                    ? 0
+                    : Math.max(0, initialGems.getOrDefault(color, 0));
             gems.put(color, count);
+
             int bankCount = bank.getTokenCount(color);
             if (bankCount < count) {
                 bank.addGems(color, count - bankCount);
@@ -112,7 +123,8 @@ public class Board implements Serializable {
      * Removes tokens from the board supply.
      *
      * @param requested number of tokens requested for each color
-     * @throws IllegalArgumentException if a request is negative or exceeds the available supply
+     * @throws IllegalArgumentException if a request is negative or
+     *     exceeds the available supply
      */
     public void takeGems(Map<GemColor, Integer> requested) {
         if (requested == null || requested.isEmpty()) {
@@ -123,10 +135,14 @@ public class Board implements Serializable {
             GemColor color = entry.getKey();
             int amount = entry.getValue() == null ? 0 : entry.getValue();
             if (amount < 0) {
-                throw new IllegalArgumentException("Requested amount cannot be negative");
+                throw new IllegalArgumentException(
+                        "Requested amount cannot be negative"
+                );
             }
             if (getGemCount(color) < amount) {
-                throw new IllegalArgumentException("Not enough gems available for " + color);
+                throw new IllegalArgumentException(
+                        "Not enough gems available for " + color
+                );
             }
         }
 
@@ -153,7 +169,9 @@ public class Board implements Serializable {
             GemColor color = entry.getKey();
             int amount = entry.getValue() == null ? 0 : entry.getValue();
             if (amount < 0) {
-                throw new IllegalArgumentException("Returned amount cannot be negative");
+                throw new IllegalArgumentException(
+                        "Returned amount cannot be negative"
+                );
             }
             gems.put(color, getGemCount(color) + amount);
             bank.addGems(color, amount);
@@ -161,19 +179,22 @@ public class Board implements Serializable {
     }
 
     /**
-     * Removes a face-up card from the requested tier and immediately refills its slot if possible.
+     * Removes a face-up card and refills its slot when possible.
      *
      * @param tier development-card tier
      * @param index zero-based index within that tier's visible cards
      * @return the purchased card
      * @throws IllegalArgumentException if the tier is unsupported
-     * @throws IndexOutOfBoundsException if the index is outside the visible-card range
+     * @throws IndexOutOfBoundsException if the index is outside the
+     *     visible-card range
      */
     public DevelopmentCard purchaseCard(int tier, int index) {
         validateTier(tier);
         List<DevelopmentCard> tierCards = faceUpCards.get(tier);
         if (index < 0 || index >= tierCards.size()) {
-            throw new IndexOutOfBoundsException("Invalid card index for tier " + tier + ": " + index);
+            throw new IndexOutOfBoundsException(
+                    "Invalid card index for tier " + tier + ": " + index
+            );
         }
 
         DevelopmentCard purchased = tierCards.remove(index);
@@ -188,7 +209,7 @@ public class Board implements Serializable {
      * Draws the next hidden card from the requested tier.
      *
      * @param tier development-card tier
-     * @return the next card, or {@code null} if the deck is empty
+     * @return the next card, or null if the deck is empty
      * @throws IllegalArgumentException if the tier is unsupported
      */
     public DevelopmentCard drawFromDeck(int tier) {
@@ -240,8 +261,6 @@ public class Board implements Serializable {
     /**
      * Returns all visible cards across every tier.
      *
-     * <p>This compatibility overload is used by engine code that does not work with tiers directly.
-     *
      * @return an unmodifiable flattened view of all visible cards
      */
     public List<DevelopmentCard> getFaceUpCards() {
@@ -253,10 +272,7 @@ public class Board implements Serializable {
     }
 
     /**
-     * Removes a card from the visible market or from one of the hidden decks.
-     *
-     * <p>If the card is removed from the visible market, the removed slot index is remembered so that a later
-     * refill can preserve the original ordering of the visible cards.
+     * Removes a card from the visible market or from a hidden deck.
      *
      * @param card card to remove
      */
@@ -282,7 +298,7 @@ public class Board implements Serializable {
     }
 
     /**
-     * Refills the face-up slot for a removed card when another card is available in the same tier deck.
+     * Refills the face-up slot for a removed card.
      *
      * @param removedCard card whose tier determines the slot to refill
      */
@@ -309,13 +325,23 @@ public class Board implements Serializable {
         }
     }
 
+    /**
+     * Infers a card's tier from its recorded level value.
+     *
+     * @param card card whose tier should be determined
+     * @return inferred tier, or -1 if no supported tier can be found
+     */
     private int inferTier(DevelopmentCard card) {
-        // Refills are keyed by tier, so compatibility calls that pass only a card must infer it
-        // from the card's recorded level.
         String level = String.valueOf(card.getLevel()).toUpperCase();
-        if (level.contains("1")) return 1;
-        if (level.contains("2")) return 2;
-        if (level.contains("3")) return 3;
+        if (level.contains("1")) {
+            return 1;
+        }
+        if (level.contains("2")) {
+            return 2;
+        }
+        if (level.contains("3")) {
+            return 3;
+        }
         return -1;
     }
 

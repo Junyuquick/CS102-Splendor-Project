@@ -25,7 +25,8 @@ public class Cost implements Serializable {
      *
      * @param color token color to update
      * @param amount number of required tokens for that color
-     * @throws IllegalArgumentException if the amount is negative or if a non-zero gold cost is supplied
+     * @throws IllegalArgumentException if the amount is negative or if
+     *     a non-zero gold cost is supplied
      */
     public void set(GemColor color, int amount) {
         Objects.requireNonNull(color, "GemColor cannot be null");
@@ -49,7 +50,7 @@ public class Cost implements Serializable {
      * Returns the required amount for a gem color.
      *
      * @param color token color to query
-     * @return required token count, or {@code 0} if the color is absent
+     * @return required token count, or 0 if the color is absent
      */
     public int get(GemColor color) {
         return amounts.getOrDefault(color, 0);
@@ -80,7 +81,7 @@ public class Cost implements Serializable {
     /**
      * Indicates whether the cost has no required tokens.
      *
-     * @return {@code true} when no costs are recorded
+     * @return true when no costs are recorded
      */
     public boolean isEmpty() {
         return amounts.isEmpty();
@@ -100,17 +101,21 @@ public class Cost implements Serializable {
      * Compares this cost with another object for value equality.
      *
      * @param obj object to compare against
-     * @return {@code true} when both costs contain the same color amounts
+     * @return true when both costs contain the same color amounts
      */
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Cost other)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Cost other)) {
+            return false;
+        }
         return amounts.equals(other.amounts);
     }
 
     /**
-     * Returns a hash code consistent with {@link #equals(Object)}.
+     * Returns a hash code consistent with equals.
      *
      * @return hash code for this cost
      */

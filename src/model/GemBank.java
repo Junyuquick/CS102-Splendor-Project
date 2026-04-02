@@ -1,7 +1,8 @@
 package model;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Tracks the token inventory available in the shared bank.
@@ -35,7 +36,7 @@ public class GemBank implements Serializable {
      *
      * @param color token color to decrease
      * @param amount number of tokens to remove
-     * @return {@code true} if the tokens were removed, otherwise {@code false}
+     * @return true if the tokens were removed, otherwise false
      */
     public boolean removeGems(GemColor color, int amount) {
         int current = inventory.get(color);
@@ -59,7 +60,7 @@ public class GemBank implements Serializable {
     /**
      * Returns the number of tokens currently stored for one color.
      *
-     * <p>This compatibility alias is kept for engine code that uses token terminology.
+     * This compatibility alias matches code that uses token terminology.
      *
      * @param color token color to query
      * @return current token count
@@ -86,7 +87,7 @@ public class GemBank implements Serializable {
      * Removes a batch of token counts if every requested color is available.
      *
      * @param delta token adjustments keyed by color
-     * @return {@code true} if all requested tokens were removed, otherwise {@code false}
+     * @return true if all requested tokens were removed, otherwise false
      */
     public boolean removeTokens(Map<GemColor, Integer> delta) {
         if (delta == null || delta.isEmpty()) {
@@ -104,7 +105,7 @@ public class GemBank implements Serializable {
         }
         return true;
     }
-     
+
     /**
      * Returns the total number of tokens currently held in the bank.
      *
@@ -113,5 +114,4 @@ public class GemBank implements Serializable {
     public int getTotalGemCount() {
         return inventory.values().stream().mapToInt(Integer::intValue).sum();
     }
-    
 }

@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Immutable representation of a development card on the board or in a deck.
+ * Immutable representation of a development card on the board or
+ * in a deck.
  */
 public class DevelopmentCard implements Serializable {
 
@@ -25,21 +26,27 @@ public class DevelopmentCard implements Serializable {
      * @param bonusColor permanent bonus color granted by the card
      * @param cost token cost required to buy the card
      */
-    public DevelopmentCard(int id,
-                           int level,
-                           int prestigePoints,
-                           GemColor bonusColor,
-                           Cost cost) {
+    public DevelopmentCard(
+            int id,
+            int level,
+            int prestigePoints,
+            GemColor bonusColor,
+            Cost cost
+    ) {
         this.id = id;
         if (level < 1 || level > 3) {
-            throw new IllegalArgumentException("Card level must be 1, 2, or 3");
+            throw new IllegalArgumentException(
+                    "Card level must be 1, 2, or 3"
+            );
         }
         this.level = level;
 
         this.cost = Objects.requireNonNull(cost, "Cost cannot be null");
 
         if (prestigePoints < 0) {
-            throw new IllegalArgumentException("Prestige points cannot be negative");
+            throw new IllegalArgumentException(
+                    "Prestige points cannot be negative"
+            );
         }
 
         if (bonusColor == null || bonusColor == GemColor.GOLD) {
@@ -102,23 +109,27 @@ public class DevelopmentCard implements Serializable {
      */
     @Override
     public String toString() {
-        return "ID: " + id +
-               ", Level: " + level +
-               ", Points: " + prestigePoints +
-               ", Bonus: " + bonusColor +
-               ", Cost: " + cost;
+        return "ID: " + id
+                + ", Level: " + level
+                + ", Points: " + prestigePoints
+                + ", Bonus: " + bonusColor
+                + ", Cost: " + cost;
     }
 
     /**
      * Compares this card with another object using card identity fields.
      *
      * @param obj object to compare against
-     * @return {@code true} when both objects describe the same card
+     * @return true when both objects describe the same card
      */
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof DevelopmentCard other)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof DevelopmentCard other)) {
+            return false;
+        }
         return id == other.id
                 && level == other.level
                 && prestigePoints == other.prestigePoints
@@ -127,7 +138,7 @@ public class DevelopmentCard implements Serializable {
     }
 
     /**
-     * Returns a hash code consistent with {@link #equals(Object)}.
+     * Returns a hash code consistent with equals.
      *
      * @return hash code for this card
      */
