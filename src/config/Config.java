@@ -3,10 +3,9 @@ package config;
 import java.nio.file.Path;
 
 /**
- * Immutable bundle of validated configuration values for a Splendor game.
- *
- * Instances are created by ConfigLoader after the raw properties file has been
- * parsed, validated, and any relative paths have been resolved.
+ * immutable set of validated config values for games of Splendor.
+ * Singular instances are created by the ConfigLoader file after the raw properties file
+ * has been parsed, validated, and any relative paths have been resolved.
  */
 public final class Config {
     private final int pointsToWin;
@@ -38,70 +37,43 @@ public final class Config {
 
     /**
      * Creates a configuration object from already validated values.
-     *
-     * @param pointsToWin prestige points required to trigger the endgame
-     * @param maxTokensPerPlayer maximum number of tokens a player may hold
-     * @param maxReservedCards maximum number of reserved cards per player
-     * @param maxNoblesPerTurn maximum number of nobles assignable after one
-     *        turn
-     * @param minPlayers minimum supported player count
-     * @param maxPlayers maximum supported player count
-     * @param numLevels number of development-card tiers in use
-     * @param openCardsPerLevel number of face-up cards shown for each tier
-     * @param noblesCount2p noble count for a two-player game
-     * @param noblesCount3p noble count for a three-player game
-     * @param noblesCount4p noble count for a four-player game
-     * @param bankNormal2p starting non-gold token count for a two-player game
-     * @param bankNormal3p starting non-gold token count for a three-player
-     *        game
-     * @param bankNormal4p starting non-gold token count for a four-player game
+     * @param pointsToWin prestige points required to conclude game
+     * @param maxTokensPerPlayer maximum number of tokens a player can hold at once
+     * @param maxReservedCards maximum number of cards a player can reserve
+     * @param maxNoblesPerTurn maximum number of nobles that can be assigned after one turn
+     * @param minPlayers minimum player count
+     * @param maxPlayers maximum player count
+     * @param numLevels number of development card tiers in use
+     * @param openCardsPerLevel number of face up cards for each tier
+     * @param noblesCount2p noble count for two player game
+     * @param noblesCount3p noble count for three player game
+     * @param noblesCount4p noble count for four player game
+     * @param bankNormal2p starting token count (excluding gold) for two player game
+     * @param bankNormal3p starting token count for (excluding gold) three player game
+     * @param bankNormal4p starting token count for (excluding gold) four player game
      * @param bankGold starting gold token count
-     * @param takeDifferentCount number of differently colored tokens allowed in
-     *        one take move
-     * @param takeSameCount number of identical tokens allowed in one take move
-     * @param takeSameMinRemainingInBank minimum number of tokens that must
-     *        remain after taking two of one color
-     * @param reserveGoldBonus gold-token bonus awarded when reserving a card
-     * @param level1Path path to the level-1 card data
-     * @param level2Path path to the level-2 card data
-     * @param level3Path path to the level-3 card data
-     * @param noblesPath path to the noble data
-     * @param cardImageDir directory containing development-card images
+     * @param takeDifferentCount number of differently coloured tokens that can be taken in one move
+     * @param takeSameCount number of identical tokens that can be taken in one move
+     * @param takeSameMinRemainingInBank minimum number of tokens that must remain after taking two of one color
+     * @param reserveGoldBonus gold token bonus awarded when reserving a card
+     * @param level1Path path to level 1 card data
+     * @param level2Path path to level 2 card data
+     * @param level3Path path to level 3 card data
+     * @param noblesPath path to noble data
+     * @param cardImageDir directory containing development card images
      * @param tokenImageDir directory containing token images
      * @param nobleImageDir directory containing noble images
      */
-    public Config(
-            int pointsToWin,
-            int maxTokensPerPlayer,
-            int maxReservedCards,
-            int maxNoblesPerTurn,
-            int minPlayers,
-            int maxPlayers,
-            int numLevels,
-            int openCardsPerLevel,
-            int noblesCount2p,
-            int noblesCount3p,
-            int noblesCount4p,
-            int bankNormal2p,
-            int bankNormal3p,
-            int bankNormal4p,
-            int bankGold,
-            int takeDifferentCount,
-            int takeSameCount,
-            int takeSameMinRemainingInBank,
-            int reserveGoldBonus,
-            Path level1Path,
-            Path level2Path,
-            Path level3Path,
-            Path noblesPath,
-            Path cardImageDir,
-            Path tokenImageDir,
-            Path nobleImageDir
-    ) {
+    public Config (int pointsToWin, int maxTokensPerPlayer, int maxReservedCards, int maxNoblesPerTurn,
+                    int minPlayers, int maxPlayers, int numLevels, int openCardsPerLevel, int noblesCount2p,
+                    int noblesCount3p, int noblesCount4p, int bankNormal2p, int bankNormal3p, int bankNormal4p,
+                    int bankGold, int takeDifferentCount, int takeSameCount, int takeSameMinRemainingInBank,
+                    int reserveGoldBonus, Path level1Path, Path level2Path, Path level3Path, Path noblesPath,
+                    Path cardImageDir, Path tokenImageDir, Path nobleImageDir) {
         this.pointsToWin = pointsToWin;
         this.maxTokensPerPlayer = maxTokensPerPlayer;
-        this.maxReservedCards = maxReservedCards;
-        this.maxNoblesPerTurn = maxNoblesPerTurn;
+        this.maxReservedCards = maxReservedCards; 
+        this.maxNoblesPerTurn = maxNoblesPerTurn; 
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
         this.numLevels = numLevels;
@@ -127,184 +99,165 @@ public final class Config {
     }
 
     /**
-     * Returns the prestige-point threshold that triggers the final round.
+     * Returns prestige point count that triggers the end of the game.
      *
-     * @return the winning score threshold
+     * @return winning score threshold
      */
     public int getPointsToWin() {
         return pointsToWin;
     }
 
-    /**
-     * Returns the prestige-point threshold that triggers the final round.
+/**
+     * Returns prestige point count that triggers the end of the game.
      *
-     * Compatibility alias kept for existing callers.
+     * for compatibility with existing callers
      * 
-     * @return the winning score threshold
+     * @return winning score threshold
      */
     public int getpointsToWin() {
         return getPointsToWin();
     }
 
     /**
-     * Returns the maximum number of tokens a player may hold.
+     * Returns maximum number of tokens a player may hold.
      *
-     * @return the player token limit
+     * @return player token limit
      */
     public int getMaxTokensPerPlayer() {
         return maxTokensPerPlayer;
     }
 
     /**
-     * Returns the maximum number of reserved cards per player.
+     * Returns maximum number of reserved cards per player.
      *
-     * @return the reserve limit
+     * @return reserve limit
      */
     public int getMaxReservedCards() {
         return maxReservedCards;
     }
 
     /**
-     * Returns the maximum number of nobles that can be assigned after one
-     * turn.
+     * Returns maximum number of nobles that can be assigned after one turn.
      *
-     * @return the noble-assignment limit
+     * @return noble assignment limit
      */
     public int getMaxNoblesPerTurn() {
-        return maxNoblesPerTurn;
+        return maxNoblesPerTurn; 
     }
 
     /**
-     * Returns the minimum supported player count.
+     * Returns minimum supported player count.
      *
-     * @return the minimum player count
-     */
-    public int getMinPlayer() {
-        return minPlayers;
-    }
-
-    /**
-     * Returns the minimum supported player count.
-     *
-     * @return the minimum player count
+     * @return minimum player count
      */
     public int getMinPlayers() {
-        return minPlayers;
+        return minPlayers; 
     }
 
     /**
-     * Returns the maximum supported player count.
+     * Returns maximum supported player count.
      *
-     * @return the maximum player count
-     */
-    public int getMaxPlayer() {
-        return maxPlayers;
-    }
-
-    /**
-     * Returns the maximum supported player count.
-     *
-     * @return the maximum player count
+     * @return maximum player count
      */
     public int getMaxPlayers() {
-        return maxPlayers;
+        return maxPlayers; 
     }
 
     /**
-     * Returns the number of development-card tiers used by the game.
+     * Returns number of development card tiers used by the game.
      *
-     * @return the tier count
+     * @return tier count
      */
-    public int getNumLevels() {
-        return numLevels;
+    public int getNumLevels() { 
+        return numLevels; 
     }
 
     /**
-     * Returns the number of face-up cards shown for each tier.
+     * Returns number of face up cards shown for each tier.
      *
-     * @return the number of open cards per tier
+     * @return number of open cards per tier
      */
     public int getOpenCardsPerLevel() {
-        return openCardsPerLevel;
+        return openCardsPerLevel; 
     }
 
     /**
      * Returns how many differently colored tokens can be taken in one move.
      *
-     * @return the take-different token count
+     * @return take-different-token count
      */
-    public int getTakeDifferentCount() {
-        return takeDifferentCount;
+    public int getTakeDifferentCount() { 
+        return takeDifferentCount; 
     }
 
     /**
      * Returns how many identical tokens can be taken in one move.
      *
-     * @return the take-same token count
+     * @return take-same-token count
      */
     public int getTakeSameCount() {
         return takeSameCount;
     }
 
     /**
-     * Returns the minimum bank balance required after taking two of one color.
+     * Returns minimum bank balance required after taking two of one color.
      *
-     * @return the minimum remaining tokens in the bank
+     * @return minimum remaining tokens in bank
      */
     public int getTakeSameMinRemainingInBank() {
-        return takeSameMinRemainingInBank;
+        return takeSameMinRemainingInBank; 
     }
 
     /**
-     * Returns the gold-token bonus awarded when a card is reserved.
+     * Returns gold-token bonus awarded when a card is reserved.
      *
-     * @return the reserve gold bonus
+     * @return reserve gold bonus
      */
     public int getReserveGoldBonus() {
-        return reserveGoldBonus;
+        return reserveGoldBonus; 
     }
 
     /**
-     * Returns the path to the noble data file.
+     * Returns path to noble data file.
      *
-     * @return the nobles CSV path
+     * @return nobles CSV path
      */
     public Path getNoblesPath() {
         return noblesPath;
     }
 
     /**
-     * Returns the directory containing card artwork.
+     * Returns directory containing card artwork.
      *
-     * @return the card image directory
+     * @return card image directory
      */
     public Path getCardImageDir() {
         return cardImageDir;
     }
 
     /**
-     * Returns the directory containing token artwork.
+     * Returns directory containing token artwork.
      *
-     * @return the token image directory
+     * @return token image directory
      */
-    public Path getTokenImageDir() {
-        return tokenImageDir;
+    public Path getTokenImageDir() { 
+        return tokenImageDir; 
     }
 
     /**
-     * Returns the directory containing noble artwork.
+     * Returns directory containing noble artwork.
      *
-     * @return the noble image directory
+     * @return noble image directory
      */
     public Path getNobleImageDir() {
-        return nobleImageDir;
+        return nobleImageDir; 
     }
 
     /**
-     * Returns how many nobles should be placed on the board for a game size.
+     * Returns the number of nobles that should be placed on the board for a particular game size.
      *
      * @param playerCount active player count
-     * @return the noble count for that game size
+     * @return noble count for that game size
      * @throws IllegalArgumentException if playerCount is unsupported
      */
     public int getNoblesCount(int playerCount) {
@@ -319,11 +272,10 @@ public final class Config {
     }
 
     /**
-     * Returns the starting count for each non-gold token color for a game
-     * size.
+     * Returns starting count for each non gold token color for a particular game size.
      *
      * @param playerCount active player count
-     * @return the starting supply for each normal token color
+     * @return starting supply for each normal token color
      * @throws IllegalArgumentException if playerCount is unsupported
      */
     public int getInitialNormalGemCount(int playerCount) {
@@ -340,19 +292,18 @@ public final class Config {
     /**
      * Returns the starting number of gold tokens.
      *
-     * @param playerCount active player count included for API symmetry with
-     *        normal tokens
-     * @return the starting gold-token supply
+     * @param playerCount active player count
+     * @return starting gold token supply
      */
     public int getInitialGoldGemCount(int playerCount) {
         return bankGold;
     }
 
     /**
-     * Returns the card-data file for the requested tier.
+     * Returns card data file for requested tier.
      *
-     * @param level development-card level
-     * @return the path to the CSV file for that tier
+     * @param level development card level
+     * @return path to CSV file for that tier
      * @throws IllegalArgumentException if level is unsupported
      */
     public Path getCardsPath(int level) {
