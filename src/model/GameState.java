@@ -1,28 +1,32 @@
 package model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Captures the entire Splendor game state at a specific moment.
- *
- * This is the engine's authoritative state container. It stores the
- * ordered players, the shared board and bank, the active turn index,
- * and the final-round flag.
+ * 
+ * Every move and check that occurs in the game will read, write and modify the data in this class
+ * 
+ * Centralizes the whole game:
+ * - Players (in turns)
+ * - Board (decks, face-up cards, nobles)
+ * - Bank (gem token supply)
+ * - Current player turn
+ * - Final round indicator
  */
 public class GameState implements Serializable {
-
+    
     private final List<Player> players;
     private final Board board;
     private final GemBank bank;
     private int currentPlayerIndex;
     private boolean finalRound;
-
+    
     /**
-     * Creates a new game state.
-     *
+     * Creates a new game state with the players, board, and the gem bank.
+     * Starts with player 0 as the current player and finalRound indicator as false.
+     * 
      * @param players the ordered list of players (defines turn order)
      * @param board the shared board state
      * @param bank the shared gem token supply
@@ -34,85 +38,80 @@ public class GameState implements Serializable {
         this.currentPlayerIndex = 0;
         this.finalRound = false;
     }
-
+    
     /**
-     * Returns the players in turn order.
-     *
-     * @return an unmodifiable view of the players list
+     * Returns the list of players (ordered by turns order)
+     * 
      */
     public List<Player> getPlayers() {
         return Collections.unmodifiableList(players);
     }
-
+    
     /**
-     * Returns the player at the specified index.
-     *
-     * @param index the player index
-     * @return the player at that index
-     * @throws IndexOutOfBoundsException if index is out of range
+     * Returns the player based on player index.
+     * 
      */
     public Player getPlayer(int index) {
         return players.get(index);
     }
-
+    
     /**
-     * Returns the shared board reference.
+     * Returns the shared board.
      *
-     * @return the board
      */
     public Board getBoard() {
         return board;
     }
-
+    
     /**
-     * Returns the shared gem bank reference.
-     *
-     * @return the gem bank
+     * Returns the shared gem bank.
+     * 
      */
     public GemBank getBank() {
         return bank;
     }
-
+    
     /**
-     * Returns the index of the player whose turn it currently is.
-     *
-     * @return the current player index
+     * Returns the index of the player whose turn is up.
+     * 
      */
     public int getCurrentPlayerIndex() {
         return currentPlayerIndex;
     }
-
+    
     /**
-     * Returns the player whose turn it is.
-     *
-     * @return the current player
+     * Returns the player whose turn is up.
+     * 
      */
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
     }
-
+    
     /**
-     * Updates the current player index.
-     *
+     * set the current player's index.
+     * To be used by TurnManager or GameEngine.
+     * 
      * @param index the new current player index
      */
     public void setCurrentPlayerIndex(int index) {
         this.currentPlayerIndex = index;
     }
-
+    
     /**
      * Returns whether the final round flag is set.
-     *
-     * @return true if the final round has been triggered, false otherwise
+     * The final round starts when a player meets the required prestige points to win the game
+     * Game ends when the final round ends.
+     * 
+     * @return true if game is in final round
      */
     public boolean isFinalRound() {
         return finalRound;
     }
-
+    
     /**
-     * Sets the final round flag.
-     *
-     * @param value true to enable final round, false to disable
+     * Sets the final round indicator.
+    *
+     * @param value true to start final round, false otherwise
      */
     public void setFinalRound(boolean value) {
         this.finalRound = value;

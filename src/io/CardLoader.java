@@ -1,9 +1,5 @@
 package io;
 
-import model.Cost;
-import model.DevelopmentCard;
-import model.GemColor;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,20 +9,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import model.Cost;
+import model.DevelopmentCard;
+import model.GemColor;
 
 /**
- * Loads development-card data from CSV files.
+ * Loads DevelopementCard data from CSV files.
  */
 public class CardLoader {
+    
     /**
-     * Loads and shuffles card decks for all three tiers from separate CSV files.
+     * Loads and shuffles card decks for all three tiers: level1,level2 and level3 from separate CSV files.
      *
      * @param level1Path path to the level-1 card data
      * @param level2Path path to the level-2 card data
      * @param level3Path path to the level-3 card data
-     * @return cards grouped by tier number
+     * @return cards grouped by tier number: level1, 2 and 3 repectively
      * @throws IOException if any CSV file cannot be read
      */
+
     public Map<Integer, List<DevelopmentCard>> load(Path level1Path, Path level2Path, Path level3Path) throws IOException {
         Map<Integer, List<DevelopmentCard>> byTier = new HashMap<>();
         byTier.put(1, new ArrayList<>());
@@ -90,9 +91,9 @@ public class CardLoader {
     }
 
     /**
-     * Loads and shuffles card decks using the conventional file names inside one data directory.
+     * Loads and shuffles card decks using the card data file names inside the directory containing them, using the load method above
      *
-     * @param dataDir directory containing {@code level1.csv}, {@code level2.csv}, and {@code level3.csv}
+     * @param dataDir directory containing level1.csv, level2.csv and level3.csv data files
      * @return cards grouped by tier number
      * @throws IOException if any CSV file cannot be read
      */
@@ -104,6 +105,9 @@ public class CardLoader {
         );
     }
 
+    /**
+     * Converts color in string from data file to Gemcolor class
+     */
     private GemColor parseColor(String raw) {
         String c = raw.trim().toUpperCase(Locale.ROOT);
         return switch (c) {
@@ -116,6 +120,9 @@ public class CardLoader {
         };
     }
 
+    /**
+     * Same as Java.lang parseInt, but specifies the source of error in data file if integer is invalid
+     */
     private int parseInt(String raw, String column, int lineNo) {
         try {
             return Integer.parseInt(raw.trim());
@@ -124,6 +131,9 @@ public class CardLoader {
         }
     }
 
+    /**
+     * Check if points allocated to a card is within the range for its level
+     */
     private void validatePrestigeRange(int level, int prestigePoints, int lineNo) {
         boolean valid = switch (level) {
             case 1 -> prestigePoints >= 0 && prestigePoints <= 1;
