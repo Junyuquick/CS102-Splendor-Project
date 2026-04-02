@@ -1,0 +1,55 @@
+Setup UML
+=========
+
+Setup Flow
+----------
+
+            +----------------------+
+            | GameStateFactory     |
+            +----------------------+
+            | - config             |
+            | - deckFactory        |
+            | - nobleFactory       |
+            +----------------------+
+            | + createGame(...)    |
+            | - createBank(...)    |
+            | - buildInitialGems() |
+            +----------+-----------+
+                       |
+            +----------+----------+
+            |                     |
+            v                     v
+   +------------------+   +------------------+
+   | DeckFactory      |   | NobleFactory     |
+   +------------------+   +------------------+
+   | + buildDecks(...)|   | + buildNobles(...)|
+   | - fallback cards |   | - fallback nobles |
+   +------------------+   +------------------+
+            |                     |
+            v                     v
+   +------------------+   +------------------+
+   | CardLoader       |   | NobleLoader      |
+   +------------------+   +------------------+
+
+
+Setup Output
+------------
+
+GameStateFactory.createGame(...)
+   |
+   +--> GemBank
+   +--> Board
+   +--> GameState
+
+
+Per-Class Notes
+---------------
+
+GameStateFactory.java
+  coordinates startup and builds a fresh GameState
+
+DeckFactory.java
+  loads card decks or falls back to sample decks
+
+NobleFactory.java
+  loads noble data or falls back to sample nobles

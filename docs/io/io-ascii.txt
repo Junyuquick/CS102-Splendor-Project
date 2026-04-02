@@ -1,0 +1,41 @@
+IO UML
+======
+
+Loader Structure
+----------------
+
+      +------------------+           +------------------+
+      | CardLoader       |           | NobleLoader      |
+      +------------------+           +------------------+
+      | + load(...)      |           | + load(...)      |
+      | - parseCard...   |           | - parseNoble...  |
+      | - parseCost...   |           | - parseCost...   |
+      +--------+---------+           +--------+---------+
+               |                              |
+               | builds                       | builds
+               v                              v
+      +------------------+           +------------------+
+      | DevelopmentCard  |           | NobleTile        |
+      +------------------+           +------------------+
+               |                              |
+               +--------------+---------------+
+                              |
+                              v
+                       +-------------+
+                       | Cost        |
+                       +-------------+
+                              |
+                              v
+                       +-------------+
+                       | GemColor    |
+                       +-------------+
+
+
+Per-Class Notes
+---------------
+
+CardLoader.java
+  reads three card CSV sources and builds tiered DevelopmentCard decks
+
+NobleLoader.java
+  reads noble CSV data and builds NobleTile objects

@@ -1,0 +1,95 @@
+Swing UI UML
+============
+
+Main UI Structure
+-----------------
+
+                 +-----------------------------+
+                 | AbstractSwingSplendorFrame  |
+                 +-----------------------------+
+                 | shared panels               |
+                 | shared actions              |
+                 | shared rendering helpers    |
+                 +-------------+---------------+
+                               |
+                 +-------------+-------------+
+                 |                           |
+                 v                           v
+      +------------------------+   +------------------------+
+      | SingleplayerSwingApp   |   | MultiplayerSwingApp    |
+      +------------------------+   +------------------------+
+
+
+Support Classes
+---------------
+
++------------------------------+      +------------------------------+
+| SwingAssetLoader             |      | SwingConfigSupport           |
++------------------------------+      +------------------------------+
+| loads icons / images         |      | loads Config for Swing       |
++------------------------------+      +------------------------------+
+
++------------------------------+      +------------------------------+
+| SwingPlayerPanelSupport      |      | SwingPlayerSummaryFormatter  |
++------------------------------+      +------------------------------+
+| builds player panels         |      | formats player summaries     |
+| refreshes player summaries   |      | HTML + plain text helpers    |
++------------------------------+      +------------------------------+
+
++------------------------------+      +------------------------------+
+| SwingUiTheme                 |      | SwingInteractionMode         |
++------------------------------+      +------------------------------+
+| colors / borders / sizing    |      | IDLE / TAKE / BUY / PASS...  |
++------------------------------+      +------------------------------+
+
+
+External Dependencies
+---------------------
+
+AbstractSwingSplendorFrame
+   |
+   +--> GameState
+   +--> Player
+   +--> Move
+   +--> Config
+
+MultiplayerSwingApp
+   |
+   +--> GameClient
+   +--> NetworkMessage
+
+SingleplayerSwingApp
+   |
+   +--> GreedyStrategy
+   +--> TurnResolutionService
+
+
+Per-Class Notes
+---------------
+
+AbstractSwingSplendorFrame.java
+  shared base frame for common Swing layout, rendering, and interactions
+
+SingleplayerSwingApp.java
+  local game UI, including AI and same-device multiplayer flows
+
+MultiplayerSwingApp.java
+  client UI for network multiplayer
+
+SwingAssetLoader.java
+  loads and scales card, token, and noble images
+
+SwingPlayerPanelSupport.java
+  builds and refreshes side panels for player summaries
+
+SwingPlayerSummaryFormatter.java
+  formats player data for rich HTML and compact text panels
+
+SwingUiTheme.java
+  central theme colors, borders, and UI constants
+
+SwingConfigSupport.java
+  tiny Swing-specific wrapper around config loading
+
+SwingInteractionMode.java
+  enum of current input modes in the Swing frame

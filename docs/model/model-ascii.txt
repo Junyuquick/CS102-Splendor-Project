@@ -1,0 +1,75 @@
+Model UML
+=========
+
+Core Domain Structure
+---------------------
+
+                 +------------------+
+                 | GameState        |
+                 +------------------+
+                 | - players        |
+                 | - board          |
+                 | - bank           |
+                 | - currentPlayer  |
+                 | - finalRound     |
+                 +---------+--------+
+                           |
+          +----------------+----------------+
+          |                                 |
+          v                                 v
+  +---------------+                  +---------------+
+  | Player        |                  | Board         |
+  +---------------+                  +---------------+
+  | - tokens      |                  | - faceUpCards |
+  | - purchased   |                  | - nobles      |
+  | - reserved    |                  | - gems        |
+  | - nobles      |                  | - decks       |
+  +-------+-------+                  | - bank        |
+          |                          +-------+-------+
+          |                                  |
+          |                                  v
+          |                           +--------------+
+          |                           | GemBank      |
+          |                           +--------------+
+          |
+   +------+------+----------------+
+   |             |                |
+   v             v                v
++--------+  +-------------+  +-----------+
+| Cost   |  | Development |  | NobleTile |
++--------+  | Card        |  +-----------+
+    |       +-------------+       |
+    +---------------+-------------+
+                    |
+                    v
+               +----------+
+               | GemColor |
+               +----------+
+
+
+Per-Class Notes
+---------------
+
+GameState.java
+  top-level snapshot of the whole match
+
+Player.java
+  stores one player's tokens, cards, nobles, and score-related data
+
+Board.java
+  stores shared visible cards, hidden decks, nobles, and board token supply
+
+GemBank.java
+  stores the shared token inventory
+
+DevelopmentCard.java
+  immutable development card value object
+
+NobleTile.java
+  immutable noble value object
+
+Cost.java
+  color-keyed cost container
+
+GemColor.java
+  enum of token colors, including gold

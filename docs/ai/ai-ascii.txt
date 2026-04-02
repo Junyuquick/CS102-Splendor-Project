@@ -1,0 +1,62 @@
+AI UML
+======
+
+Main Structure
+--------------
+
+        +----------------------+
+        | GreedyStrategy       |
+        +----------------------+
+        | - config             |
+        | - random             |
+        +----------------------+
+        | + chooseMove(...)    |
+        | - chooseEasyMove(...)|
+        | - bestBuyMove(...)   |
+        | - bestTakeTwoSame()  |
+        | - bestTakeThree...() |
+        | - computePayment...()|
+        +----------+-----------+
+                   |
+   +---------------+-------------------------------+
+   |               |               |               |
+   v               v               v               v
++---------+  +-------------+  +----------------+  +--------+
+| Config  |  | MoveValidator|  | PaymentCalc   |  | Move   |
++---------+  +-------------+  +----------------+  +--------+
+                   |
+                   v
+             +-----------+
+             | GameState |
+             +-----------+
+                   |
+                   v
+             +-----------+
+             | Player    |
+             +-----------+
+
+
+Selection Flow
+--------------
+
+chooseMove(...)
+   |
+   v
+chooseEasyMove(...)
+   |
+   +--> collect legal buy moves
+   +--> collect legal reserve moves
+   +--> collect legal token-take moves
+   +--> collect legal return-token moves
+   |
+   v
+weighted random choice
+
+
+Per-Class Notes
+---------------
+
+GreedyStrategy.java
+  chooses one legal AI move using simple heuristics
+  depends on -> Config, MoveValidator, PaymentCalculator,
+                GameState, Player, DevelopmentCard, Move

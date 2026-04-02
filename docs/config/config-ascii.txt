@@ -1,0 +1,47 @@
+Config UML
+==========
+
+Configuration Flow
+------------------
+
+      +------------------+
+      | ConfigSupport    |
+      +------------------+
+      | + loadDefault... |
+      | + locateConfig...|
+      +---------+--------+
+                |
+                | uses
+                v
+      +------------------+
+      | ConfigLoader     |
+      +------------------+
+      | + load(...)      |
+      | - require(...)   |
+      | - requireInt(...)|
+      | - requirePath(...)|
+      +---------+--------+
+                |
+                | creates
+                v
+      +------------------+
+      | Config           |
+      +------------------+
+      | rule values      |
+      | path values      |
+      | getters          |
+      +------------------+
+
+
+Per-Class Notes
+---------------
+
+Config.java
+  immutable bundle of validated rule values and project paths
+
+ConfigLoader.java
+  reads the properties file, validates required values,
+  resolves relative paths, and builds Config
+
+ConfigSupport.java
+  finds the default config file and falls back to hard-coded defaults
