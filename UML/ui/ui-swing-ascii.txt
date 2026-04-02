@@ -1,0 +1,59 @@
+SWING UI - UML CLASS DIAGRAM
+============================
+
+                   +-----------------------------+
+                   | AbstractSwingSplendorFrame  |
+                   +-----------------------------+
+                   | - config                    |
+                   | - state                     |
+                   | - validator                 |
+                   | - assetLoader               |
+                   | - mode                      |
+                   | - selectedBoardCard         |
+                   | - selectedReservedCard      |
+                   +-------------^---------------+
+                                 |
+                +----------------+----------------+
+                |                                 |
+                |                                 |
+     +----------+-----------+         +-----------+----------+
+     | SingleplayerSwingApp |         | MultiplayerSwingApp  |
+     +----------------------+         +----------------------+
+     | - executor           |         | - client             |
+     | - turnResolutionSvc  |         | - myPlayerIndex      |
+     | - aiStrategy         |         | - hostPlayerIndex    |
+     | - localMode          |         | - lobbyPlayers       |
+     +----------------------+         +----------------------+
+
+
+SUPPORT CLASSES
+---------------
+
++------------------------------+   +------------------------------+
+| SwingAssetLoader             |   | SwingConfigSupport           |
++------------------------------+   +------------------------------+
+
++------------------------------+   +------------------------------+
+| SwingPlayerPanelSupport      |   | SwingPlayerSummaryFormatter  |
++------------------------------+   +------------------------------+
+
++------------------------------+   +------------------------------+
+| SwingUiTheme                 |   | SwingInteractionMode         |
++------------------------------+   +------------------------------+
+
+
+DEPENDENCIES
+------------
+
+AbstractSwingSplendorFrame --> GameState
+AbstractSwingSplendorFrame --> Player
+AbstractSwingSplendorFrame --> Move
+AbstractSwingSplendorFrame --> Config
+AbstractSwingSplendorFrame --> SwingAssetLoader
+
+SingleplayerSwingApp      --> GreedyStrategy
+SingleplayerSwingApp      --> TurnResolutionService
+SingleplayerSwingApp      --> GameStateFactory
+
+MultiplayerSwingApp       --> GameClient
+MultiplayerSwingApp       --> NetworkMessage

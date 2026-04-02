@@ -7,7 +7,7 @@ Message Type Structure
            +----------------------------------+
            | NetworkMessage                   |
            +----------------------------------+
-           | - type : Type                    |
+           | - type : String                  |
            | - playerName : String            |
            | - move : Move                    |
            | - gameState : GameState          |
@@ -30,21 +30,21 @@ Message Type Structure
            | + getters...                     |
            +----------------+-----------------+
                             |
-                            | uses
+                            | uses constants
                             v
                 +---------------------------+
-                | Type                      |
+                | String type constants     |
                 +---------------------------+
-                | JOIN                      |
-                | JOIN_ACK                  |
-                | MOVE                      |
-                | START_REQUEST             |
-                | LOBBY_UPDATE              |
-                | STATE_UPDATE              |
-                | ERROR                     |
-                | GAME_START                |
-                | GAME_OVER                 |
-                | DISCONNECT                |
+                | TYPE_JOIN                 |
+                | TYPE_JOIN_ACK             |
+                | TYPE_MOVE                 |
+                | TYPE_START_REQUEST        |
+                | TYPE_LOBBY_UPDATE         |
+                | TYPE_STATE_UPDATE         |
+                | TYPE_ERROR                |
+                | TYPE_GAME_START           |
+                | TYPE_GAME_OVER            |
+                | TYPE_DISCONNECT           |
                 +---------------------------+
 
 
@@ -73,6 +73,7 @@ GAME_START       <-------------  initial state + player index
 MOVE             ------------->  handleMove
 STATE_UPDATE     <-------------  new state snapshot
 GAME_OVER        <-------------  winner announcement
+ERROR            <-------------  invalid request / protocol issue
 DISCONNECT       ------------->  remove client
 
 
@@ -80,6 +81,6 @@ Per-Class Notes
 ---------------
 
 NetworkMessage.java
-  the shared wire-format object for the multiplayer protocol
-  factory methods make each message type explicit at the call site
-  depends on -> Move, GameState, Serializable, List
+  shared serialized wire-format object for the multiplayer protocol
+  uses named factory methods instead of public constructors
+  current implementation uses string constants, not an enum

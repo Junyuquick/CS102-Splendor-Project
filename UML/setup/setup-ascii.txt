@@ -1,0 +1,51 @@
+SETUP - UML CLASS DIAGRAM
+=========================
+
+                     +----------------------+
+                     | GameStateFactory     |
+                     +----------------------+
+                     | - config             |
+                     | - deckFactory        |
+                     | - nobleFactory       |
+                     +----------------------+
+                     | + createGame(...)    |
+                     | - createBank(...)    |
+                     | - buildInitialGems() |
+                     | - buildGemCounts()   |
+                     +----+------------+----+
+                          |            |
+                          v            v
+                +----------------+   +----------------+
+                | DeckFactory    |   | NobleFactory   |
+                +----------------+   +----------------+
+                | - config       |   | - config       |
+                | - cardLoader   |   | - nobleLoader  |
+                +----------------+   | - profile      |
+                | + buildDecks() |   +----------------+
+                +-------+--------+   | + buildNobles()|
+                        |            +-------+--------+
+                        |                    |
+                        v                    v
+                 +--------------+     +--------------+
+                 | CardLoader   |     | NobleLoader  |
+                 +--------------+     +--------------+
+
+
+SUPPORTING TYPE
+---------------
+
+             +---------------------------+
+             | GameStateFactory.         |
+             | FallbackProfile           |
+             +---------------------------+
+             | LOCAL_APP                 |
+             | SERVER                    |
+             +---------------------------+
+
+
+OUTPUT
+------
+
+GameStateFactory --> GameState
+GameStateFactory --> Board
+GameStateFactory --> GemBank

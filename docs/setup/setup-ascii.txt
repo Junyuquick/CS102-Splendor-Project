@@ -14,22 +14,39 @@ Setup Flow
             | + createGame(...)    |
             | - createBank(...)    |
             | - buildInitialGems() |
+            | - buildGemCounts()   |
             +----------+-----------+
                        |
             +----------+----------+
             |                     |
             v                     v
-   +------------------+   +------------------+
-   | DeckFactory      |   | NobleFactory     |
-   +------------------+   +------------------+
-   | + buildDecks(...)|   | + buildNobles(...)|
-   | - fallback cards |   | - fallback nobles |
-   +------------------+   +------------------+
-            |                     |
-            v                     v
-   +------------------+   +------------------+
-   | CardLoader       |   | NobleLoader      |
-   +------------------+   +------------------+
+   +------------------+   +----------------------+
+   | DeckFactory      |   | NobleFactory         |
+   +------------------+   +----------------------+
+   | + buildDecks(...)|   | + buildNobles(...)   |
+   | - shuffled(...)  |   | - shuffled(...)      |
+   | - fallback cards |   | - fallback nobles    |
+   | - mapCost(...)   |   | - mapCost(...)       |
+   | - toCost(...)    |   | - toCost(...)        |
+   +--------+---------+   +----------+-----------+
+            |                        |
+            v                        v
+   +------------------+     +------------------+
+   | CardLoader       |     | NobleLoader      |
+   +------------------+     +------------------+
+
+
+Supporting Value Choice
+-----------------------
+
++---------------------------+
+| GameStateFactory          |
++---------------------------+
+| uses FallbackProfile      |
++---------------------------+
+| LOCAL_APP                 |
+| SERVER                    |
++---------------------------+
 
 
 Setup Output
@@ -46,10 +63,11 @@ Per-Class Notes
 ---------------
 
 GameStateFactory.java
-  coordinates startup and builds a fresh GameState
+  coordinates startup and builds a fresh GameState for a supplied player list
 
 DeckFactory.java
-  loads card decks or falls back to sample decks
+  loads card decks from CSV or falls back to built-in sample card sets
 
 NobleFactory.java
-  loads noble data or falls back to sample nobles
+  loads nobles from CSV or falls back to built-in noble sets based on the
+  selected fallback profile

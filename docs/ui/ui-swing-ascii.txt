@@ -9,7 +9,8 @@ Main UI Structure
                  +-----------------------------+
                  | shared panels               |
                  | shared actions              |
-                 | shared rendering helpers    |
+                 | selection / rendering state |
+                 | move-building helpers       |
                  +-------------+---------------+
                                |
                  +-------------+-------------+
@@ -17,6 +18,11 @@ Main UI Structure
                  v                           v
       +------------------------+   +------------------------+
       | SingleplayerSwingApp   |   | MultiplayerSwingApp    |
+      +------------------------+   +------------------------+
+      | - localMode            |   | - client               |
+      | - turnResolutionSvc    |   | - myPlayerIndex        |
+      | - aiStrategy           |   | - hostPlayerIndex      |
+      | - computerPlayers      |   | - lobbyPlayers         |
       +------------------------+   +------------------------+
 
 
@@ -32,19 +38,19 @@ Support Classes
 +------------------------------+      +------------------------------+
 | SwingPlayerPanelSupport      |      | SwingPlayerSummaryFormatter  |
 +------------------------------+      +------------------------------+
-| builds player panels         |      | formats player summaries     |
-| refreshes player summaries   |      | HTML + plain text helpers    |
+| builds player / lobby panels |      | formats player summaries     |
+| refreshes player summaries   |      | HTML + compact text helpers  |
 +------------------------------+      +------------------------------+
 
 +------------------------------+      +------------------------------+
 | SwingUiTheme                 |      | SwingInteractionMode         |
 +------------------------------+      +------------------------------+
-| colors / borders / sizing    |      | IDLE / TAKE / BUY / PASS...  |
+| colors / borders / sizing    |      | IDLE / TAKE_THREE / BUY ... |
 +------------------------------+      +------------------------------+
 
 
-External Dependencies
----------------------
+Key Dependencies
+----------------
 
 AbstractSwingSplendorFrame
    |
@@ -52,44 +58,52 @@ AbstractSwingSplendorFrame
    +--> Player
    +--> Move
    +--> Config
-
-MultiplayerSwingApp
-   |
-   +--> GameClient
-   +--> NetworkMessage
+   +--> SwingAssetLoader
+   +--> SwingUiTheme
 
 SingleplayerSwingApp
    |
    +--> GreedyStrategy
    +--> TurnResolutionService
+   +--> GameStateFactory
+   +--> SwingPlayerPanelSupport
+
+MultiplayerSwingApp
+   |
+   +--> GameClient
+   +--> NetworkMessage
+   +--> SwingPlayerPanelSupport
 
 
-Per-Class Notes
----------------
+Behavior Summary
+----------------
 
 AbstractSwingSplendorFrame.java
-  shared base frame for common Swing layout, rendering, and interactions
+  shared base frame for common layout, card/token rendering,
+  selection state, pending-move construction, and action wiring
 
 SingleplayerSwingApp.java
-  local game UI, including AI and same-device multiplayer flows
+  local game UI for human vs AI and same-laptop multiplayer
+  resolves turns locally through engine services
 
 MultiplayerSwingApp.java
-  client UI for network multiplayer
+  network client UI
+  listens for server messages, renders lobby/game state, and submits moves
 
 SwingAssetLoader.java
-  loads and scales card, token, and noble images
+  loads and scales card, token, and noble images with project-local fallbacks
 
 SwingPlayerPanelSupport.java
-  builds and refreshes side panels for player summaries
+  builds single-player panels and pre-game lobby panels
 
 SwingPlayerSummaryFormatter.java
-  formats player data for rich HTML and compact text panels
+  formats player data for rich HTML and compact text summaries
 
 SwingUiTheme.java
-  central theme colors, borders, and UI constants
+  central theme colors, borders, dimensions, and style helpers
 
 SwingConfigSupport.java
   tiny Swing-specific wrapper around config loading
 
 SwingInteractionMode.java
-  enum of current input modes in the Swing frame
+  singleton-style value class describing the current input mode

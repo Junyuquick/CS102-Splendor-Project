@@ -16,6 +16,7 @@ Main Server Structure
                      | - gameStarted        |
                      | - validator          |
                      | - executor           |
+                     | - nobleAssigner      |
                      | - turnPostProcessor  |
                      | - winnerChecker      |
                      | - turnManager        |
@@ -33,11 +34,15 @@ Main Server Structure
   | - config            |                 | - config             |
   | - clients           |                 | - lobbyManager       |
   +---------------------+                 +----------------------+
-  | + addClient(...)    |                 | + broadcastState(...)|
-  | + removeClient(...) |                 | + broadcastGameOver()|
-  | + isHost(...)       |                 | + broadcastLobby...  |
-  | + buildPlayers()    |                 | + rejectConnection() |
-  | + getClients()      |                 +----------------------+
+  | + canAcceptMore...  |                 | + broadcastState(...)|
+  | + addClient(...)    |                 | + broadcastGameOver()|
+  | + removeClient(...) |                 | + broadcastLobby...  |
+  | + isHost(...)       |                 | + rejectConnection() |
+  | + hasMinimumPlayers |                 +----------------------+
+  | + assignIndexes()   |
+  | + buildPlayers()    |
+  | + buildLobbyNames() |
+  | + getClients()      |
   +----------+----------+
              |
              | stores
@@ -61,7 +66,7 @@ Server Turn Flow
 
 ClientHandler
    |
-   | handleMove(...)
+   | forwards join / move / start messages
    v
 +----------------------+
 | GameServer           |
@@ -89,22 +94,18 @@ Per-Class Notes
 
 GameServer.java
   central multiplayer coordinator
-  accepts sockets, starts games, validates turn ownership,
-  delegates turn resolution to the engine, and reacts to disconnects
-  depends on -> LobbyManager, ServerBroadcaster, ClientHandler,
-                TurnResolutionService and related engine classes,
-                GameStateFactory, ServerSocket
+  accepts sockets, manages lobby state, starts games, validates turn
+  ownership, delegates turn resolution to the engine, and resets back to
+  lobby mode after a finished game
 
 LobbyManager.java
   owns the connected-client roster and lobby rules
-  builds player names and Player objects in lobby order
-  depends on -> Config, ClientHandler, Player
+  builds Player objects and lobby display names in connection order
 
 ServerBroadcaster.java
-  sends shared server messages to the lobby or specific sockets
-  depends on -> LobbyManager, NetworkMessage, GameState, Socket
+  sends shared server messages to the lobby or rejects extra sockets
 
 ClientHandler.java
   one runnable per connected socket
-  reads client messages and forwards them into GameServer
-  depends on -> GameServer, NetworkMessage, Socket, object streams
+  enforces the JOIN-first handshake and forwards later messages into
+  GameServer

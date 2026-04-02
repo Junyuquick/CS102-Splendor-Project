@@ -31,62 +31,29 @@ Class Diagram
 Behavior / Dependency Flow
 --------------------------
 
-  canAfford(player, cost)
-          |
-          v
-  computePaymentTokens(player, cost)
-          |
-          +--> reads Player bonus counts
-          |      Player.getBonusCount(color)
-          |
-          +--> reads Player token counts
-          |      Player.getTokenCount(color)
-          |
-          +--> builds Map<GemColor, Integer> payment
-          |
-          v
-  extracts GOLD requirement from payment map
-          |
-          v
-  compares against Player.getTokenCount(GOLD)
-          |
-          v
-       returns boolean
+computePaymentTokens(player, cost)
+   |
+   +--> reads Player bonus counts
+   +--> reads Player token counts
+   +--> computes remaining colored-token need after bonuses
+   +--> fills any shortfall with GOLD tokens
+   |
+   v
+returns payment map
 
-
-Sequence View
--------------
-
-  Caller
-    |
-    | canAfford(player, cost)
-    v
-  PaymentCalculator
-    |
-    | computePaymentTokens(player, cost)
-    v
-  PaymentCalculator
-    |
-    | getBonusCount(color)
-    | getTokenCount(color)
-    v
-  Player
-    |
-    | returns counts
-    v
-  PaymentCalculator
-    |
-    | builds payment map
-    | checks GOLD needed
-    |
-    v
-  returns true / false to Caller
+canAfford(player, cost)
+   |
+   +--> calls computePaymentTokens(player, cost)
+   +--> checks whether required GOLD is available
+   |
+   v
+returns true / false
 
 
 Notes
 -----
 
 - PaymentCalculator is a stateless utility class.
-- It does not mutate Player.
-- It depends on Player data and GemColor keys.
-- It produces and reads Map<GemColor, Integer> structures.
+- It does not mutate Player or GameState.
+- It depends only on Player data, GemColor keys, and cost maps.
+- It is used by validation, AI move generation, and turn execution helpers.

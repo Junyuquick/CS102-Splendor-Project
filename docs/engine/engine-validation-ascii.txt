@@ -21,16 +21,18 @@ Package Structure
 | - buildUnknownMove...  |
 +-----------+------------+
             |
-            | delegates to
+            | delegates by concrete move type
             v
   +-------------------------+      +----------------------+
   | TakeDifferentMoveRule   |----->| AvailableMovesInsp.  |
   +-------------------------+      +----------------------+
-  | + validate(...)         |      | + hasAnyLegal...     |
-  | - validateTokenSel...   |      | - canReserveCard()   |
-  | - validateBankAvail...  |      | - canBuyCard()       |
-  | - validateColorCount... |      | - createBuyMove()    |
-  | - hasAnyFallbackMove()  |      | - canReturnOne...()  |
+  | + validate(...)         |      | + hasAnyLegalReserve |
+  | - validateTokenSel...   |      | + hasAnyLegalBuy     |
+  | - validateBankAvail...  |      | + hasAnyLegalReturn  |
+  | - validateSingleColor.. |      | - canReserveCard()   |
+  | - validateColorCount... |      | - canBuyCard()       |
+  | - hasAnyFallbackMove()  |      | - createBuyMove()    |
+  | - validateTokenLimit()  |      | - canReturnOneToken()|
   +-------------------------+      +----------+-----------+
             |                                 /|\
             |                                  |
@@ -44,13 +46,16 @@ Package Structure
 
   +----------------------+          +----------------------+
   | BuyMoveRule          |<---------| AvailableMovesInsp.  |
-  +----------------------+          +----------------------+
+  +----------------------+
   | + validate(...)      |
   | - validateCardLoc... |
-  | - validateFreeCard.. |
   | - validateReserved.. |
   | - validateFaceUp...  |
-  | - countGoldNeeded... |
+  | - validateFreeCard.. |
+  | - isFreeCard()       |
+  | - validatePayment... |
+  | - normalizeTokenMap()|
+  | - buildAffordErr...  |
   +----------+-----------+
              |
              | uses
@@ -63,7 +68,8 @@ Package Structure
   | ReturnTokensMoveRule    |
   +-------------------------+
   | + validate(...)         |
-  | + canUseReturnTurn(...) |
+  | - canUseReturnTurn(...) |
+  | - normalizeTokenMap()   |
   +-------------------------+
 
   +----------------------+
@@ -77,6 +83,7 @@ Package Structure
   +----------------------+
   | + validate(...)      |
   | - validateReqTokens  |
+  | - getChosenColor()   |
   | - validateBankSupply |
   | - validateMinRemain  |
   | - validateTokenLimit |
@@ -88,86 +95,49 @@ Validation Story
 
 MoveValidator
   1. reject null moves
-  2. identify the concrete move type with tiny helper methods
+  2. identify the concrete move subtype
   3. hand the move to the matching rule class
-  4. return null when valid or a message when invalid
+  4. return null when valid, otherwise a readable error message
 
 TakeDifferentMoveRule
-  1. check that the token selection shape is allowed
-  2. check that each chosen color exists in the bank
-  3. check whether fallback short-take rules are allowed
-  4. check the player's token limit
+  1. check the token-selection shape
+  2. check bank availability
+  3. enforce fallback / reduced-take rules when the bank is constrained
+  4. enforce token-cap rules
 
 TakeSameMoveRule
-  1. check that exactly one color was requested
-  2. check that the requested count matches the rule
-  3. check bank supply and minimum remaining tokens
-  4. check the player's token limit
+  1. require exactly one chosen color
+  2. require the configured same-color count
+  3. enforce bank-supply and minimum-remaining rules
+  4. enforce token-cap rules
 
 BuyMoveRule
-  1. check that the card exists
-  2. check whether the card comes from the right source
-  3. check whether it is a free card
-  4. check affordability
-  5. check that the submitted payment tokens match the required payment
+  1. require a target card
+  2. verify the card source (face-up or reserved)
+  3. verify free-card payment shape
+  4. verify affordability via PaymentCalculator
+  5. verify exact submitted payment tokens
 
 AvailableMovesInspector
-  builds simple probe moves and asks the existing rule classes whether they
-  would be legal, so fallback checks stay out of the main validator
-
-
-File Coverage
--------------
-
-MoveValidator.java
-  central entry point for validation
-  now uses helper methods so dispatch reads step by step
-
-AvailableMovesInspector.java
-  answers whether fallback alternatives exist
-  now has separate helpers for reserve, buy, and return probes
-
-BuyMoveRule.java
-  validates purchase source, affordability, and payment correctness
-  now breaks those checks into smaller helpers
-
-ReserveMoveRule.java
-  validates reserve source and reserved-card limit
-
-TakeDifferentMoveRule.java
-  validates different-token take and fallback special case
-  now separates token, bank, fallback, and token-limit checks
-
-TakeSameMoveRule.java
-  validates two-of-a-kind take
-  now separates token-count, bank, and token-limit checks
-
-ReturnTokensMoveRule.java
-  validates voluntary return-token turns
-
-PassMoveRule.java
-  validates pass turns
+  builds probe moves and asks existing rule classes whether reserve, buy,
+  or return-token alternatives are available
 
 
 Dependency Details
 ------------------
 
 MoveValidator
-  depends on -> all rule classes
+  depends on -> all validation rule classes
   depends on -> Move hierarchy
-  internal flow -> null check -> validateKnownMove -> type helper -> rule
 
 TakeDifferentMoveRule
   depends on -> Config
   depends on -> AvailableMovesInspector
   depends on -> GameState, Player, GemBank, GemColor, Move
-  internal flow -> token selection -> bank availability -> fallback rule
-                   -> player token limit
 
 TakeSameMoveRule
   depends on -> Config
   depends on -> GameState, Player, GemBank, GemColor, Move
-  internal flow -> requested color/count -> bank supply -> player token limit
 
 ReserveMoveRule
   depends on -> Config
@@ -176,8 +146,6 @@ ReserveMoveRule
 BuyMoveRule
   depends on -> PaymentCalculator
   depends on -> GameState, Player, Board, DevelopmentCard, GemColor, Move
-  internal flow -> card location -> free-card check -> affordability
-                   -> payment-token validation
 
 ReturnTokensMoveRule
   depends on -> Config
@@ -187,9 +155,6 @@ PassMoveRule
   depends on -> no domain collaborators
 
 AvailableMovesInspector
-  depends on -> ReserveMoveRule
-  depends on -> BuyMoveRule
-  depends on -> ReturnTokensMoveRule
+  depends on -> ReserveMoveRule, BuyMoveRule, ReturnTokensMoveRule
   depends on -> PaymentCalculator
   depends on -> GameState, Player, DevelopmentCard, GemColor, Move
-  internal flow -> build simple probe moves -> ask rule classes if legal

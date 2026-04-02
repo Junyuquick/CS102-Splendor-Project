@@ -20,12 +20,13 @@ Core Domain Structure
   +---------------+                  +---------------+
   | Player        |                  | Board         |
   +---------------+                  +---------------+
-  | - tokens      |                  | - faceUpCards |
-  | - purchased   |                  | - nobles      |
-  | - reserved    |                  | - gems        |
-  | - nobles      |                  | - decks       |
-  +-------+-------+                  | - bank        |
-          |                          +-------+-------+
+  | - name        |                  | - faceUpCards |
+  | - tokens      |                  | - nobles      |
+  | - purchased   |                  | - gemCounts   |
+  | - reserved    |                  | - decks       |
+  | - bank        |                  | - openCount   |
+  | - nobles      |                  +-------+-------+
+  +-------+-------+                          |
           |                                  |
           |                                  v
           |                           +--------------+
@@ -52,24 +53,29 @@ Per-Class Notes
 
 GameState.java
   top-level snapshot of the whole match
+  stores ordered players, shared board and bank, current-player index,
+  and the final-round flag
 
 Player.java
-  stores one player's tokens, cards, nobles, and score-related data
+  stores one player's name, token inventory, purchased cards,
+  reserved cards, nobles, and derived prestige / bonus information
 
 Board.java
-  stores shared visible cards, hidden decks, nobles, and board token supply
+  stores visible market cards, hidden decks, available nobles,
+  a board-side gem-count view, and the shared GemBank reference
 
 GemBank.java
-  stores the shared token inventory
+  stores and mutates the shared token inventory
 
 DevelopmentCard.java
-  immutable development card value object
+  immutable card value object with id, level, prestige, bonus color, and cost
 
 NobleTile.java
-  immutable noble value object
+  immutable noble value object with id, prestige, and requirement
 
 Cost.java
-  color-keyed cost container
+  color-keyed cost container with map conversion helpers
 
 GemColor.java
-  enum of token colors, including gold
+  serializable singleton-style value class for token colors
+  provides static instances and values(), not a Java enum

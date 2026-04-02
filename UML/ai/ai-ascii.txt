@@ -1,0 +1,59 @@
+AI - UML CLASS DIAGRAM
+======================
+
+                 +----------------------+
+                 | GreedyStrategy       |
+                 +----------------------+
+                 | - random             |
+                 | - moveGenerator      |
+                 +----------------------+
+                 | + chooseMove(...)    |
+                 | - chooseEasyMove(...)|
+                 | - randomMove(...)    |
+                 +----------+-----------+
+                            |
+                            v
+                 +----------------------+
+                 | AiMoveGenerator      |
+                 +----------------------+
+                 | - config             |
+                 | - moveScorer         |
+                 +----------------------+
+                 | + generateBuyMoves() |
+                 | + generateReserve... |
+                 | + generateTakeMoves()|
+                 | + generateReturn...()|
+                 +----------+-----------+
+                            |
+                            v
+                 +----------------------+
+                 | AiMoveScorer         |
+                 +----------------------+
+                 | - config             |
+                 +----------------------+
+                 | + bestTakeTwoSame()  |
+                 | + bestTakeDifferent()|
+                 +----------------------+
+
+
+DEPENDENCIES
+------------
+
+GreedyStrategy  --> MoveValidator
+GreedyStrategy  --> GameState
+GreedyStrategy  --> Player
+GreedyStrategy  --> Move
+
+AiMoveGenerator --> MoveValidator
+AiMoveGenerator --> PaymentCalculator
+AiMoveGenerator --> GameState
+AiMoveGenerator --> Player
+AiMoveGenerator --> DevelopmentCard
+AiMoveGenerator --> Move
+
+AiMoveScorer    --> MoveValidator
+AiMoveScorer    --> GameState
+AiMoveScorer    --> Player
+AiMoveScorer    --> DevelopmentCard
+AiMoveScorer    --> GemColor
+AiMoveScorer    --> Move

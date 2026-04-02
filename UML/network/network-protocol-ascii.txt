@@ -1,0 +1,52 @@
+NETWORK PROTOCOL - UML MESSAGE DIAGRAM
+======================================
+
+           +----------------------------------+
+           | NetworkMessage                   |
+           +----------------------------------+
+           | - type : String                  |
+           | - playerName : String            |
+           | - move : Move                    |
+           | - gameState : GameState          |
+           | - errorMessage : String          |
+           | - playerIndex : Integer          |
+           | - playerNames : List<String>     |
+           | - hostIndex : Integer            |
+           | - minPlayers : Integer           |
+           +----------------------------------+
+           | + join(...)                      |
+           | + joinAck(...)                   |
+           | + move(...)                      |
+           | + lobbyUpdate(...)               |
+           | + stateUpdate(...)               |
+           | + error(...)                     |
+           | + gameStart(...)                 |
+           | + gameOver(...)                  |
+           | + startRequest()                 |
+           | + disconnect()                   |
+           | + getType()                      |
+           | + getPlayerName()                |
+           | + getMove()                      |
+           | + getGameState()                 |
+           | + getErrorMessage()              |
+           | + getPlayerIndex()               |
+           | + getPlayerNames()               |
+           | + getHostIndex()                 |
+           | + getMinPlayers()                |
+           +----------------+-----------------+
+                            |
+                            v
+           +----------------------------------+
+           | Type Constants                   |
+           +----------------------------------+
+           | TYPE_JOIN                        |
+           | TYPE_JOIN_ACK                    |
+           | TYPE_MOVE                        |
+           | TYPE_START_REQUEST               |
+           | TYPE_LOBBY_UPDATE                |
+           | TYPE_STATE_UPDATE                |
+           | TYPE_ERROR                       |
+           | TYPE_GAME_START                  |
+           | TYPE_GAME_OVER                   |
+           | TYPE_DISCONNECT                  |
+           +----------------------------------+

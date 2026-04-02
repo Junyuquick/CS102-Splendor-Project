@@ -9,7 +9,10 @@ Client Startup Flow
      +--------------------+
      | + main(...)        |
      | + showConnection...|
+     | + showHostConn...  |
      | - startLocalServer |
+     | - attemptConn...   |
+     | - launchMulti...   |
      +---------+----------+
                |
                | creates
@@ -31,6 +34,8 @@ Client Startup Flow
      | + sendMove(...)    |
      | + sendStartRequest |
      | + receiveMessage() |
+     | + get/set state    |
+     | + get/set index    |
      +---------+----------+
                |
                | sends / receives
@@ -38,6 +43,12 @@ Client Startup Flow
      +--------------------+
      | NetworkMessage     |
      +--------------------+
+               ^
+               |
+               | launches after connect
+     +-------------------------+
+     | MultiplayerSwingApp     |
+     +-------------------------+
 
 
 UI / Dependency Notes
@@ -45,8 +56,8 @@ UI / Dependency Notes
 
 ClientMain
   shows the connection dialog
-  optionally starts a local GameServer for host mode
-  launches MultiplayerSwingApp after a successful connect
+  optionally starts a local GameServer in host mode
+  launches MultiplayerSwingApp after a successful connection
   depends on -> GameClient, GameServer, MultiplayerSwingApp, Swing UI classes
 
 GameClient
@@ -72,4 +83,4 @@ NetworkMessage.join(...)
    |
    | later receive
    v
-NetworkMessage.joinAck(...) / stateUpdate(...) / gameStart(...)
+JOIN_ACK / LOBBY_UPDATE / GAME_START / STATE_UPDATE / GAME_OVER / ERROR

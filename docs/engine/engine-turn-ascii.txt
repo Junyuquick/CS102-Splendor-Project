@@ -59,9 +59,9 @@ Detailed Turn Story
 TurnResolutionService
   1. validate the move
   2. execute the move
-  3. discard extra tokens if needed
-  4. assign nobles if eligible
-  5. advance the turn and check for endgame
+  3. enforce token-limit cleanup if needed
+  4. assign the best available nobles
+  5. advance the turn and check endgame state
   6. package everything into TurnResolutionResult
 
 
@@ -84,33 +84,30 @@ Per-Class Notes
 ---------------
 
 MoveExecutor.java
-  applies legal move effects to GameState
+  applies already-validated move effects to GameState
   depends on -> Move subclasses, Board, GemBank, Player, Config
-  simplified flow -> execute() dispatches, helpers handle small steps like
-                     reserve gold, payment collection, and market refill
+  internal flow -> execute() dispatches to applyTokenTake(),
+                   applyReserve(), applyBuy(), applyTokenReturn()
 
 NobleAssigner.java
-  finds eligible nobles and assigns them
+  finds eligible nobles and can assign a chosen one
   depends on -> Board, GameState, Player, NobleTile
 
 TurnAdvanceResult.java
-  small immutable-like result for turn progression
+  small value object returned by turn progression
 
 TurnManager.java
-  controls current player index and final-round marker
+  controls current-player index and final-round marker
   depends on -> GameState
 
 TurnPostProcessor.java
-  handles post-move token limit and noble assignment
+  handles token-limit cleanup and noble assignment
   depends on -> Config, NobleAssigner, GameState, Player
-  simplified flow -> enforceTokenLimit() now loops through discardOneRound()
-                     and noble assignment uses small comparison helpers
 
 TurnProgressionService.java
-  triggers final round, advances turn, decides whether winner exists
+  triggers final round, advances turn, and determines a winner if the
+  final round has completed
   depends on -> WinnerChecker, TurnManager, GameState
-  simplified flow -> triggerFinalRoundIfNeeded() -> advanceTurn()
-                     -> determineWinnerIfGameEnded()
 
 TurnResolutionResult.java
   full outcome container for one resolved move
@@ -119,8 +116,6 @@ TurnResolutionService.java
   orchestrates validator + executor + post-processor + progression
   depends on -> MoveValidator, MoveExecutor, TurnPostProcessor,
                 WinnerChecker, TurnManager, TurnProgressionService
-  simplified flow -> executeMove(), discardExtraTokens(), assignNobles(),
-                     advanceTurn(), buildSuccessResult()
 
 WinnerChecker.java
   decides final-round trigger and winner selection
@@ -134,6 +129,10 @@ Helper-Level View
 | MoveExecutor              |
 +---------------------------+
 | + execute(...)            |
+| - applyTokenTake(...)     |
+| - applyReserve(...)       |
+| - applyBuy(...)           |
+| - applyTokenReturn(...)   |
 | - isTokenTakeMove()       |
 | - removeTokensFromBank()  |
 | - giveTokensToPlayer()    |

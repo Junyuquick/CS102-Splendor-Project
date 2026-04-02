@@ -1,0 +1,27 @@
+NETWORK CLIENT - UML COMPONENT DIAGRAM
+======================================
+
+      +--------------------+            +--------------------+
+      | ClientMain         |----------->| GameClient         |
+      +--------------------+            +--------------------+
+      | + main(...)        |            | - host             |
+      | + showConnection...|            | - port             |
+      | + showHostConn...  |            | - playerName       |
+      +--------------------+            | - socket           |
+                                        | - in               |
+                                        | - out              |
+                                        | - currentState     |
+                                        | - myPlayerIndex    |
+                                        | - connected        |
+                                        +--------------------+
+                                        | + connect()        |
+                                        | + disconnect()     |
+                                        | + sendMove(...)    |
+                                        | + sendStartReq()   |
+                                        | + receiveMessage() |
+                                        +----+-----------+---+
+                                             |           |
+                                             v           v
+                                   +----------------+  +----------------------+
+                                   | NetworkMessage |  | MultiplayerSwingApp  |
+                                   +----------------+  +----------------------+

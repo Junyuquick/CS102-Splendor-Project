@@ -1,0 +1,73 @@
+ENGINE TURN - UML COLLABORATION DIAGRAM
+=======================================
+
+   +------------------------+        +---------------+        +---------------+
+   | TurnResolutionService  |------->| MoveValidator |        | MoveExecutor  |
+   +------------------------+        +---------------+        +---------------+
+   | - validator            |---------------------------------------->|
+   | - executor             |                                         |
+   | - turnPostProcessor    |------------------------------+          |
+   | - winnerChecker        |------------------------+     |          |
+   | - turnManager          |------------------+     |     |          |
+   | - turnProgressionSvc   |------------+     |     |     |          |
+   +------------------------+            |     |     |     |          |
+   | + resolveTurn(...)     |            |     |     |     |          |
+   +------------------------+            |     |     |     |          |
+                                         v     v     v     v          v
+                                  +-------------+  +--------------+  +-------------------------+
+                                  | WinnerCheck |  | TurnManager  |  | TurnPostProcessor       |
+                                  +-------------+  +--------------+  +-------------------------+
+                                                                       | - config               |
+                                                                       | - nobleAssigner        |
+                                                                       +-----------+-------------+
+                                                                                   |
+                                                                                   v
+                                                                            +--------------+
+                                                                            | NobleAssigner|
+                                                                            +--------------+
+
+
+RESULT TYPES
+------------
+
+                     +-------------------------+
+                     | TurnAdvanceResult       |
+                     +-------------------------+
+                     | - finalRoundTriggered   |
+                     | - winner                |
+                     +-------------------------+
+                     | + isFinalRoundTriggered |
+                     | + getWinner()           |
+                     +-------------------------+
+
+                     +---------------------------+
+                     | TurnResolutionResult      |
+                     +---------------------------+
+                     | - success                 |
+                     | - validationError         |
+                     | - discardedTokens         |
+                     | - assignedNobles          |
+                     | - finalRoundTriggered     |
+                     | - winner                  |
+                     +---------------------------+
+                     | + invalid(...)            |
+                     | + success(...)            |
+                     | + isSuccess()             |
+                     | + getValidationError()    |
+                     | + getDiscardedTokens()    |
+                     | + getAssignedNobles()     |
+                     | + isFinalRoundTriggered() |
+                     | + getWinner()             |
+                     +---------------------------+
+
+
+TURN PROGRESSION SERVICE
+------------------------
+
+                         +---------------------------+
+                         | TurnProgressionService    |
+                         +---------------------------+
+                         | + progressTurn(...)       |
+                         | - triggerFinalRound...()  |
+                         | - determineWinnerIf...()  |
+                         +---------------------------+

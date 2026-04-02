@@ -1,0 +1,54 @@
+ENGINE MOVES - UML CLASS DIAGRAM
+================================
+
+                               +----------------------+
+                               | <<abstract>>         |
+                               |         Move         |
+                               +----------------------+
+                               | + getTypeName()      |
+                               | + getTokens()        |
+                               | + getCard()          |
+                               | + getPaymentTokens() |
+                               | + isFromReserved()   |
+                               | + getCardLevel()     |
+                               |----------------------|
+                               | + takeDifferent(...) |
+                               | + takeSame(...)      |
+                               | + reserveFaceUp(...) |
+                               | + reserveFromDeck... |
+                               | + buy(...)           |
+                               | + pass()             |
+                               | + returnTokens(...)  |
+                               +----------^-----------+
+                                          |
+              +-------------+-------------+-------------+-------------+-------------+
+              |             |             |             |             |             |
+              |             |             |             |             |             |
+   +----------+---+  +------+-------+  +--+-----------+ |   +--------+--+  +-------+-----------+
+   |   BuyMove    |  | ReserveMove  |  | TakeDifferent| |   | PassMove  |  | ReturnTokensMove |
+   +--------------+  +--------------+  |    Move      | |   +-----------+  +------------------+
+   | - card       |  | - card       |  +--------------+ |                    | - tokens       |
+   | - payment... |  | - cardLevel  |  | - tokens     | |                    +----------------+
+   | - fromRes... |  +--------------+  +-------^------+ |
+   +--------------+                            |        |
+                                               |        |
+                                        +------+-----+  |
+                                        | TakeSame...|  |
+                                        |    Move    |  |
+                                        +------------+  |
+                                        | - tokens   |  |
+                                        +------------+  |
+
+
+DEPENDENCIES
+------------
+
+Move             --> DevelopmentCard
+Move             --> GemColor
+Move             --> Map<GemColor, Integer>
+BuyMove          --> DevelopmentCard
+BuyMove          --> Map<GemColor, Integer>
+ReserveMove      --> DevelopmentCard
+TakeDifferentMove--> Map<GemColor, Integer>
+TakeSameMove     --> Map<GemColor, Integer>
+ReturnTokensMove --> Map<GemColor, Integer>

@@ -20,6 +20,7 @@ Class Hierarchy
                             | + buy(...)           |
                             | + pass()             |
                             | + returnTokens(...)  |
+                            | + toString()         |
                             +----------+-----------+
                                        |
          +-----------------------------+------------------------------+
@@ -30,49 +31,40 @@ Class Hierarchy
 +----------------+ +---------------+ | Move          | +---------+ +------------------+
 | - card         | | - card        | +---------------+             | - tokens         |
 | - paymentTokens| | - cardLevel   | | - tokens      |             +------------------+
-| - fromReserved | +---------------+ +---------------+
+| - fromReserved | +---------------+ +-------+-------+
 +----------------+                         |
-         |                                  |
-         |                                  v
+         |                                 |
+         |                                 v
          |                        +----------------+
          |                        | TakeSameMove   |
          |                        +----------------+
          |                        | - tokens       |
          |                        +----------------+
          |
-         +--> represents purchase from board or reserved cards
+         +--> BUY can target either a face-up card or a reserved card
 
 
-Per-Class Dependencies
-----------------------
-
-Move
-  uses -> DevelopmentCard
-  uses -> GemColor
-  uses -> Map<GemColor, Integer>
-  creates -> BuyMove
-  creates -> ReserveMove
-  creates -> TakeDifferentMove
-  creates -> TakeSameMove
-  creates -> PassMove
-  creates -> ReturnTokensMove
+State Carried By Each Move
+--------------------------
 
 BuyMove
   extends -> Move
-  stores -> DevelopmentCard
-  stores -> Map<GemColor, Integer>
+  stores -> DevelopmentCard card
+  stores -> Map<GemColor, Integer> paymentTokens
+  stores -> boolean fromReserved
 
 ReserveMove
   extends -> Move
-  stores -> DevelopmentCard
+  stores -> DevelopmentCard card
+  stores -> int cardLevel
 
 TakeDifferentMove
   extends -> Move
-  stores -> Map<GemColor, Integer>
+  stores -> Map<GemColor, Integer> tokens
 
 TakeSameMove
   extends -> Move
-  stores -> Map<GemColor, Integer>
+  stores -> Map<GemColor, Integer> tokens
 
 PassMove
   extends -> Move
@@ -80,17 +72,32 @@ PassMove
 
 ReturnTokensMove
   extends -> Move
-  stores -> Map<GemColor, Integer>
+  stores -> Map<GemColor, Integer> tokens
+
+
+Factory / Dependency Notes
+--------------------------
+
+Move
+  depends on -> DevelopmentCard
+  depends on -> GemColor
+  depends on -> Map<GemColor, Integer>
+  creates -> BuyMove, ReserveMove, TakeDifferentMove,
+             TakeSameMove, PassMove, ReturnTokensMove
+
+All concrete move classes
+  are immutable after construction
+  return defensive copies for token/payment maps
 
 
 Usage Summary
 -------------
 
 Validation package
-  reads Move subclasses to decide legality.
+  checks concrete Move subclasses to decide legality.
 
 Turn package
-  reads Move subclasses to execute the state change.
+  executes state changes based on concrete Move data.
 
 UI / AI / Network layers
-  create Move objects and pass them into engine services.
+  create Move instances and submit them into engine services.

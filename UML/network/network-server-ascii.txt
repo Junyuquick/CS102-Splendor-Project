@@ -1,0 +1,39 @@
+NETWORK SERVER - UML COMPONENT DIAGRAM
+======================================
+
+                              +----------------------+
+                              | GameServer           |
+                              +----------------------+
+                              | - config             |
+                              | - port               |
+                              | - serverSocket       |
+                              | - lobbyManager       |
+                              | - broadcaster        |
+                              | - gameState          |
+                              | - gameStarted        |
+                              | - turnResolutionSvc  |
+                              +----------+-----------+
+                                         |
+             +---------------------------+---------------------------+
+             |                           |                           |
+             v                           v                           v
+   +---------------------+    +----------------------+    +----------------------+
+   | LobbyManager        |    | ServerBroadcaster    |    | ClientHandler        |
+   +---------------------+    +----------------------+    +----------------------+
+   | - config            |    | - config             |    | - socket             |
+   | - clients           |    | - lobbyManager       |    | - server             |
+   +---------------------+    +----------------------+    | - in                 |
+   | + addClient(...)    |    | + broadcastState()   |    | - out                |
+   | + removeClient(...) |    | + broadcastGameOver()|    | - playerName         |
+   | + isHost(...)       |    | + broadcastLobby...()|    | - playerIndex        |
+   | + buildPlayers()    |    | + rejectConnection() |    +----------------------+
+   | + getClients()      |    +----------------------+    | + run()              |
+   +---------------------+                                 | + sendMessage(...)   |
+                                                           +----------------------+
+
+
+ENGINE LINK
+-----------
+
+GameServer --> TurnResolutionService
+GameServer --> GameStateFactory

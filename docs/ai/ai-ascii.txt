@@ -7,56 +7,93 @@ Main Structure
         +----------------------+
         | GreedyStrategy       |
         +----------------------+
-        | - config             |
         | - random             |
+        | - moveGenerator      |
         +----------------------+
         | + chooseMove(...)    |
         | - chooseEasyMove(...)|
-        | - bestBuyMove(...)   |
-        | - bestTakeTwoSame()  |
-        | - bestTakeThree...() |
-        | - computePayment...()|
+        | - randomMove(...)    |
         +----------+-----------+
                    |
-   +---------------+-------------------------------+
-   |               |               |               |
-   v               v               v               v
-+---------+  +-------------+  +----------------+  +--------+
-| Config  |  | MoveValidator|  | PaymentCalc   |  | Move   |
-+---------+  +-------------+  +----------------+  +--------+
-                   |
+                   | uses
                    v
-             +-----------+
-             | GameState |
-             +-----------+
+        +----------------------+
+        | AiMoveGenerator      |
+        +----------------------+
+        | - config             |
+        | - moveScorer         |
+        +----------------------+
+        | + generateBuyMoves   |
+        | + generateReserve... |
+        | + generateTakeMoves  |
+        | + generateReturn...  |
+        | - computePayment...  |
+        | - allColors()        |
+        +----------+-----------+
                    |
+                   | uses
                    v
-             +-----------+
-             | Player    |
-             +-----------+
+        +----------------------+
+        | AiMoveScorer         |
+        +----------------------+
+        | - config             |
+        +----------------------+
+        | + bestTakeTwoSame()  |
+        | + bestTakeDifferent()|
+        | - bestTakeDifferent  |
+        | - scoreTakeMove()    |
+        | - neededForVisible.. |
+        | - normalColors()     |
+        +----------------------+
+
+
+Shared Dependencies
+-------------------
+
+GreedyStrategy
+  depends on -> Config, MoveValidator, GameState, Player, Move
+
+AiMoveGenerator
+  depends on -> Config, MoveValidator, PaymentCalculator,
+                GameState, Player, DevelopmentCard, GemColor, Move
+
+AiMoveScorer
+  depends on -> Config, MoveValidator, GameState, Player,
+                DevelopmentCard, GemColor, Move
 
 
 Selection Flow
 --------------
 
-chooseMove(...)
+GreedyStrategy.chooseMove(...)
    |
    v
 chooseEasyMove(...)
    |
-   +--> collect legal buy moves
-   +--> collect legal reserve moves
-   +--> collect legal token-take moves
-   +--> collect legal return-token moves
+   +--> AiMoveGenerator.generateBuyMoves(...)
+   +--> AiMoveGenerator.generateReserveMoves(...)
+   +--> AiMoveGenerator.generateTakeMoves(...)
+   +--> AiMoveGenerator.generateReturnMoves(...)
+   |
+   +--> weighted category choice
+   |    60% prefer take moves
+   |    next prefer reserve moves
+   |    then buy / fallback / return / pass
    |
    v
-weighted random choice
+returns one legal Move
 
 
-Per-Class Notes
----------------
+Generator / Scorer Story
+------------------------
 
-GreedyStrategy.java
-  chooses one legal AI move using simple heuristics
-  depends on -> Config, MoveValidator, PaymentCalculator,
-                GameState, Player, DevelopmentCard, Move
+AiMoveGenerator
+  builds legal candidate lists and filters them through MoveValidator
+
+AiMoveScorer
+  scores token-taking moves by how much chosen colors help buy the
+  visible market cards
+
+GreedyStrategy
+  does not score every move directly; it coordinates the helper classes
+  and then picks from the legal candidates
