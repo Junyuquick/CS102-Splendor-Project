@@ -7,14 +7,16 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Serializable protocol message exchanged between multiplayer clients and the server.
+ * Represents one serialized message traveling between a client and the
+ * server.
  *
- * <p>Instances are created through static factory methods so each message type carries only
- * the fields relevant to that protocol event.
+ * Instead of exposing many constructors, this class uses named
+ * factory methods so each call site clearly expresses which protocol
+ * message it is building.
  */
 public class NetworkMessage implements Serializable {
     /**
-     * Identifies the kind of payload carried by a {@link NetworkMessage}.
+     * Identifies which protocol event this message represents.
      */
     public enum Type {
         JOIN,
@@ -62,158 +64,291 @@ public class NetworkMessage implements Serializable {
     }
 
     /**
-     * Creates a join request for a newly connecting client.
+     * Creates the first message a client sends when entering the lobby.
      *
      * @param playerName player name to register in the lobby
      * @return join message
      */
     public static NetworkMessage join(String playerName) {
-        return new NetworkMessage(Type.JOIN, playerName, null, null, null, null, null, null, null);
+        return new NetworkMessage(
+                Type.JOIN,
+                playerName,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a server acknowledgement assigning a lobby seat.
+     * Creates the acknowledgement that tells a client its lobby slot.
      *
      * @param playerIndex zero-based player index assigned by the server
      * @return join acknowledgement message
      */
     public static NetworkMessage joinAck(int playerIndex) {
-        return new NetworkMessage(Type.JOIN_ACK, null, null, null, null, playerIndex, null, null, null);
+        return new NetworkMessage(
+                Type.JOIN_ACK,
+                null,
+                null,
+                null,
+                null,
+                playerIndex,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a move-submission message.
+     * Creates a message carrying one player move to the server.
      *
      * @param move move chosen by the client
      * @return move message
      */
     public static NetworkMessage move(Move move) {
-        return new NetworkMessage(Type.MOVE, null, move, null, null, null, null, null, null);
+        return new NetworkMessage(
+                Type.MOVE,
+                null,
+                move,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a lobby-state update.
+     * Creates a lobby update containing player names and host details.
      *
      * @param playerNames connected player names in lobby order
      * @param hostIndex zero-based index of the host player
      * @param minPlayers minimum players required to start
      * @return lobby-update message
      */
-    public static NetworkMessage lobbyUpdate(List<String> playerNames, int hostIndex, int minPlayers) {
-        return new NetworkMessage(Type.LOBBY_UPDATE, null, null, null, null, null, playerNames, hostIndex, minPlayers);
+    public static NetworkMessage lobbyUpdate(
+            List<String> playerNames,
+            int hostIndex,
+            int minPlayers
+    ) {
+        return new NetworkMessage(
+                Type.LOBBY_UPDATE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                playerNames,
+                hostIndex,
+                minPlayers
+        );
     }
 
     /**
-     * Creates a message carrying a fresh game-state snapshot.
+     * Creates a full game-state update for clients to render.
      *
      * @param state latest game state
      * @return state-update message
      */
     public static NetworkMessage stateUpdate(GameState state) {
-        return new NetworkMessage(Type.STATE_UPDATE, null, null, state, null, null, null, null, null);
+        return new NetworkMessage(
+                Type.STATE_UPDATE,
+                null,
+                null,
+                state,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates an error message for the client.
+     * Creates an error message explaining why a request failed.
      *
      * @param message human-readable error text
      * @return error message
      */
     public static NetworkMessage error(String message) {
-        return new NetworkMessage(Type.ERROR, null, null, null, message, null, null, null, null);
+        return new NetworkMessage(
+                Type.ERROR,
+                null,
+                null,
+                null,
+                message,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a message that starts a new multiplayer game.
+     * Creates the message that tells a client a new game has started.
      *
      * @param initialState initial game state snapshot
      * @param playerIndex zero-based player index for the receiving client
      * @return game-start message
      */
-    public static NetworkMessage gameStart(GameState initialState, int playerIndex) {
-        return new NetworkMessage(Type.GAME_START, null, null, initialState, null, playerIndex, null, null, null);
+    public static NetworkMessage gameStart(
+            GameState initialState,
+            int playerIndex
+    ) {
+        return new NetworkMessage(
+                Type.GAME_START,
+                null,
+                null,
+                initialState,
+                null,
+                playerIndex,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a game-over notification.
+     * Creates a message announcing that the game has ended.
      *
      * @param message human-readable result summary
      * @return game-over message
      */
     public static NetworkMessage gameOver(String message) {
-        return new NetworkMessage(Type.GAME_OVER, null, null, null, message, null, null, null, null);
+        return new NetworkMessage(
+                Type.GAME_OVER,
+                null,
+                null,
+                null,
+                message,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a request asking the host server to start the game.
+     * Creates a request asking the server to start the lobby's game.
      *
      * @return start-request message
      */
     public static NetworkMessage startRequest() {
-        return new NetworkMessage(Type.START_REQUEST, null, null, null, null, null, null, null, null);
+        return new NetworkMessage(
+                Type.START_REQUEST,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Creates a disconnect notification.
+     * Creates the final message sent when a client disconnects cleanly.
      *
      * @return disconnect message
      */
     public static NetworkMessage disconnect() {
-        return new NetworkMessage(Type.DISCONNECT, null, null, null, null, null, null, null, null);
+        return new NetworkMessage(
+                Type.DISCONNECT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
-     * Returns the message type.
+     * Returns which protocol message type this object represents.
      *
      * @return protocol message type
      */
-    public Type getType() { return type; }
+    public Type getType() {
+        return type;
+    }
+
     /**
-     * Returns the player name associated with a join message.
+     * Returns the player name stored in a join-related message.
      *
-     * @return player name, or {@code null} when not applicable
+     * @return player name, or null when not applicable
      */
-    public String getPlayerName() { return playerName; }
+    public String getPlayerName() {
+        return playerName;
+    }
+
     /**
-     * Returns the move carried by a move message.
+     * Returns the move payload stored in a move message.
      *
-     * @return move payload, or {@code null} when not applicable
+     * @return move payload, or null when not applicable
      */
-    public Move getMove() { return move; }
+    public Move getMove() {
+        return move;
+    }
+
     /**
-     * Returns the game-state snapshot carried by the message.
+     * Returns the full game-state snapshot carried by this message.
      *
-     * @return game state payload, or {@code null} when not applicable
+     * @return game state payload, or null when not applicable
      */
-    public GameState getGameState() { return gameState; }
+    public GameState getGameState() {
+        return gameState;
+    }
+
     /**
-     * Returns the error or result text carried by the message.
+     * Returns the text payload used for errors or end-of-game messages.
      *
-     * @return message text, or {@code null} when not applicable
+     * @return message text, or null when not applicable
      */
-    public String getErrorMessage() { return errorMessage; }
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
     /**
-     * Returns the assigned player index carried by the message.
+     * Returns the player index stored in join and start messages.
      *
-     * @return zero-based player index, or {@code null} when not applicable
+     * @return zero-based player index, or null when not applicable
      */
-    public Integer getPlayerIndex() { return playerIndex; }
+    public Integer getPlayerIndex() {
+        return playerIndex;
+    }
+
     /**
-     * Returns the lobby player list carried by a lobby update.
+     * Returns the player-name list stored in a lobby update.
      *
-     * @return player names, or {@code null} when not applicable
+     * @return player names, or null when not applicable
      */
-    public List<String> getPlayerNames() { return playerNames; }
+    public List<String> getPlayerNames() {
+        return playerNames;
+    }
+
     /**
-     * Returns the host player index carried by a lobby update.
+     * Returns the host player's index from a lobby update.
      *
-     * @return host index, or {@code null} when not applicable
+     * @return host index, or null when not applicable
      */
-    public Integer getHostIndex() { return hostIndex; }
+    public Integer getHostIndex() {
+        return hostIndex;
+    }
+
     /**
-     * Returns the lobby's minimum start requirement.
+     * Returns the minimum player count advertised in a lobby update.
      *
-     * @return minimum required players, or {@code null} when not applicable
+     * @return minimum required players, or null when not applicable
      */
-    public Integer getMinPlayers() { return minPlayers; }
+    public Integer getMinPlayers() {
+        return minPlayers;
+    }
 }
