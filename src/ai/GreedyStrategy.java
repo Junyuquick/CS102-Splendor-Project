@@ -10,15 +10,19 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Selects a legal AI move using simple heuristics for token-taking,
- * reserving, and buying.
+ * Entry point for the simple built-in AI.
+ *
+ * This class does not score every move itself. Instead, it asks helper
+ * classes to build legal candidates, then chooses among those
+ * candidates using a lightweight weighted policy.
  */
 public class GreedyStrategy {
     private final Random random = new Random();
     private final AiMoveGenerator moveGenerator;
 
     /**
-     * Creates the strategy with access to rule configuration values.
+     * Creates the strategy and wires together the helper classes the
+     * AI uses to build and score moves.
      *
      * @param config game configuration
      */
@@ -44,8 +48,18 @@ public class GreedyStrategy {
     }
 
     /**
-     * Chooses among legal buys, reserves, and token-taking moves using
-     * a lightweight weighted random policy.
+     * Chooses among the legal move categories the AI knows about.
+     *
+     * The policy is intentionally simple:
+     * token-taking is preferred most often,
+     * reserving is the next fallback,
+     * buying or returning tokens is used when those lists make more
+     * sense than passing.
+     *
+     * @param state current game state
+     * @param player player whose turn is being played
+     * @param validator move validator used to filter illegal options
+     * @return chosen legal move
      */
     private Move chooseEasyMove(
             GameState state,
@@ -95,6 +109,12 @@ public class GreedyStrategy {
         return Move.pass();
     }
 
+    /**
+     * Selects one move uniformly from a list of legal candidates.
+     *
+     * @param moves legal moves to choose from
+     * @return randomly selected move
+     */
     private Move randomMove(List<Move> moves) {
         return moves.get(random.nextInt(moves.size()));
     }

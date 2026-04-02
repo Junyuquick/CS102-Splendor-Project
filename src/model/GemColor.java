@@ -1,7 +1,8 @@
 package model;
 
 /**
- * Enums the respective colors of gems, with gold being the wild card.
+ * Enumerates the token colors used by the game, including gold as
+ * the wildcard color.
  */
 public enum GemColor {
     WHITE,
@@ -14,6 +15,7 @@ public enum GemColor {
     /**
      * Indicates whether this color is the wildcard token.
      *
+     * @return true when the color is gold
      */
     public boolean isWildCard() {
         return this == GOLD;

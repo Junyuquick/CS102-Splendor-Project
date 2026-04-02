@@ -14,7 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Scores and selects promising move candidates for the greedy AI.
+ * Scores the token-taking choices considered by the greedy AI.
+ *
+ * The heuristic is intentionally simple: prefer colors that help the
+ * player move closer to buying the face-up cards on the board.
  */
 final class AiMoveScorer {
     private final Config config;
@@ -30,7 +33,7 @@ final class AiMoveScorer {
 
     /**
      * Chooses the legal two-of-a-kind token move that best supports
-     * visible cards.
+     * the visible market.
      *
      * @param state current game state
      * @param player player whose turn is being played
@@ -65,6 +68,9 @@ final class AiMoveScorer {
      * Chooses the legal take-different move with the highest heuristic
      * score.
      *
+     * The scorer explores the allowed color combinations and keeps the
+     * legal combination whose colors are most needed by visible cards.
+     *
      * @param state current game state
      * @param player player whose turn is being played
      * @param validator move validator used to filter illegal options
@@ -89,6 +95,20 @@ final class AiMoveScorer {
         );
     }
 
+    /**
+     * Recursively explores legal take-different color combinations.
+     *
+     * @param state current game state
+     * @param player player whose turn is being played
+     * @param validator move validator used to filter illegal options
+     * @param colors available non-gold colors
+     * @param startIndex current combination start index
+     * @param remaining number of colors still needed
+     * @param chosen colors chosen so far
+     * @param bestMove best move found so far
+     * @param bestScore best score found so far
+     * @return best legal move found in this search branch
+     */
     private Move bestTakeDifferent(
             GameState state,
             Player player,
@@ -142,6 +162,15 @@ final class AiMoveScorer {
         return best;
     }
 
+    /**
+     * Scores one take move by summing how useful each chosen color is
+     * against the visible market.
+     *
+     * @param state current game state
+     * @param player player whose turn is being played
+     * @param candidate move to score
+     * @return heuristic score for the move
+     */
     private int scoreTakeMove(GameState state, Player player, Move candidate) {
         int candidateScore = 0;
         for (GemColor color : candidate.getTokens().keySet()) {
@@ -150,6 +179,17 @@ final class AiMoveScorer {
         return candidateScore;
     }
 
+    /**
+     * Estimates how useful one color is across the visible cards.
+     *
+     * Existing bonuses and tokens are subtracted before counting the
+     * remaining need.
+     *
+     * @param state current game state
+     * @param player player whose turn is being played
+     * @param color color being evaluated
+     * @return remaining market need for that color
+     */
     private int neededForVisibleCards(
             GameState state,
             Player player,
@@ -165,6 +205,11 @@ final class AiMoveScorer {
         return need;
     }
 
+    /**
+     * Returns the non-gold colors in enum order.
+     *
+     * @return normal token colors
+     */
     private List<GemColor> normalColors() {
         List<GemColor> colors = new ArrayList<>();
         for (GemColor color : GemColor.values()) {
