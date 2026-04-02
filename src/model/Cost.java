@@ -2,7 +2,7 @@ package model;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -11,13 +11,13 @@ import java.util.Objects;
  */
 public class Cost implements Serializable {
 
-    private final EnumMap<GemColor, Integer> amounts;
+    private final Map<GemColor, Integer> amounts;
 
     /**
      * Creates an empty cost.
      */
     public Cost() {
-        this.amounts = new EnumMap<>(GemColor.class);
+        this.amounts = new LinkedHashMap<>();
     }
 
     /**

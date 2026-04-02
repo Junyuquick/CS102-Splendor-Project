@@ -8,7 +8,7 @@ import model.GameState;
 import model.GemColor;
 import model.Player;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -22,24 +22,15 @@ final class BuyMoveRule {
             return "BUY requires a card";
         }
 
-        boolean fromReserved = move.isFromReserved();
-        if (fromReserved) {
-            if (!player.getReservedCards().contains(card)) {
-                return "Card is not in player's reserved cards";
-            }
-        } else {
-            Board board = state.getBoard();
-            if (!board.getFaceUpCards().contains(card)) {
-                return "Card is not face-up on the board";
-            }
+        String locationError = validateCardLocation(state, player, move, card);
+        if (locationError != null) {
+            return locationError;
         }
 
         Map<GemColor, Integer> cost = card.getCost();
-        if (cost == null || cost.isEmpty()) {
-            if (!normalizeTokenMap(move.getPaymentTokens()).isEmpty()) {
-                return "BUY payment tokens must be empty for a free card";
-            }
-            return null;
+        String freeCardError = validateFreeCardPayment(cost, move);
+        if (freeCardError != null || isFreeCard(cost)) {
+            return freeCardError;
         }
 
         if (!PaymentCalculator.canAfford(player, cost)) {
@@ -47,6 +38,54 @@ final class BuyMoveRule {
         }
 
         return validatePaymentTokens(player, cost, move.getPaymentTokens());
+    }
+
+    private String validateCardLocation(
+            GameState state,
+            Player player,
+            Move move,
+            DevelopmentCard card
+    ) {
+        if (move.isFromReserved()) {
+            return validateReservedCard(player, card);
+        }
+
+        return validateFaceUpCard(state.getBoard(), card);
+    }
+
+    private String validateReservedCard(Player player, DevelopmentCard card) {
+        if (!player.getReservedCards().contains(card)) {
+            return "Card is not in player's reserved cards";
+        }
+
+        return null;
+    }
+
+    private String validateFaceUpCard(Board board, DevelopmentCard card) {
+        if (!board.getFaceUpCards().contains(card)) {
+            return "Card is not face-up on the board";
+        }
+
+        return null;
+    }
+
+    private String validateFreeCardPayment(
+            Map<GemColor, Integer> cost,
+            Move move
+    ) {
+        if (!isFreeCard(cost)) {
+            return null;
+        }
+
+        if (!normalizeTokenMap(move.getPaymentTokens()).isEmpty()) {
+            return "BUY payment tokens must be empty for a free card";
+        }
+
+        return null;
+    }
+
+    private boolean isFreeCard(Map<GemColor, Integer> cost) {
+        return cost == null || cost.isEmpty();
     }
 
     private String validatePaymentTokens(
@@ -72,7 +111,7 @@ final class BuyMoveRule {
     }
 
     private Map<GemColor, Integer> normalizeTokenMap(Map<GemColor, Integer> tokens) {
-        Map<GemColor, Integer> normalized = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> normalized = new LinkedHashMap<>();
         if (tokens == null) {
             return normalized;
         }
@@ -94,23 +133,8 @@ final class BuyMoveRule {
         int goldNeeded = 0;
 
         for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {
-            GemColor color = entry.getKey();
-            int needed = entry.getValue();
-
-            int bonusCount = player.getBonusCount(color);
-            int remaining = needed - bonusCount;
-
-            if (remaining <= 0) {
-                continue;
-            }
-
-            int playerTokens = player.getTokenCount(color);
-            int tokensUsable = Math.min(playerTokens, remaining);
-            remaining -= tokensUsable;
-
-            if (remaining > 0) {
-                goldNeeded += remaining;
-            }
+            goldNeeded += countGoldNeededForColor(player, entry.getKey(),
+                    entry.getValue());
         }
 
         int playerGold = player.getTokenCount(GemColor.GOLD);
@@ -120,5 +144,21 @@ final class BuyMoveRule {
         }
 
         return null;
+    }
+
+    private int countGoldNeededForColor(
+            Player player,
+            GemColor color,
+            int needed
+    ) {
+        int remaining = needed - player.getBonusCount(color);
+        if (remaining <= 0) {
+            return 0;
+        }
+
+        int usableTokens = Math.min(player.getTokenCount(color), remaining);
+        remaining -= usableTokens;
+
+        return Math.max(remaining, 0);
     }
 }

@@ -15,23 +15,18 @@ import java.util.List;
  * message it is building.
  */
 public class NetworkMessage implements Serializable {
-    /**
-     * Identifies which protocol event this message represents.
-     */
-    public enum Type {
-        JOIN,
-        JOIN_ACK,
-        MOVE,
-        START_REQUEST,
-        LOBBY_UPDATE,
-        STATE_UPDATE,
-        ERROR,
-        GAME_START,
-        GAME_OVER,
-        DISCONNECT
-    }
+    public static final String TYPE_JOIN = "JOIN";
+    public static final String TYPE_JOIN_ACK = "JOIN_ACK";
+    public static final String TYPE_MOVE = "MOVE";
+    public static final String TYPE_START_REQUEST = "START_REQUEST";
+    public static final String TYPE_LOBBY_UPDATE = "LOBBY_UPDATE";
+    public static final String TYPE_STATE_UPDATE = "STATE_UPDATE";
+    public static final String TYPE_ERROR = "ERROR";
+    public static final String TYPE_GAME_START = "GAME_START";
+    public static final String TYPE_GAME_OVER = "GAME_OVER";
+    public static final String TYPE_DISCONNECT = "DISCONNECT";
 
-    private final Type type;
+    private final String type;
     private final String playerName;
     private final Move move;
     private final GameState gameState;
@@ -42,7 +37,7 @@ public class NetworkMessage implements Serializable {
     private final Integer minPlayers;
 
     private NetworkMessage(
-            Type type,
+            String type,
             String playerName,
             Move move,
             GameState gameState,
@@ -71,7 +66,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage join(String playerName) {
         return new NetworkMessage(
-                Type.JOIN,
+                TYPE_JOIN,
                 playerName,
                 null,
                 null,
@@ -91,7 +86,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage joinAck(int playerIndex) {
         return new NetworkMessage(
-                Type.JOIN_ACK,
+                TYPE_JOIN_ACK,
                 null,
                 null,
                 null,
@@ -111,7 +106,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage move(Move move) {
         return new NetworkMessage(
-                Type.MOVE,
+                TYPE_MOVE,
                 null,
                 move,
                 null,
@@ -137,7 +132,7 @@ public class NetworkMessage implements Serializable {
             int minPlayers
     ) {
         return new NetworkMessage(
-                Type.LOBBY_UPDATE,
+                TYPE_LOBBY_UPDATE,
                 null,
                 null,
                 null,
@@ -157,7 +152,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage stateUpdate(GameState state) {
         return new NetworkMessage(
-                Type.STATE_UPDATE,
+                TYPE_STATE_UPDATE,
                 null,
                 null,
                 state,
@@ -177,7 +172,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage error(String message) {
         return new NetworkMessage(
-                Type.ERROR,
+                TYPE_ERROR,
                 null,
                 null,
                 null,
@@ -201,7 +196,7 @@ public class NetworkMessage implements Serializable {
             int playerIndex
     ) {
         return new NetworkMessage(
-                Type.GAME_START,
+                TYPE_GAME_START,
                 null,
                 null,
                 initialState,
@@ -221,7 +216,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage gameOver(String message) {
         return new NetworkMessage(
-                Type.GAME_OVER,
+                TYPE_GAME_OVER,
                 null,
                 null,
                 null,
@@ -240,7 +235,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage startRequest() {
         return new NetworkMessage(
-                Type.START_REQUEST,
+                TYPE_START_REQUEST,
                 null,
                 null,
                 null,
@@ -259,7 +254,7 @@ public class NetworkMessage implements Serializable {
      */
     public static NetworkMessage disconnect() {
         return new NetworkMessage(
-                Type.DISCONNECT,
+                TYPE_DISCONNECT,
                 null,
                 null,
                 null,
@@ -276,7 +271,7 @@ public class NetworkMessage implements Serializable {
      *
      * @return protocol message type
      */
-    public Type getType() {
+    public String getType() {
         return type;
     }
 

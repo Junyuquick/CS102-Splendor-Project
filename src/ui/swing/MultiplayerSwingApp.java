@@ -83,13 +83,19 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      * @param message message received from the server
      */
     private void handleMessage(NetworkMessage message) {
-        switch (message.getType()) {
-            case JOIN_ACK -> onJoinAck(message);
-            case LOBBY_UPDATE -> onLobbyUpdate(message);
-            case GAME_START -> onGameStart(message);
-            case STATE_UPDATE -> onStateUpdate(message);
-            case GAME_OVER -> onGameOver(message);
-            case ERROR -> onError(message);
+        String type = message.getType();
+        if (NetworkMessage.TYPE_JOIN_ACK.equals(type)) {
+            onJoinAck(message);
+        } else if (NetworkMessage.TYPE_LOBBY_UPDATE.equals(type)) {
+            onLobbyUpdate(message);
+        } else if (NetworkMessage.TYPE_GAME_START.equals(type)) {
+            onGameStart(message);
+        } else if (NetworkMessage.TYPE_STATE_UPDATE.equals(type)) {
+            onStateUpdate(message);
+        } else if (NetworkMessage.TYPE_GAME_OVER.equals(type)) {
+            onGameOver(message);
+        } else if (NetworkMessage.TYPE_ERROR.equals(type)) {
+            onError(message);
         }
     }
 

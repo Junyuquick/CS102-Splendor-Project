@@ -3,7 +3,7 @@ package engine.payment;
 import model.GemColor;
 import model.Player;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -24,7 +24,7 @@ public final class PaymentCalculator {
             Player player,
             Map<GemColor, Integer> cost
     ) {
-        Map<GemColor, Integer> payment = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> payment = new LinkedHashMap<>();
         int goldNeeded = 0;
 
         for (Map.Entry<GemColor, Integer> entry : cost.entrySet()) {

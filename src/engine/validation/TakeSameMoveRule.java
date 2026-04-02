@@ -22,6 +22,22 @@ final class TakeSameMoveRule {
     String validate(GameState state, Player player, Move move) {
         Map<GemColor, Integer> tokens = move.getTokens();
 
+        String tokenError = validateRequestedTokens(tokens);
+        if (tokenError != null) {
+            return tokenError;
+        }
+
+        GemColor color = getChosenColor(tokens);
+        int sameCount = config.getTakeSameCount();
+        String bankError = validateBankSupply(state.getBank(), color, sameCount);
+        if (bankError != null) {
+            return bankError;
+        }
+
+        return validatePlayerTokenLimit(player, sameCount);
+    }
+
+    private String validateRequestedTokens(Map<GemColor, Integer> tokens) {
         if (tokens == null || tokens.isEmpty()) {
             return "TAKE_TWO_SAME requires tokens";
         }
@@ -31,23 +47,41 @@ final class TakeSameMoveRule {
                     + tokens.size();
         }
 
-        GemColor color = tokens.keySet().iterator().next();
+        GemColor color = getChosenColor(tokens);
         int requested = tokens.get(color);
-
         int sameCount = config.getTakeSameCount();
+
         if (requested != sameCount) {
             return "TAKE_TWO_SAME requires count " + sameCount
                     + ", got " + requested;
         }
 
-        GemBank bank = state.getBank();
-        int bankCount = bank.getTokenCount(color);
+        return null;
+    }
 
+    private GemColor getChosenColor(Map<GemColor, Integer> tokens) {
+        return tokens.keySet().iterator().next();
+    }
+
+    private String validateBankSupply(
+            GemBank bank,
+            GemColor color,
+            int sameCount
+    ) {
+        int bankCount = bank.getTokenCount(color);
         if (bankCount < sameCount) {
             return "Bank has only " + bankCount + " " + color
                     + " tokens, need " + sameCount;
         }
 
+        return validateMinimumRemainingTokens(bankCount, color, sameCount);
+    }
+
+    private String validateMinimumRemainingTokens(
+            int bankCount,
+            GemColor color,
+            int sameCount
+    ) {
         int remainingAfter = bankCount - sameCount;
         int minRemaining = config.getTakeSameMinRemainingInBank();
         if (remainingAfter < minRemaining) {
@@ -56,6 +90,10 @@ final class TakeSameMoveRule {
                     + " in bank, need at least " + minRemaining;
         }
 
+        return null;
+    }
+
+    private String validatePlayerTokenLimit(Player player, int sameCount) {
         int totalAfter = player.getTotalTokens() + sameCount;
         if (totalAfter > config.getMaxTokensPerPlayer()) {
             return "Taking " + sameCount

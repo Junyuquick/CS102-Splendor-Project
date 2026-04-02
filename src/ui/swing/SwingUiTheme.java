@@ -114,14 +114,22 @@ final class SwingUiTheme {
      * @return token display color
      */
     static Color tokenColor(GemColor color) {
-        return switch (color) {
-            case WHITE -> new Color(240, 240, 240);
-            case BLUE -> new Color(66, 133, 244);
-            case GREEN -> new Color(52, 168, 83);
-            case RED -> new Color(234, 67, 53);
-            case BLACK -> new Color(60, 60, 60);
-            case GOLD -> new Color(251, 188, 5);
-        };
+        if (color == GemColor.WHITE) {
+            return new Color(240, 240, 240);
+        }
+        if (color == GemColor.BLUE) {
+            return new Color(66, 133, 244);
+        }
+        if (color == GemColor.GREEN) {
+            return new Color(52, 168, 83);
+        }
+        if (color == GemColor.RED) {
+            return new Color(234, 67, 53);
+        }
+        if (color == GemColor.BLACK) {
+            return new Color(60, 60, 60);
+        }
+        return new Color(251, 188, 5);
     }
 
     /**
@@ -131,13 +139,21 @@ final class SwingUiTheme {
      * @return display color for that bonus type
      */
     static Color colorForBonus(GemColor color) {
-        return switch (color) {
-            case WHITE -> new Color(245, 245, 245);
-            case BLUE -> new Color(206, 225, 255);
-            case GREEN -> new Color(208, 242, 214);
-            case RED -> new Color(255, 214, 214);
-            case BLACK -> new Color(222, 222, 222);
-            case GOLD -> new Color(255, 244, 173);
-        };
+        if (color == GemColor.WHITE) {
+            return new Color(245, 245, 245);
+        }
+        if (color == GemColor.BLUE) {
+            return new Color(206, 225, 255);
+        }
+        if (color == GemColor.GREEN) {
+            return new Color(208, 242, 214);
+        }
+        if (color == GemColor.RED) {
+            return new Color(255, 214, 214);
+        }
+        if (color == GemColor.BLACK) {
+            return new Color(222, 222, 222);
+        }
+        return new Color(255, 244, 173);
     }
 }

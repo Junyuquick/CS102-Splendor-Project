@@ -5,8 +5,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +34,7 @@ public class Board implements Serializable {
         this(
                 new HashMap<>(),
                 new ArrayList<>(),
-                new EnumMap<>(GemColor.class),
+                new LinkedHashMap<>(),
                 new GemBank(),
                 4
         );
@@ -63,7 +63,7 @@ public class Board implements Serializable {
 
         this.faceUpCards = new HashMap<>();
         this.nobles = new ArrayList<>();
-        this.gems = new EnumMap<>(GemColor.class);
+        this.gems = new LinkedHashMap<>();
         this.decks = new HashMap<>();
         this.lastRemovedFaceUpIndexByTier = new HashMap<>();
         this.bank = Objects.requireNonNull(bank, "bank cannot be null");

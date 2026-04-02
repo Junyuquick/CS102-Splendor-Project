@@ -28,6 +28,31 @@ final class TakeDifferentMoveRule {
     String validate(GameState state, Player player, Move move) {
         Map<GemColor, Integer> tokens = move.getTokens();
 
+        String tokenError = validateTokenSelection(tokens);
+        if (tokenError != null) {
+            return tokenError;
+        }
+
+        GemBank bank = state.getBank();
+        String bankError = validateBankAvailability(tokens, bank);
+        if (bankError != null) {
+            return bankError;
+        }
+
+        String fallbackError = validateColorCountRules(
+                state,
+                player,
+                tokens,
+                bank
+        );
+        if (fallbackError != null) {
+            return fallbackError;
+        }
+
+        return validatePlayerTokenLimit(player, tokens.size());
+    }
+
+    private String validateTokenSelection(Map<GemColor, Integer> tokens) {
         if (tokens == null || tokens.isEmpty()) {
             return "TAKE_DIFFERENT requires tokens";
         }
@@ -38,43 +63,84 @@ final class TakeDifferentMoveRule {
                     + " different colors, got " + tokens.size();
         }
 
-        GemBank bank = state.getBank();
+        return null;
+    }
 
+    private String validateBankAvailability(
+            Map<GemColor, Integer> tokens,
+            GemBank bank
+    ) {
         for (Map.Entry<GemColor, Integer> entry : tokens.entrySet()) {
-            GemColor color = entry.getKey();
-            int requested = entry.getValue();
-
-            if (requested != 1) {
-                return "TAKE_DIFFERENT: each color must have count 1, got "
-                        + color + " = " + requested;
+            String error = validateSingleColorRequest(entry, bank);
+            if (error != null) {
+                return error;
             }
+        }
 
-            if (bank.getTokenCount(color) < 1) {
-                return "Bank has no " + color + " tokens available";
-            }
+        return null;
+    }
+
+    private String validateSingleColorRequest(
+            Map.Entry<GemColor, Integer> entry,
+            GemBank bank
+    ) {
+        GemColor color = entry.getKey();
+        int requested = entry.getValue();
+
+        if (requested != 1) {
+            return "TAKE_DIFFERENT: each color must have count 1, got "
+                    + color + " = " + requested;
+        }
+
+        if (bank.getTokenCount(color) < 1) {
+            return "Bank has no " + color + " tokens available";
+        }
+
+        return null;
+    }
+
+    private String validateColorCountRules(
+            GameState state,
+            Player player,
+            Map<GemColor, Integer> tokens,
+            GemBank bank
+    ) {
+        int chosenColors = tokens.size();
+        int requiredColors = config.getTakeDifferentCount();
+
+        if (chosenColors == requiredColors) {
+            return null;
+        }
+
+        if (chosenColors < 1) {
+            return "TAKE_DIFFERENT requires at least 1 color";
         }
 
         int availableNormalColors = countAvailableNormalColors(bank);
-        if (tokens.size() != maxColors) {
-            if (tokens.size() < 1) {
-                return "TAKE_DIFFERENT requires at least 1 color";
-            }
-            if (availableNormalColors >= maxColors) {
-                return "TAKE_DIFFERENT requires exactly " + maxColors
-                        + " colors while that many are available";
-            }
-            if (availableMovesInspector.hasAnyLegalReserve(state, player)
-                    || availableMovesInspector.hasAnyLegalBuy(state, player)
-                    || availableMovesInspector.hasAnyLegalReturnTokens(player)) {
-                return "TAKE_DIFFERENT may take only " + tokens.size()
-                        + " colors here only when reserve, buy, and"
-                        + " return-tokens moves are all unavailable";
-            }
+        if (availableNormalColors >= requiredColors) {
+            return "TAKE_DIFFERENT requires exactly " + requiredColors
+                    + " colors while that many are available";
         }
 
-        int totalAfter = player.getTotalTokens() + tokens.size();
+        if (hasAnyFallbackMove(state, player)) {
+            return "TAKE_DIFFERENT may take only " + chosenColors
+                    + " colors here only when reserve, buy, and"
+                    + " return-tokens moves are all unavailable";
+        }
+
+        return null;
+    }
+
+    private boolean hasAnyFallbackMove(GameState state, Player player) {
+        return availableMovesInspector.hasAnyLegalReserve(state, player)
+                || availableMovesInspector.hasAnyLegalBuy(state, player)
+                || availableMovesInspector.hasAnyLegalReturnTokens(player);
+    }
+
+    private String validatePlayerTokenLimit(Player player, int tokenCount) {
+        int totalAfter = player.getTotalTokens() + tokenCount;
         if (totalAfter > config.getMaxTokensPerPlayer()) {
-            return "Taking " + tokens.size()
+            return "Taking " + tokenCount
                     + " tokens would exceed max tokens per player ("
                     + config.getMaxTokensPerPlayer() + ")";
         }

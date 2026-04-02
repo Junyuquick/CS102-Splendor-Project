@@ -5,7 +5,7 @@ import engine.moves.Move;
 import model.GemColor;
 import model.Player;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -51,7 +51,7 @@ final class ReturnTokensMoveRule {
     }
 
     private Map<GemColor, Integer> normalizeTokenMap(Map<GemColor, Integer> tokens) {
-        Map<GemColor, Integer> normalized = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> normalized = new LinkedHashMap<>();
         if (tokens == null) {
             return normalized;
         }

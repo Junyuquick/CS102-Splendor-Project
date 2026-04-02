@@ -8,7 +8,7 @@ import model.Player;
 import model.Board;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -24,9 +24,22 @@ public class GameStateFactory {
      * Selects which built-in sample data set should be used if CSV
      * loading fails.
      */
-    public enum FallbackProfile {
-        LOCAL_APP,
-        SERVER
+    public static final class FallbackProfile {
+        public static final FallbackProfile LOCAL_APP =
+                new FallbackProfile("LOCAL_APP");
+        public static final FallbackProfile SERVER =
+                new FallbackProfile("SERVER");
+
+        private final String name;
+
+        private FallbackProfile(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private final Config config;
@@ -88,11 +101,11 @@ public class GameStateFactory {
      * @return initial token counts by color
      */
     private Map<GemColor, Integer> buildInitialGems(int playerCount) {
-        return new EnumMap<>(buildGemCounts(playerCount));
+        return new LinkedHashMap<>(buildGemCounts(playerCount));
     }
 
     private Map<GemColor, Integer> buildGemCounts(int playerCount) {
-        Map<GemColor, Integer> counts = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> counts = new LinkedHashMap<>();
         for (GemColor color : GemColor.values()) {
             int amount = color == GemColor.GOLD
                     ? config.getInitialGoldGemCount(playerCount)

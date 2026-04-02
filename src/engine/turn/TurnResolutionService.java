@@ -46,23 +46,51 @@ public final class TurnResolutionService {
      * @return turn-resolution result
      */
     public TurnResolutionResult resolveTurn(GameState state, Player player, Move move) {
-        String error = validator.validate(state, player, move);
-        if (error != null) {
-            return TurnResolutionResult.invalid(error);
+        String validationError = validator.validate(state, player, move);
+        if (validationError != null) {
+            return TurnResolutionResult.invalid(validationError);
         }
 
-        executor.execute(state, player, move);
-        Map<GemColor, Integer> discardedTokens =
-                turnPostProcessor.enforceTokenLimit(state, player);
-        List<NobleTile> assignedNobles =
-                turnPostProcessor.assignBestAvailableNobles(state, player);
-        TurnAdvanceResult turnAdvanceResult =
-                turnProgressionService.progressTurn(
-                        state,
-                        winnerChecker,
-                        turnManager
-                );
+        executeMove(state, player, move);
+        Map<GemColor, Integer> discardedTokens = discardExtraTokens(state, player);
+        List<NobleTile> assignedNobles = assignNobles(state, player);
+        TurnAdvanceResult turnAdvanceResult = advanceTurn(state);
 
+        return buildSuccessResult(
+                discardedTokens,
+                assignedNobles,
+                turnAdvanceResult
+        );
+    }
+
+    private void executeMove(GameState state, Player player, Move move) {
+        executor.execute(state, player, move);
+    }
+
+    private Map<GemColor, Integer> discardExtraTokens(
+            GameState state,
+            Player player
+    ) {
+        return turnPostProcessor.enforceTokenLimit(state, player);
+    }
+
+    private List<NobleTile> assignNobles(GameState state, Player player) {
+        return turnPostProcessor.assignBestAvailableNobles(state, player);
+    }
+
+    private TurnAdvanceResult advanceTurn(GameState state) {
+        return turnProgressionService.progressTurn(
+                state,
+                winnerChecker,
+                turnManager
+        );
+    }
+
+    private TurnResolutionResult buildSuccessResult(
+            Map<GemColor, Integer> discardedTokens,
+            List<NobleTile> assignedNobles,
+            TurnAdvanceResult turnAdvanceResult
+    ) {
         return TurnResolutionResult.success(
                 discardedTokens,
                 assignedNobles,

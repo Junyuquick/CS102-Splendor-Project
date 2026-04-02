@@ -41,14 +41,7 @@ final class SwingAssetLoader {
      * @return token icon, or null if none could be found
      */
     ImageIcon loadTokenIcon(GemColor color) {
-        String filename = switch (color) {
-            case WHITE -> "white.png";
-            case BLUE -> "blue.png";
-            case GREEN -> "green.png";
-            case RED -> "red.png";
-            case BLACK -> "black.png";
-            case GOLD -> "gold.png";
-        };
+        String filename = tokenFilename(color);
 
         Path[] candidates = new Path[]{
                 config.getTokenImageDir().resolve(filename),
@@ -71,14 +64,7 @@ final class SwingAssetLoader {
                     .toList();
 
             if (!pngs.isEmpty()) {
-                int idx = switch (color) {
-                    case GREEN -> 0;
-                    case BLACK -> 1;
-                    case WHITE -> 2;
-                    case RED -> 3;
-                    case BLUE -> 4;
-                    case GOLD -> 5;
-                };
+                int idx = fallbackTokenIndex(color);
                 if (idx >= 0 && idx < pngs.size()) {
                     return loadCircularIcon(pngs.get(idx), SwingUiTheme.TOKEN_ICON_SIZE);
                 }
@@ -87,6 +73,44 @@ final class SwingAssetLoader {
         }
 
         return null;
+    }
+
+    private String tokenFilename(GemColor color) {
+        if (color == GemColor.WHITE) {
+            return "white.png";
+        }
+        if (color == GemColor.BLUE) {
+            return "blue.png";
+        }
+        if (color == GemColor.GREEN) {
+            return "green.png";
+        }
+        if (color == GemColor.RED) {
+            return "red.png";
+        }
+        if (color == GemColor.BLACK) {
+            return "black.png";
+        }
+        return "gold.png";
+    }
+
+    private int fallbackTokenIndex(GemColor color) {
+        if (color == GemColor.GREEN) {
+            return 0;
+        }
+        if (color == GemColor.BLACK) {
+            return 1;
+        }
+        if (color == GemColor.WHITE) {
+            return 2;
+        }
+        if (color == GemColor.RED) {
+            return 3;
+        }
+        if (color == GemColor.BLUE) {
+            return 4;
+        }
+        return 5;
     }
 
     /**

@@ -21,8 +21,8 @@ import java.util.Map;
 /**
  * Applies a move to the game after it has already been checked for legality.
  *
- * <p>This keeps all of the actual state changes in one place, so turns are handled the same
- * way no matter where the move came from.
+ * This keeps all of the actual state changes in one place, so turns are
+ * handled the same way no matter where the move came from.
  */
 public class MoveExecutor {
     private final Config config;
@@ -45,11 +45,7 @@ public class MoveExecutor {
      * @throws IllegalArgumentException if the move type is not recognized
      */
     public void execute(GameState state, Player player, Move move) {
-        if (move instanceof TakeDifferentMove) {
-            applyTokenTake(state, player, move);
-            return;
-        }
-        if (move instanceof TakeSameMove) {
+        if (isTokenTakeMove(move)) {
             applyTokenTake(state, player, move);
             return;
         }
@@ -82,11 +78,9 @@ public class MoveExecutor {
      * @param move move containing the chosen colors
      */
     private void applyTokenTake(GameState state, Player player, Move move) {
-        GemBank bank = state.getBank();
         Map<GemColor, Integer> tokensTaken = move.getTokens();
-
-        bank.removeTokens(tokensTaken);
-        player.addTokens(tokensTaken);
+        removeTokensFromBank(state.getBank(), tokensTaken);
+        giveTokensToPlayer(player, tokensTaken);
     }
 
     /**
@@ -98,17 +92,11 @@ public class MoveExecutor {
      */
     private void applyReserve(GameState state, Player player, Move move) {
         Board board = state.getBoard();
-        GemBank bank = state.getBank();
         DevelopmentCard cardToReserve = move.getCard();
 
         board.removeCard(cardToReserve);
         player.addReservedCard(cardToReserve);
-        if (bank.getTokenCount(GemColor.GOLD) > 0) {
-            Map<GemColor, Integer> goldDelta = new HashMap<>();
-            goldDelta.put(GemColor.GOLD, config.getReserveGoldBonus());
-            bank.removeTokens(goldDelta);
-            player.addTokens(goldDelta);
-        }
+        giveReserveGoldBonus(state.getBank(), player);
         board.refillSlot(move.getCard());
     }
 
@@ -124,20 +112,13 @@ public class MoveExecutor {
         GemBank bank = state.getBank();
         DevelopmentCard cardToBuy = move.getCard();
 
-        if (move.isFromReserved()) {
-            player.removeReservedCard(cardToBuy);
-        } else {
-            board.removeCard(cardToBuy);
-        }
+        removeBoughtCardFromSource(board, player, move, cardToBuy);
 
         Map<GemColor, Integer> paymentTokens = move.getPaymentTokens();
-        player.removeTokens(paymentTokens);
-        bank.addTokens(paymentTokens);
+        collectPayment(player, bank, paymentTokens);
         player.addPurchasedCard(cardToBuy);
 
-        if (!move.isFromReserved()) {
-            board.refillSlot(cardToBuy);
-        }
+        refillMarketIfNeeded(board, move, cardToBuy);
     }
 
     /**
@@ -151,5 +132,67 @@ public class MoveExecutor {
         Map<GemColor, Integer> returnedTokens = move.getTokens();
         player.removeTokens(returnedTokens);
         state.getBank().addTokens(returnedTokens);
+    }
+
+    private boolean isTokenTakeMove(Move move) {
+        return move instanceof TakeDifferentMove || move instanceof TakeSameMove;
+    }
+
+    private void removeTokensFromBank(
+            GemBank bank,
+            Map<GemColor, Integer> tokensTaken
+    ) {
+        bank.removeTokens(tokensTaken);
+    }
+
+    private void giveTokensToPlayer(
+            Player player,
+            Map<GemColor, Integer> tokensTaken
+    ) {
+        player.addTokens(tokensTaken);
+    }
+
+    private void giveReserveGoldBonus(GemBank bank, Player player) {
+        if (bank.getTokenCount(GemColor.GOLD) <= 0) {
+            return;
+        }
+
+        Map<GemColor, Integer> goldDelta = new HashMap<>();
+        goldDelta.put(GemColor.GOLD, config.getReserveGoldBonus());
+        bank.removeTokens(goldDelta);
+        player.addTokens(goldDelta);
+    }
+
+    private void removeBoughtCardFromSource(
+            Board board,
+            Player player,
+            Move move,
+            DevelopmentCard cardToBuy
+    ) {
+        if (move.isFromReserved()) {
+            player.removeReservedCard(cardToBuy);
+            return;
+        }
+
+        board.removeCard(cardToBuy);
+    }
+
+    private void collectPayment(
+            Player player,
+            GemBank bank,
+            Map<GemColor, Integer> paymentTokens
+    ) {
+        player.removeTokens(paymentTokens);
+        bank.addTokens(paymentTokens);
+    }
+
+    private void refillMarketIfNeeded(
+            Board board,
+            Move move,
+            DevelopmentCard cardToBuy
+    ) {
+        if (!move.isFromReserved()) {
+            board.refillSlot(cardToBuy);
+        }
     }
 }

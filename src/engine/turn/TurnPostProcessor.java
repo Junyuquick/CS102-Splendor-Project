@@ -7,7 +7,7 @@ import model.NobleTile;
 import model.Player;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,16 +37,11 @@ public class TurnPostProcessor {
      * @return all discarded tokens grouped by color
      */
     public Map<GemColor, Integer> enforceTokenLimit(GameState state, Player player) {
-        Map<GemColor, Integer> discarded = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> discarded = new LinkedHashMap<>();
         int maxTokens = config.getMaxTokensPerPlayer();
 
-        while (player.getTotalTokens() > maxTokens) {
-            int excess = player.getTotalTokens() - maxTokens;
-            Map<GemColor, Integer> roundDiscard = chooseDiscardTokens(player, excess);
-
-            player.removeTokens(roundDiscard);
-            state.getBank().addTokens(roundDiscard);
-            mergeDiscard(discarded, roundDiscard);
+        while (playerHasTooManyTokens(player, maxTokens)) {
+            discardOneRound(state, player, discarded, maxTokens);
         }
 
         return discarded;
@@ -63,13 +58,10 @@ public class TurnPostProcessor {
         List<NobleTile> eligibleNobles =
                 new ArrayList<>(nobleAssigner.findEligibleNobles(state, player));
         List<NobleTile> assignedNobles = new ArrayList<>();
-        int noblesThisTurn = Math.min(config.getMaxNoblesPerTurn(), eligibleNobles.size());
+        int noblesThisTurn = getNoblesToAssignThisTurn(eligibleNobles);
 
         for (int i = 0; i < noblesThisTurn; i++) {
-            NobleTile chosen = chooseBestNoble(eligibleNobles);
-            nobleAssigner.assignNoble(state, player, chosen);
-            eligibleNobles.remove(chosen);
-            assignedNobles.add(chosen);
+            assignChosenNoble(state, player, eligibleNobles, assignedNobles);
         }
 
         return assignedNobles;
@@ -84,50 +76,102 @@ public class TurnPostProcessor {
     public NobleTile chooseBestNoble(List<NobleTile> eligibleNobles) {
         return eligibleNobles.stream()
                 .max((a, b) -> {
-                    int points = Integer.compare(a.getPrestigePoints(), b.getPrestigePoints());
+                    int points = compareNoblePoints(a, b);
                     if (points != 0) {
                         return points;
                     }
 
-                    int aReq = a.getRequirement().asMap().values().stream()
-                            .mapToInt(Integer::intValue)
-                            .sum();
-                    int bReq = b.getRequirement().asMap().values().stream()
-                            .mapToInt(Integer::intValue)
-                            .sum();
-
-                    return Integer.compare(bReq, aReq);
+                    return compareNobleRequirements(a, b);
                 })
                 .orElse(eligibleNobles.get(0));
     }
 
+    private boolean playerHasTooManyTokens(Player player, int maxTokens) {
+        return player.getTotalTokens() > maxTokens;
+    }
+
+    private void discardOneRound(
+            GameState state,
+            Player player,
+            Map<GemColor, Integer> discarded,
+            int maxTokens
+    ) {
+        int excess = player.getTotalTokens() - maxTokens;
+        Map<GemColor, Integer> roundDiscard = chooseDiscardTokens(player, excess);
+
+        player.removeTokens(roundDiscard);
+        state.getBank().addTokens(roundDiscard);
+        mergeDiscard(discarded, roundDiscard);
+    }
+
+    private int getNoblesToAssignThisTurn(List<NobleTile> eligibleNobles) {
+        return Math.min(config.getMaxNoblesPerTurn(), eligibleNobles.size());
+    }
+
+    private void assignChosenNoble(
+            GameState state,
+            Player player,
+            List<NobleTile> eligibleNobles,
+            List<NobleTile> assignedNobles
+    ) {
+        NobleTile chosen = chooseBestNoble(eligibleNobles);
+        nobleAssigner.assignNoble(state, player, chosen);
+        eligibleNobles.remove(chosen);
+        assignedNobles.add(chosen);
+    }
+
+    private int compareNoblePoints(NobleTile first, NobleTile second) {
+        return Integer.compare(
+                first.getPrestigePoints(),
+                second.getPrestigePoints()
+        );
+    }
+
+    private int compareNobleRequirements(
+            NobleTile first,
+            NobleTile second
+    ) {
+        int firstRequirementTotal = countRequirementTotal(first);
+        int secondRequirementTotal = countRequirementTotal(second);
+        return Integer.compare(secondRequirementTotal, firstRequirementTotal);
+    }
+
+    private int countRequirementTotal(NobleTile noble) {
+        return noble.getRequirement().asMap().values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
     private Map<GemColor, Integer> chooseDiscardTokens(Player player, int excess) {
-        Map<GemColor, Integer> discard = new EnumMap<>(GemColor.class);
-        Map<GemColor, Integer> working = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> discard = new LinkedHashMap<>();
+        Map<GemColor, Integer> working = new LinkedHashMap<>();
 
         working.putAll(player.getTokens());
         while (excess > 0) {
-            GemColor candidate = null;
-            int max = 0;
-
-            for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
-                if (entry.getValue() > max) {
-                    max = entry.getValue();
-                    candidate = entry.getKey();
-                }
-            }
-
-            if (candidate == null || max == 0) {
+            GemColor candidate = findLargestTokenStackColor(working);
+            if (candidate == null || working.get(candidate) == 0) {
                 break;
             }
-
-            // Drop tokens from the biggest stack first so the player gets under the limit quickly.
             discard.put(candidate, discard.getOrDefault(candidate, 0) + 1);
-            working.put(candidate, max - 1);
+            working.put(candidate, working.get(candidate) - 1);
             excess--;
         }
 
         return discard;
+    }
+
+    private GemColor findLargestTokenStackColor(Map<GemColor, Integer> working) {
+        GemColor candidate = null;
+        int largestStack = 0;
+
+        for (Map.Entry<GemColor, Integer> entry : working.entrySet()) {
+            if (entry.getValue() > largestStack) {
+                largestStack = entry.getValue();
+                candidate = entry.getKey();
+            }
+        }
+
+        return candidate;
     }
 
     private void mergeDiscard(

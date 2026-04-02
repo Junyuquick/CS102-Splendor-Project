@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -127,7 +127,7 @@ class NobleFactory {
             int red,
             int black
     ) {
-        Map<GemColor, Integer> cost = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> cost = new LinkedHashMap<>();
         if (white > 0) {
             cost.put(GemColor.WHITE, white);
         }

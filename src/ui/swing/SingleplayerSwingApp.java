@@ -33,9 +33,22 @@ import java.util.Set;
  * Single-player Swing implementation that runs the full game loop locally.
  */
 public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
-    private enum LocalMode {
-        SINGLE_PLAYER_VS_AI,
-        SAME_LAPTOP_MULTIPLAYER
+    private static final class LocalMode {
+        private static final LocalMode SINGLE_PLAYER_VS_AI =
+                new LocalMode("SINGLE_PLAYER_VS_AI");
+        private static final LocalMode SAME_LAPTOP_MULTIPLAYER =
+                new LocalMode("SAME_LAPTOP_MULTIPLAYER");
+
+        private final String name;
+
+        private LocalMode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private final MoveExecutor executor;

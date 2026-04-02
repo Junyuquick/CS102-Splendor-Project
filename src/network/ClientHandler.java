@@ -41,52 +41,16 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            // Create the output stream first so both sides agree on the
-            // object-stream handshake order.
-            out = new ObjectOutputStream(socket.getOutputStream());
-            in = new ObjectInputStream(socket.getInputStream());
-
-            NetworkMessage msg = (NetworkMessage) in.readObject();
-            if (msg.getType() == NetworkMessage.Type.JOIN) {
-                playerName = msg.getPlayerName();
-                System.out.println("Player joined: " + playerName);
-                server.handleJoin(this);
-            } else {
-                sendMessage(NetworkMessage.error("Expected JOIN message"));
+            openStreams();
+            if (!handleJoinHandshake()) {
                 return;
             }
 
-            while (true) {
-                // Every later message is routed back into the main server
-                // so the server stays the single place that owns game state.
-                msg = (NetworkMessage) in.readObject();
-                switch (msg.getType()) {
-                    case MOVE:
-                        server.handleMove(this, msg.getMove());
-                        break;
-                    case START_REQUEST:
-                        server.handleStartRequest(this);
-                        break;
-                    case DISCONNECT:
-                        System.out.println(
-                                "Player disconnected: " + playerName
-                        );
-                        return;
-                    default:
-                        sendMessage(
-                                NetworkMessage.error("Unknown message type")
-                        );
-                }
-            }
+            processIncomingMessages();
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Client handler error: " + e.getMessage());
         } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                // If shutdown is already in progress, a close failure does
-                // not change the outcome, so we simply finish cleanup.
-            }
+            closeSocketQuietly();
             server.removeClient(this);
         }
     }
@@ -137,5 +101,74 @@ public class ClientHandler implements Runnable {
      */
     public void setPlayerIndex(int index) {
         this.playerIndex = index;
+    }
+
+    private void openStreams() throws IOException {
+        out = new ObjectOutputStream(socket.getOutputStream());
+        in = new ObjectInputStream(socket.getInputStream());
+    }
+
+    private boolean handleJoinHandshake()
+            throws IOException, ClassNotFoundException {
+        NetworkMessage message = readMessage();
+        if (!isJoinMessage(message)) {
+            sendMessage(NetworkMessage.error("Expected JOIN message"));
+            return false;
+        }
+
+        playerName = message.getPlayerName();
+        System.out.println("Player joined: " + playerName);
+        server.handleJoin(this);
+        return true;
+    }
+
+    private boolean isJoinMessage(NetworkMessage message) {
+        return NetworkMessage.TYPE_JOIN.equals(message.getType());
+    }
+
+    private void processIncomingMessages()
+            throws IOException, ClassNotFoundException {
+        while (true) {
+            NetworkMessage message = readMessage();
+            if (!handleMessage(message)) {
+                return;
+            }
+        }
+    }
+
+    private NetworkMessage readMessage()
+            throws IOException, ClassNotFoundException {
+        return (NetworkMessage) in.readObject();
+    }
+
+    private boolean handleMessage(NetworkMessage message) {
+        String type = message.getType();
+        if (NetworkMessage.TYPE_MOVE.equals(type)) {
+            server.handleMove(this, message.getMove());
+            return true;
+        }
+        if (NetworkMessage.TYPE_START_REQUEST.equals(type)) {
+            server.handleStartRequest(this);
+            return true;
+        }
+        if (NetworkMessage.TYPE_DISCONNECT.equals(type)) {
+            logDisconnect();
+            return false;
+        }
+        sendMessage(NetworkMessage.error("Unknown message type"));
+        return true;
+    }
+
+    private void logDisconnect() {
+        System.out.println("Player disconnected: " + playerName);
+    }
+
+    private void closeSocketQuietly() {
+        try {
+            socket.close();
+        } catch (IOException e) {
+            // If shutdown is already in progress, a close failure does not
+            // change the outcome, so we simply finish cleanup.
+        }
     }
 }

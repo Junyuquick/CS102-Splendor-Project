@@ -18,7 +18,6 @@ import model.Player;
  * explaining what was wrong.
  */
 public class MoveValidator {
-    private final Config config;
     private final TakeDifferentMoveRule takeDifferentMoveRule;
     private final TakeSameMoveRule takeSameMoveRule;
     private final ReserveMoveRule reserveMoveRule;
@@ -32,7 +31,6 @@ public class MoveValidator {
      * @param config game settings that contain the numeric move limits
      */
     public MoveValidator(Config config) {
-        this.config = config;
         this.reserveMoveRule = new ReserveMoveRule(config);
         this.buyMoveRule = new BuyMoveRule();
         this.returnTokensMoveRule = new ReturnTokensMoveRule(config);
@@ -62,26 +60,7 @@ public class MoveValidator {
             return "Move cannot be null";
         }
 
-        if (move instanceof TakeDifferentMove) {
-            return takeDifferentMoveRule.validate(state, player, move);
-        }
-        if (move instanceof TakeSameMove) {
-            return takeSameMoveRule.validate(state, player, move);
-        }
-        if (move instanceof ReserveMove) {
-            return reserveMoveRule.validate(state, player, move);
-        }
-        if (move instanceof BuyMove) {
-            return buyMoveRule.validate(state, player, move);
-        }
-        if (move instanceof ReturnTokensMove) {
-            return returnTokensMoveRule.validate(player, move);
-        }
-        if (move instanceof PassMove) {
-            return passMoveRule.validate();
-        }
-
-        return "Unknown move type: " + move.getTypeName();
+        return validateKnownMove(state, player, move);
     }
     
     /**
@@ -94,5 +73,60 @@ public class MoveValidator {
      */
     public boolean isLegal(GameState state, Player player, Move move) {
         return validate(state, player, move) == null;
+    }
+
+    private String validateKnownMove(
+            GameState state,
+            Player player,
+            Move move
+    ) {
+        if (isTakeDifferentMove(move)) {
+            return takeDifferentMoveRule.validate(state, player, move);
+        }
+        if (isTakeSameMove(move)) {
+            return takeSameMoveRule.validate(state, player, move);
+        }
+        if (isReserveMove(move)) {
+            return reserveMoveRule.validate(state, player, move);
+        }
+        if (isBuyMove(move)) {
+            return buyMoveRule.validate(state, player, move);
+        }
+        if (isReturnTokensMove(move)) {
+            return returnTokensMoveRule.validate(player, move);
+        }
+        if (isPassMove(move)) {
+            return passMoveRule.validate();
+        }
+
+        return buildUnknownMoveMessage(move);
+    }
+
+    private boolean isTakeDifferentMove(Move move) {
+        return move instanceof TakeDifferentMove;
+    }
+
+    private boolean isTakeSameMove(Move move) {
+        return move instanceof TakeSameMove;
+    }
+
+    private boolean isReserveMove(Move move) {
+        return move instanceof ReserveMove;
+    }
+
+    private boolean isBuyMove(Move move) {
+        return move instanceof BuyMove;
+    }
+
+    private boolean isReturnTokensMove(Move move) {
+        return move instanceof ReturnTokensMove;
+    }
+
+    private boolean isPassMove(Move move) {
+        return move instanceof PassMove;
+    }
+
+    private String buildUnknownMoveMessage(Move move) {
+        return "Unknown move type: " + move.getTypeName();
     }
 }

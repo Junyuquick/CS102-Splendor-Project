@@ -7,7 +7,7 @@ import model.GameState;
 import model.GemColor;
 import model.Player;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -30,7 +30,7 @@ final class AvailableMovesInspector {
 
     boolean hasAnyLegalReserve(GameState state, Player player) {
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            if (reserveMoveRule.validate(state, player, Move.reserveFaceUp(card)) == null) {
+            if (canReserveCard(state, player, card)) {
                 return true;
             }
         }
@@ -40,23 +40,13 @@ final class AvailableMovesInspector {
 
     boolean hasAnyLegalBuy(GameState state, Player player) {
         for (DevelopmentCard card : state.getBoard().getFaceUpCards()) {
-            Move move = Move.buy(
-                    card,
-                    PaymentCalculator.computePaymentTokens(player, card.getCost()),
-                    false
-            );
-            if (buyMoveRule.validate(state, player, move) == null) {
+            if (canBuyCard(state, player, card, false)) {
                 return true;
             }
         }
 
         for (DevelopmentCard card : player.getReservedCards()) {
-            Move move = Move.buy(
-                    card,
-                    PaymentCalculator.computePaymentTokens(player, card.getCost()),
-                    true
-            );
-            if (buyMoveRule.validate(state, player, move) == null) {
+            if (canBuyCard(state, player, card, true)) {
                 return true;
             }
         }
@@ -70,16 +60,56 @@ final class AvailableMovesInspector {
         }
 
         for (Map.Entry<GemColor, Integer> entry : player.getTokens().entrySet()) {
-            if (entry.getValue() <= 0) {
-                continue;
-            }
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
-            tokens.put(entry.getKey(), 1);
-            if (returnTokensMoveRule.validate(player, Move.returnTokens(tokens)) == null) {
+            if (canReturnOneToken(player, entry)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private boolean canReserveCard(
+            GameState state,
+            Player player,
+            DevelopmentCard card
+    ) {
+        Move move = Move.reserveFaceUp(card);
+        return reserveMoveRule.validate(state, player, move) == null;
+    }
+
+    private boolean canBuyCard(
+            GameState state,
+            Player player,
+            DevelopmentCard card,
+            boolean fromReserved
+    ) {
+        Move move = createBuyMove(player, card, fromReserved);
+        return buyMoveRule.validate(state, player, move) == null;
+    }
+
+    private Move createBuyMove(
+            Player player,
+            DevelopmentCard card,
+            boolean fromReserved
+    ) {
+        Map<GemColor, Integer> payment = PaymentCalculator.computePaymentTokens(
+                player,
+                card.getCost()
+        );
+        return Move.buy(card, payment, fromReserved);
+    }
+
+    private boolean canReturnOneToken(
+            Player player,
+            Map.Entry<GemColor, Integer> entry
+    ) {
+        if (entry.getValue() <= 0) {
+            return false;
+        }
+
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
+        tokens.put(entry.getKey(), 1);
+        Move move = Move.returnTokens(tokens);
+        return returnTokensMoveRule.validate(player, move) == null;
     }
 }

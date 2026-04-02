@@ -10,7 +10,7 @@ import model.GemColor;
 import model.Player;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -165,7 +165,7 @@ final class AiMoveGenerator {
             if (player.getTokenCount(color) <= 0) {
                 continue;
             }
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             tokens.put(color, 1);
             Move returnMove = Move.returnTokens(tokens);
             if (validator.validate(state, player, returnMove) == null) {
@@ -193,7 +193,7 @@ final class AiMoveGenerator {
     /**
      * Returns all token colors, including gold.
      *
-     * @return token colors in enum order
+     * @return token colors in declared color order
      */
     private List<GemColor> allColors() {
         List<GemColor> colors = new ArrayList<>();

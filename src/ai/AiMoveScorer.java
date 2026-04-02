@@ -9,7 +9,7 @@ import model.GemColor;
 import model.Player;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +49,7 @@ final class AiMoveScorer {
         int bestNeedScore = Integer.MIN_VALUE;
 
         for (GemColor color : normalColors()) {
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             tokens.put(color, config.getTakeSameCount());
             Move move = Move.takeSame(tokens);
             if (validator.validate(state, player, move) != null) {
@@ -121,7 +121,7 @@ final class AiMoveScorer {
             int bestScore
     ) {
         if (remaining == 0) {
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             int score = 0;
             for (GemColor color : chosen) {
                 tokens.put(color, 1);
@@ -206,7 +206,7 @@ final class AiMoveScorer {
     }
 
     /**
-     * Returns the non-gold colors in enum order.
+     * Returns the non-gold colors in declared color order.
      *
      * @return normal token colors
      */

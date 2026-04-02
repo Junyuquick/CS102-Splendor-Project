@@ -20,19 +20,42 @@ public final class TurnProgressionService {
             WinnerChecker winnerChecker,
             TurnManager turnManager
     ) {
-        boolean triggeredFinalRound = false;
-        if (winnerChecker.shouldTriggerFinalRound(state)) {
-            turnManager.markFinalRound(state);
-            triggeredFinalRound = true;
-        }
+        boolean triggeredFinalRound =
+                triggerFinalRoundIfNeeded(state, winnerChecker, turnManager);
 
         turnManager.advanceTurn(state);
 
-        Player winner = null;
-        if (turnManager.hasFinalRoundCompleted(state)) {
-            winner = winnerChecker.determineWinner(state);
-        }
+        Player winner = determineWinnerIfGameEnded(
+                state,
+                winnerChecker,
+                turnManager
+        );
 
         return new TurnAdvanceResult(triggeredFinalRound, winner);
+    }
+
+    private boolean triggerFinalRoundIfNeeded(
+            GameState state,
+            WinnerChecker winnerChecker,
+            TurnManager turnManager
+    ) {
+        if (!winnerChecker.shouldTriggerFinalRound(state)) {
+            return false;
+        }
+
+        turnManager.markFinalRound(state);
+        return true;
+    }
+
+    private Player determineWinnerIfGameEnded(
+            GameState state,
+            WinnerChecker winnerChecker,
+            TurnManager turnManager
+    ) {
+        if (!turnManager.hasFinalRoundCompleted(state)) {
+            return null;
+        }
+
+        return winnerChecker.determineWinner(state);
     }
 }

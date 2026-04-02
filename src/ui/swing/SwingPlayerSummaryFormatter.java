@@ -5,7 +5,7 @@ import model.DevelopmentCard;
 import model.GemColor;
 import model.Player;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -106,7 +106,7 @@ final class SwingPlayerSummaryFormatter {
      * @return bonus counts by non-gold color
      */
     private static Map<GemColor, Integer> getBonusCounts(Player player) {
-        Map<GemColor, Integer> bonus = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> bonus = new LinkedHashMap<>();
         for (GemColor color : GemColor.values()) {
             if (color != GemColor.GOLD) {
                 bonus.put(color, player.getBonusCount(color));
@@ -122,13 +122,21 @@ final class SwingPlayerSummaryFormatter {
      * @return CSS-compatible hex color string
      */
     private static String hexColor(GemColor color) {
-        return switch (color) {
-            case WHITE -> "#8A8A8A";
-            case BLUE -> "#1E5BB8";
-            case GREEN -> "#1E8C3A";
-            case RED -> "#B3261E";
-            case BLACK -> "#111111";
-            case GOLD -> "#B88700";
-        };
+        if (color == GemColor.WHITE) {
+            return "#8A8A8A";
+        }
+        if (color == GemColor.BLUE) {
+            return "#1E5BB8";
+        }
+        if (color == GemColor.GREEN) {
+            return "#1E8C3A";
+        }
+        if (color == GemColor.RED) {
+            return "#B3261E";
+        }
+        if (color == GemColor.BLACK) {
+            return "#111111";
+        }
+        return "#B88700";
     }
 }

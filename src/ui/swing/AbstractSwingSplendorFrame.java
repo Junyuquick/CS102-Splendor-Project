@@ -32,7 +32,6 @@ import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,10 +58,10 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected final JPanel playersPanel = new JPanel();
     protected final JTextArea helpArea = new JTextArea();
     protected final JPanel bankCountPanel = new JPanel(new GridLayout(6, 1, 4, 4));
-    protected final Map<GemColor, JLabel> bankLabels = new EnumMap<>(GemColor.class);
-    protected final Map<GemColor, JButton> tokenButtons = new EnumMap<>(GemColor.class);
-    protected final Map<GemColor, ImageIcon> tokenIcons = new EnumMap<>(GemColor.class);
-    protected final Map<GemColor, Integer> selectedTokenCounts = new EnumMap<>(GemColor.class);
+    protected final Map<GemColor, JLabel> bankLabels = new LinkedHashMap<>();
+    protected final Map<GemColor, JButton> tokenButtons = new LinkedHashMap<>();
+    protected final Map<GemColor, ImageIcon> tokenIcons = new LinkedHashMap<>();
+    protected final Map<GemColor, Integer> selectedTokenCounts = new LinkedHashMap<>();
     protected final Map<String, JButton> cardButtons = new LinkedHashMap<>();
     protected final JButton actionTakeThree = new JButton("Take 3 Different");
     protected final JButton actionTakeTwo = new JButton("Take 2 Same");
@@ -483,7 +482,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
                 return null;
             }
             GemColor color = selected.keySet().iterator().next();
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             tokens.put(color, config.getTakeSameCount());
             return Move.takeSame(tokens);
         }
@@ -525,7 +524,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @return selected tokens
      */
     protected Map<GemColor, Integer> selectedTokens() {
-        Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> tokens = new LinkedHashMap<>();
         for (Map.Entry<GemColor, Integer> entry : selectedTokenCounts.entrySet()) {
             if (entry.getValue() > 0) {
                 tokens.put(entry.getKey(), entry.getValue());
@@ -956,7 +955,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         if (current == null) {
             return false;
         }
-        Map<GemColor, Integer> preview = new EnumMap<>(GemColor.class);
+        Map<GemColor, Integer> preview = new LinkedHashMap<>();
         preview.put(color, config.getTakeSameCount());
         return validator.validate(state, current, Move.takeSame(preview)) == null;
     }
@@ -1011,7 +1010,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected boolean hasAnyLegalTakeThree(Player player) {
         List<GemColor> colors = List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK);
         for (int count = config.getTakeDifferentCount(); count >= 1; count--) {
-            if (hasAnyLegalTakeDifferentCombination(player, colors, 0, count, new EnumMap<>(GemColor.class))) {
+            if (hasAnyLegalTakeDifferentCombination(player, colors, 0, count, new LinkedHashMap<>())) {
                 return true;
             }
         }
@@ -1026,7 +1025,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      */
     protected boolean hasAnyLegalTakeTwo(Player player) {
         for (GemColor color : List.of(GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK)) {
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             tokens.put(color, config.getTakeSameCount());
             if (validator.validate(state, player, Move.takeSame(tokens)) == null) {
                 return true;
@@ -1086,7 +1085,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             if (player.getTokenCount(color) <= 0) {
                 continue;
             }
-            Map<GemColor, Integer> tokens = new EnumMap<>(GemColor.class);
+            Map<GemColor, Integer> tokens = new LinkedHashMap<>();
             tokens.put(color, 1);
             if (validator.validate(state, player, Move.returnTokens(tokens)) == null) {
                 return true;
@@ -1130,18 +1129,28 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @return prompt text for the user
      */
     protected String activeTurnHelpText() {
-        return switch (mode) {
-            case IDLE -> "Choose an action. Take tokens, reserve a face-up card, or buy a card.";
-            case TAKE_THREE -> "Select up to " + config.getTakeDifferentCount()
+        if (mode == SwingInteractionMode.IDLE) {
+            return "Choose an action. Take tokens, reserve a face-up card, or buy a card.";
+        }
+        if (mode == SwingInteractionMode.TAKE_THREE) {
+            return "Select up to " + config.getTakeDifferentCount()
                     + " different colored tokens, then confirm. If fewer than "
                     + config.getTakeDifferentCount()
                     + " colors are available and reserve, buy, and return are unavailable, 1-2 different tokens are allowed.";
-            case TAKE_TWO -> "Select 1 color to take " + config.getTakeSameCount() + " tokens, then confirm.";
-            case RESERVE -> "Select a face-up card to reserve, then confirm.";
-            case BUY -> "Select a face-up or reserved card you can afford, then confirm.";
-            case RETURN_TOKENS -> "Select one or more tokens to return to the bank. This uses your whole turn.";
-            case PASS -> "Confirm to pass your turn without taking any action.";
-        };
+        }
+        if (mode == SwingInteractionMode.TAKE_TWO) {
+            return "Select 1 color to take " + config.getTakeSameCount() + " tokens, then confirm.";
+        }
+        if (mode == SwingInteractionMode.RESERVE) {
+            return "Select a face-up card to reserve, then confirm.";
+        }
+        if (mode == SwingInteractionMode.BUY) {
+            return "Select a face-up or reserved card you can afford, then confirm.";
+        }
+        if (mode == SwingInteractionMode.RETURN_TOKENS) {
+            return "Select one or more tokens to return to the bank. This uses your whole turn.";
+        }
+        return "Confirm to pass your turn without taking any action.";
     }
 
     /**
