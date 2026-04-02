@@ -50,8 +50,8 @@ public final class ConfigLoader {
         int bank4 = requireInt(p, "bank.normal.4p", 0, 10);
         int bankGold = requireInt(p, "bank.gold", 0, 10);
 
-        int takeDiff = requireInt(p, "takeDifferent.count", 1, 3);
-        int takeSame = requireInt(p, "takeSame.count", 1, 2);
+        int takeDiff = requireInt(p, "takeDifferent.count", 1, 5);
+        int takeSame = requireInt(p, "takeSame.count", 1, bank4);
         int takeSameMin = requireInt(p, "takeSame.minRemainingInBank", 0, 10);
 
         int reserveGoldBonus = requireInt(p, "reserve.goldBonus", 0, 1);
