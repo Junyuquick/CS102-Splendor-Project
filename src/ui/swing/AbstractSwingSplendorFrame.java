@@ -117,14 +117,14 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      */
     // learnt from ChatGPT-5.3 on how to set the layout using .setLayout() from JPANEL class.
     private void configureFrame() {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1500, 1020);
-        setMinimumSize(new Dimension(1450, 980));
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
-        getContentPane().setBackground(SwingUiTheme.APP_BG);
-        marketPanel.setLayout(new GridLayout(config.getNumLevels(), config.getOpenCardsPerLevel(), 10, 10));
-        noblesPanel.setLayout(new GridLayout(1, Math.max(1, config.getNoblesCount(config.getMaxPlayers())), 8, 8));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Close the app process when this window closes.
+        setSize(1500, 1020); // Initial JFrame size.
+        setMinimumSize(new Dimension(1450, 980)); // Prevent shrinking below this size.
+        setLocationRelativeTo(null); // Center the window on screen.
+        setLayout(new BorderLayout(10, 10)); // Use BorderLayout for frame content regions.
+        getContentPane().setBackground(SwingUiTheme.APP_BG); // Color the JFrame content area.
+        marketPanel.setLayout(new GridLayout(config.getNumLevels(), config.getOpenCardsPerLevel(), 10, 10)); // Uniform grid for market cards.
+        noblesPanel.setLayout(new GridLayout(1, Math.max(1, config.getNoblesCount(config.getMaxPlayers())), 8, 8)); // One-row grid for noble tiles.
     }
 
     /**
@@ -138,8 +138,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     private JPanel buildTopBar(boolean showLobbyCenter, boolean showStartButton) {
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(SwingUiTheme.APP_BG);
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
-        statusLabel.setFont(statusLabel.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10)); // Add inner padding around label text.
+        statusLabel.setFont(statusLabel.getFont().deriveFont(java.awt.Font.BOLD, 16f)); // Derive bold/larger font from current label font.
         statusLabel.setForeground(SwingUiTheme.TEXT_PRIMARY);
         phaseLabel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         phaseLabel.setFont(phaseLabel.getFont().deriveFont(java.awt.Font.BOLD, 14f));
@@ -156,7 +156,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             topRight.add(startGameButton);
         }
 
-        topBar.add(statusLabel, BorderLayout.WEST);
+        topBar.add(statusLabel, BorderLayout.WEST); // Add component to BorderLayout west slot.
         if (showLobbyCenter) {
             topBar.add(lobbyStatusLabel, BorderLayout.CENTER);
         }
@@ -199,7 +199,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             tokenPanel.add(button);
         }
         leftBank.add(tokenPanel, BorderLayout.CENTER);
-        leftBank.setPreferredSize(new Dimension(260, 400));
+        leftBank.setPreferredSize(new Dimension(260, 400)); // Hint preferred panel size to layout manager.
         return leftBank;
     }
 
@@ -243,14 +243,14 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         JPanel right = new JPanel(new BorderLayout(8, 8));
         right.setBackground(SwingUiTheme.PANEL_BG);
         right.setBorder(SwingUiTheme.createTitledBorder("Players"));
-        playersPanel.setLayout(new GridLayout(Math.max(1, playerRows), 1, 8, 8));
+        playersPanel.setLayout(new GridLayout(Math.max(1, playerRows), 1, 8, 8)); // Stack player panels in rows.
         playersPanel.setBackground(SwingUiTheme.PANEL_BG);
         JScrollPane playersScroll = new JScrollPane(playersPanel);
         SwingUiTheme.styleScrollPane(playersScroll, SwingUiTheme.PANEL_BG);
         playersScroll.setPreferredSize(new Dimension(420, 400));
         right.add(playersScroll, BorderLayout.CENTER);
 
-        reservedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        reservedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Allow selecting only one reserved card at a time.
         reservedList.setBackground(SwingUiTheme.PANEL_BG_ALT);
         reservedList.setForeground(SwingUiTheme.TEXT_PRIMARY);
         reservedList.setSelectionBackground(SwingUiTheme.SELECTED_BG);
@@ -299,7 +299,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         SwingUiTheme.styleActionButton(actionCancel);
         SwingUiTheme.styleActionButton(actionConfirm);
 
-        helpArea.setEditable(false);
+        helpArea.setEditable(false); // Make text area read-only for status/help text.
         helpArea.setRows(3);
         helpArea.setLineWrap(true);
         helpArea.setWrapStyleWord(true);
@@ -309,7 +309,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         helpArea.setBorder(SwingUiTheme.createTitledBorder("Prompt"));
         bottom.add(helpArea, BorderLayout.CENTER);
 
-        logArea.setEditable(false);
+        logArea.setEditable(false); // Make log text area read-only.
         logArea.setRows(7);
         logArea.setBackground(SwingUiTheme.PANEL_BG_ALT);
         logArea.setForeground(SwingUiTheme.TEXT_PRIMARY);
@@ -328,13 +328,13 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * @param bottom bottom actions/log panel
      */
     private void assembleLayout(JPanel center, JPanel bottom) {
-        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, center, bottom);
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, center, bottom); // Split center and bottom sections vertically.
         centerSplit.setBackground(SwingUiTheme.APP_BG);
         centerSplit.setBorder(BorderFactory.createEmptyBorder());
-        centerSplit.setResizeWeight(0.8);
-        centerSplit.setOneTouchExpandable(true);
-        centerSplit.setContinuousLayout(true);
-        centerSplit.setDividerLocation(650);
+        centerSplit.setResizeWeight(0.8); // Keep most extra space in the top component when resizing.
+        centerSplit.setOneTouchExpandable(true); // Show quick-collapse arrows on divider.
+        centerSplit.setContinuousLayout(true); // Repaint continuously while dragging divider.
+        centerSplit.setDividerLocation(650); // Initial divider pixel position.
         add(centerSplit, BorderLayout.CENTER);
     }
 
@@ -342,7 +342,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      * Binds listeners for shared buttons, token controls, and reserved-card selection.
      */
     protected final void bindSharedActions() {
-        actionTakeThree.addActionListener(e -> switchMode(SwingInteractionMode.TAKE_THREE));
+        actionTakeThree.addActionListener(e -> switchMode(SwingInteractionMode.TAKE_THREE)); // Register click handler for button.
         actionTakeTwo.addActionListener(e -> switchMode(SwingInteractionMode.TAKE_TWO));
         actionReserve.addActionListener(e -> switchMode(SwingInteractionMode.RESERVE));
         actionBuy.addActionListener(e -> switchMode(SwingInteractionMode.BUY));
@@ -360,7 +360,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             });
         }
 
-        reservedList.addListSelectionListener(e -> {
+        reservedList.addListSelectionListener(e -> { // Listen for JList selection changes.
             selectedReservedCard = reservedList.getSelectedValue();
             if (selectedReservedCard != null) {
                 selectedBoardCard = null;
@@ -419,7 +419,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         mode = newMode;
         selectedBoardCard = null;
         selectedReservedCard = null;
-        reservedList.clearSelection();
+        reservedList.clearSelection(); // Programmatically clear selected JList row.
         clearTokenSelection();
     }
 
@@ -550,8 +550,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             });
             label.setText(color.name() + ": " + state.getBank().getTokenCount(color));
         }
-        bankCountPanel.revalidate();
-        bankCountPanel.repaint();
+        bankCountPanel.revalidate(); // Re-run layout after adding/updating labels.
+        bankCountPanel.repaint(); // Request visual redraw.
     }
 
     /**
@@ -560,8 +560,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected void clearBankCounts() {
         bankCountPanel.removeAll();
         bankLabels.clear();
-        bankCountPanel.revalidate();
-        bankCountPanel.repaint();
+        bankCountPanel.revalidate(); // Re-run layout after removing labels.
+        bankCountPanel.repaint(); // Request visual redraw.
     }
 
     /**
@@ -577,7 +577,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         for (DevelopmentCard card : player.getReservedCards()) {
             reservedModel.addElement(card);
         }
-        reservedList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
+        reservedList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> { // Customize how each JList row is painted.
             ImageIcon icon = assetLoader.loadCardIcon(value);
             JLabel cell;
             if (icon != null) {
@@ -614,8 +614,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     private void renderEmptyMarket() {
         marketPanel.removeAll();
         cardButtons.clear();
-        marketPanel.revalidate();
-        marketPanel.repaint();
+        marketPanel.revalidate(); // Re-run layout after removing market components.
+        marketPanel.repaint(); // Request repaint after structure changes.
     }
 
     /**
@@ -642,8 +642,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
                 marketPanel.add(button);
             }
         }
-        marketPanel.revalidate();
-        marketPanel.repaint();
+        marketPanel.revalidate(); // Re-run layout after rebuilding all market slot components.
+        marketPanel.repaint(); // Request redraw so updated card buttons appear.
     }
 
     /**
@@ -653,12 +653,12 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      */
     private JButton createMarketButtonShell() {
         JButton button = new JButton();
-        button.setFocusPainted(false);
+        button.setFocusPainted(false); // Hide default focus ring painting.
         button.setOpaque(true);
         button.setHorizontalAlignment(SwingConstants.CENTER);
         button.setVerticalAlignment(SwingConstants.CENTER);
         button.setPreferredSize(new Dimension(SwingUiTheme.DEV_CARD_BUTTON_WIDTH, SwingUiTheme.DEV_CARD_BUTTON_HEIGHT));
-        button.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        button.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6)); // Add internal padding around content.
         return button;
     }
 
@@ -685,7 +685,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
         button.setForeground(SwingUiTheme.TEXT_PRIMARY);
         button.setBorder(new LineBorder(SwingUiTheme.BORDER_COLOR, 2));
         button.setToolTipText(buildCardTooltip(key, card));
-        button.addActionListener(e -> {
+        button.addActionListener(e -> { // Handle card-slot button clicks.
             selectedBoardCard = card;
             selectedReservedCard = null;
             reservedList.clearSelection();
@@ -713,8 +713,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
     protected void rebuildNobleCards() {
         noblesPanel.removeAll();
         if (state == null) {
-            noblesPanel.revalidate();
-            noblesPanel.repaint();
+            noblesPanel.revalidate(); // Re-layout after clearing noble panels.
+            noblesPanel.repaint(); // Redraw now-empty noble area.
             return;
         }
         List<NobleTile> nobles = state.getBoard().getAvailableNobles();
@@ -726,8 +726,8 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
             NobleTile noble = nobles.get(i);
             noblesPanel.add(createNobleCard(noble, i));
         }
-        noblesPanel.revalidate();
-        noblesPanel.repaint();
+        noblesPanel.revalidate(); // Re-layout noble card components.
+        noblesPanel.repaint(); // Redraw noble panel after updates.
     }
 
     /**
@@ -783,7 +783,7 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
                     + "<br/>Req:" + noble.getRequirement().asMap() + "</html>");
             label.setHorizontalAlignment(SwingConstants.CENTER);
         }
-        label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        label.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6)); // Add label padding so text/icon is not cramped.
         label.setForeground(SwingUiTheme.TEXT_PRIMARY);
         return label;
     }
@@ -793,11 +793,11 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      */
     protected void clearPreGamePanels() {
         marketPanel.removeAll();
-        marketPanel.revalidate();
-        marketPanel.repaint();
+        marketPanel.revalidate(); // Re-layout after clearing market.
+        marketPanel.repaint(); // Redraw cleared market.
         noblesPanel.removeAll();
-        noblesPanel.revalidate();
-        noblesPanel.repaint();
+        noblesPanel.revalidate(); // Re-layout after clearing nobles.
+        noblesPanel.repaint(); // Redraw cleared nobles.
         clearBankCounts();
         reservedModel.clear();
     }
@@ -1115,9 +1115,9 @@ abstract class AbstractSwingSplendorFrame extends JFrame {
      */
     protected JEditorPane createPlayerHtmlArea() {
         JEditorPane area = new JEditorPane();
-        area.setContentType("text/html");
-        area.setEditable(false);
-        area.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        area.setContentType("text/html"); // Tell JEditorPane to render HTML markup.
+        area.setEditable(false); // Make summary pane read-only.
+        area.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE); // Use component font settings for HTML rendering.
         area.setBackground(SwingUiTheme.PANEL_BG_ALT);
         area.setForeground(SwingUiTheme.TEXT_PRIMARY);
         return area;

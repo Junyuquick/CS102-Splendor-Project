@@ -52,9 +52,9 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
 
         buildSharedUi(true, true, 4);
         bindSharedActions();
-        startGameButton.addActionListener(e -> onStartGame());
+        startGameButton.addActionListener(e -> onStartGame()); // Register click handler for the lobby start button.
 
-        new Thread(this::listenForMessages, "Splendor-Client-Listener").start();
+        new Thread(this::listenForMessages, "Splendor-Client-Listener").start(); // Run blocking network receive loop off the UI thread.
     }
 
     /**
@@ -66,12 +66,12 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
             if (message == null) {
                 break;
             }
-            javax.swing.SwingUtilities.invokeLater(() -> handleMessage(message));
+            javax.swing.SwingUtilities.invokeLater(() -> handleMessage(message)); // Marshal network updates onto Swing's EDT.
         }
 
         if (!shuttingDown) {
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(this, "Disconnected from server", "Connection Lost", JOptionPane.ERROR_MESSAGE);
+            javax.swing.SwingUtilities.invokeLater(() -> { // Ensure dialog is shown on EDT.
+                JOptionPane.showMessageDialog(this, "Disconnected from server", "Connection Lost", JOptionPane.ERROR_MESSAGE); // Show error popup.
                 System.exit(0);
             });
         }
@@ -185,7 +185,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
      */
     private void handleGameOver(String message) {
         disableAllInputs();
-        int choice = JOptionPane.showConfirmDialog(
+        int choice = JOptionPane.showConfirmDialog( // Show Yes/No "play again" prompt.
                 this,
                 message + "\n\nPlay again with the same multiplayer lobby?",
                 "Game Over",
@@ -199,16 +199,16 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
             clearSelection();
             refreshAll();
             if (isHost()) {
-                JOptionPane.showMessageDialog(this, "The lobby has reopened. Press Start Game when everyone is ready.", "Play Again", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "The lobby has reopened. Press Start Game when everyone is ready.", "Play Again", JOptionPane.INFORMATION_MESSAGE); // Show info popup.
             } else {
-                JOptionPane.showMessageDialog(this, "The lobby has reopened. Wait for the host to start the next game.", "Play Again", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "The lobby has reopened. Wait for the host to start the next game.", "Play Again", JOptionPane.INFORMATION_MESSAGE); // Show info popup.
             }
             return;
         }
 
         shuttingDown = true;
         client.disconnect();
-        dispose();
+        dispose(); // Close and release JFrame resources.
     }
 
     /**
@@ -392,7 +392,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         String currentName = state.getCurrentPlayer().getName();
         String message = "Final round has started.\nA player reached the prestige threshold.";
         log("Final round started.");
-        JOptionPane.showMessageDialog(
+        JOptionPane.showMessageDialog( // One-time popup when final round starts.
                 this,
                 message + "\nCurrent turn: " + currentName,
                 "Final Round",
@@ -540,7 +540,7 @@ public class MultiplayerSwingApp extends AbstractSwingSplendorFrame {
         int currentPlayerIndex = state.getCurrentPlayerIndex();
         if (currentPlayerIndex == myPlayerIndex && previousCurrentPlayerIndex != myPlayerIndex) {
             String currentPlayerName = state.getCurrentPlayer().getName();
-            JOptionPane.showMessageDialog(
+            JOptionPane.showMessageDialog( // Popup when turn passes to this local player.
                     this,
                     "It's your turn, " + currentPlayerName + ".",
                     "Your Turn",

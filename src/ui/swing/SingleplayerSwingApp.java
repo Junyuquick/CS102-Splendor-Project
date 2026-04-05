@@ -33,7 +33,8 @@ import java.util.Set;
  * Single-player Swing implementation that runs the full game loop locally.
  */
 public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
-    private static final class LocalMode {
+    private static final class LocalMode { //not the best convention, but reasonable as only 
+                                           //used by this, thus put as subclass to reduce clutter
         private static final LocalMode SINGLE_PLAYER_VS_AI =
                 new LocalMode("SINGLE_PLAYER_VS_AI");
         private static final LocalMode SAME_LAPTOP_MULTIPLAYER =
@@ -141,10 +142,10 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
 
     @Override
     public void setVisible(boolean visible) {
-        super.setVisible(visible);
+        super.setVisible(visible); // Show/hide the JFrame window.
         if (visible && pendingInitialSameLaptopTurnPopup) {
             pendingInitialSameLaptopTurnPopup = false;
-            java.awt.EventQueue.invokeLater(() -> maybeShowSameLaptopTurnPopup(-1));
+            java.awt.EventQueue.invokeLater(() -> maybeShowSameLaptopTurnPopup(-1)); // Queue popup on Swing's EDT.
         }
     }
 
@@ -377,7 +378,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
      * @return chosen player name
      */
     private String promptName(String prompt) {
-        String name = JOptionPane.showInputDialog(this, prompt, "Player Setup", JOptionPane.QUESTION_MESSAGE);
+        String name = JOptionPane.showInputDialog(this, prompt, "Player Setup", JOptionPane.QUESTION_MESSAGE); // Prompt user for text input.
         if (name == null) {
             System.exit(0);
             return "Player";
@@ -405,7 +406,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
             options.add(String.valueOf(i));
         }
 
-        Object choice = JOptionPane.showInputDialog(
+        Object choice = JOptionPane.showInputDialog( // Prompt user to choose from provided options.
                 this,
                 "How many computers do you want to play with?",
                 "Computer Count",
@@ -441,7 +442,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
      * @param winner winning player
      */
     private void showSinglePlayerGameOverDialog(Player winner) {
-        int choice = JOptionPane.showConfirmDialog(
+        int choice = JOptionPane.showConfirmDialog( // Show Yes/No confirmation dialog.
                 this,
                 "Game over.\nWinner: " + winner.getName() + " (" + winner.getPrestigePoints() + " points)\n\nPlay again?",
                 "Winner",
@@ -449,7 +450,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
                 JOptionPane.INFORMATION_MESSAGE
         );
         if (choice == JOptionPane.YES_OPTION) {
-            java.awt.EventQueue.invokeLater(() -> {
+            java.awt.EventQueue.invokeLater(() -> { // Create next window on Swing's EDT.
                 if (localMode == LocalMode.SAME_LAPTOP_MULTIPLAYER) {
                     List<String> names = state.getPlayers().stream().map(Player::getName).toList();
                     new SingleplayerSwingApp(
@@ -488,13 +489,13 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
         computerThinking = true;
         updateLegalUi();
 
-        Timer timer = new Timer(700, e -> {
+        Timer timer = new Timer(700, e -> { // Swing timer executes action on EDT after delay.
             ((Timer) e.getSource()).stop();
             computerThinking = false;
             runComputerTurn();
         });
-        timer.setRepeats(false);
-        timer.start();
+        timer.setRepeats(false); // Fire only once.
+        timer.start(); // Start countdown.
     }
 
     /**
@@ -519,7 +520,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
 
             String moveSummary = current.getName() + " played: " + move.getTypeName();
             log(moveSummary);
-            JOptionPane.showMessageDialog(
+            JOptionPane.showMessageDialog( // Show informational popup about AI's selected move.
                     this,
                     moveSummary,
                     "Computer Move",
@@ -586,7 +587,7 @@ public class SingleplayerSwingApp extends AbstractSwingSplendorFrame {
         int currentPlayerIndex = state.getCurrentPlayerIndex();
         if (currentPlayerIndex != previousCurrentPlayerIndex) {
             String currentPlayerName = state.getCurrentPlayer().getName();
-            JOptionPane.showMessageDialog(
+            JOptionPane.showMessageDialog( // Show turn handoff popup in same-laptop mode.
                     this,
                     "It's your turn, " + currentPlayerName + ".",
                     "Your Turn",

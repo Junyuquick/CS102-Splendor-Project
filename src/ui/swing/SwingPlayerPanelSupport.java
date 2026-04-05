@@ -41,17 +41,17 @@ final class SwingPlayerPanelSupport {
             Map<Player, JPanel> playerCardPanels,
             Map<Player, JEditorPane> playerCardAreas
     ) {
-        playersPanel.removeAll();
+        playersPanel.removeAll(); // Remove existing child components before rebuilding.
         playerCardPanels.clear();
         playerCardAreas.clear();
-        playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8));
+        playersPanel.setLayout(new java.awt.GridLayout(state.getPlayers().size(), 1, 8, 8)); // Arrange player panels in a vertical grid.
 
         for (Player player : state.getPlayers()) {
             JPanel panel = frame.createPlayerPanel(player.getName(), false);
             JEditorPane area = frame.createPlayerHtmlArea();
             JScrollPane areaScroll = new JScrollPane(area);
             SwingUiTheme.styleScrollPane(areaScroll, SwingUiTheme.PANEL_BG_ALT);
-            panel.add(areaScroll, BorderLayout.CENTER);
+            panel.add(areaScroll, BorderLayout.CENTER); // Place scroll area in panel center region.
             playerCardPanels.put(player, panel);
             playerCardAreas.put(player, area);
             playersPanel.add(panel);
@@ -76,14 +76,14 @@ final class SwingPlayerPanelSupport {
             Player player = entry.getKey();
             JEditorPane area = entry.getValue();
             area.setText(SwingPlayerSummaryFormatter.buildRichHtml(player, config));
-            area.setCaretPosition(0);
+            area.setCaretPosition(0); // Scroll text view back to top.
 
             JPanel panel = playerCardPanels.get(player);
             if (panel == null) {
                 continue;
             }
             if (player == current) {
-                panel.setBorder(BorderFactory.createTitledBorder(
+                panel.setBorder(BorderFactory.createTitledBorder( // Build a titled border around the player panel.
                         new LineBorder(SwingUiTheme.ACCENT_BLUE, 2),
                         player.getName() + " (Active)"
                 ));
@@ -112,8 +112,8 @@ final class SwingPlayerPanelSupport {
             int myPlayerIndex,
             int minPlayersToStart
     ) {
-        playersPanel.removeAll();
-        playersPanel.setLayout(new java.awt.GridLayout(Math.max(1, lobbyPlayers.size()), 1, 8, 8));
+        playersPanel.removeAll(); // Clear old lobby cards.
+        playersPanel.setLayout(new java.awt.GridLayout(Math.max(1, lobbyPlayers.size()), 1, 8, 8)); // One row per lobby player.
         for (int i = 0; i < lobbyPlayers.size(); i++) {
             String title = lobbyPlayers.get(i);
             if (i == hostPlayerIndex) {
@@ -124,7 +124,7 @@ final class SwingPlayerPanelSupport {
             }
             JPanel panel = frame.createPlayerPanel(title, false);
             JTextArea area = new JTextArea();
-            area.setEditable(false);
+            area.setEditable(false); // Read-only status text.
             area.setOpaque(false);
             area.setForeground(SwingUiTheme.TEXT_PRIMARY);
             area.setText(i == hostPlayerIndex
@@ -133,8 +133,8 @@ final class SwingPlayerPanelSupport {
             panel.add(area, BorderLayout.CENTER);
             playersPanel.add(panel);
         }
-        playersPanel.revalidate();
-        playersPanel.repaint();
+        playersPanel.revalidate(); // Re-run layout after rebuilding lobby panels.
+        playersPanel.repaint(); // Request redraw.
     }
 
 }

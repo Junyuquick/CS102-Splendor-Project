@@ -24,6 +24,7 @@ public class Main {
             return;
         }
 
+        // Run UI creation on Swing's Event Dispatch Thread (EDT) for thread safety.
         SwingUtilities.invokeLater(Main::showModeDialog);
     }
 
@@ -43,7 +44,7 @@ public class Main {
                 case 0 -> {
                     ui.swing.SingleplayerSwingApp app =
                             new ui.swing.SingleplayerSwingApp();
-                    app.setVisible(true);
+                    app.setVisible(true); // Display the JFrame window.
                     return;
                 }
                 case 1 -> {
@@ -149,7 +150,7 @@ public class Main {
             options[i - minPlayers] = String.valueOf(i);
         }
 
-        Object selected = JOptionPane.showInputDialog(
+        Object selected = JOptionPane.showInputDialog( // Shows a dropdown/input dialog and returns the selected value.
                 null,
                 "How many players will use this laptop?",
                 "Multiplayer on Same Laptop",
@@ -168,9 +169,9 @@ public class Main {
             int playerCount = Integer.parseInt(selected.toString());
             ui.swing.SingleplayerSwingApp app =
                     new ui.swing.SingleplayerSwingApp(playerCount);
-            app.setVisible(true);
+            app.setVisible(true); // Display the JFrame window.
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(
+            JOptionPane.showMessageDialog( // Shows a simple popup message dialog.
                     null,
                     "Invalid player count: " + e.getMessage(),
                     "Error",
@@ -192,7 +193,7 @@ public class Main {
             String title,
             String[] options
     ) {
-        return JOptionPane.showOptionDialog(
+        return JOptionPane.showOptionDialog( // Shows custom option buttons and returns clicked index.
                 null,
                 message,
                 title,

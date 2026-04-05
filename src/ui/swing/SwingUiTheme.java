@@ -50,7 +50,7 @@ final class SwingUiTheme {
      * @return styled titled border
      */
     static TitledBorder createTitledBorder(String title) {
-        TitledBorder border = BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR, 1), title);
+        TitledBorder border = BorderFactory.createTitledBorder(new LineBorder(BORDER_COLOR, 1), title); // Swing factory for titled borders.
         styleTitledBorder(border);
         return border;
     }
@@ -63,7 +63,7 @@ final class SwingUiTheme {
      * @return styled border
      */
     static TitledBorder createPlayerBorder(String title, boolean active) {
-        return BorderFactory.createTitledBorder(
+        return BorderFactory.createTitledBorder( // Create a titled border with custom font/colors.
                 new LineBorder(active ? ACCENT_BLUE : BORDER_COLOR, active ? 2 : 1),
                 title,
                 TitledBorder.DEFAULT_JUSTIFICATION,
@@ -88,7 +88,7 @@ final class SwingUiTheme {
      * @param button button to style
      */
     static void styleActionButton(JButton button) {
-        button.setFocusPainted(false);
+        button.setFocusPainted(false); // Hide keyboard focus ring painting on button face.
         button.setBackground(SURFACE_BG);
         button.setForeground(TEXT_PRIMARY);
         button.setOpaque(true);
@@ -102,8 +102,8 @@ final class SwingUiTheme {
      * @param viewportColor background color for the viewport
      */
     static void styleScrollPane(JScrollPane scrollPane, Color viewportColor) {
-        scrollPane.setBorder(new LineBorder(BORDER_COLOR, 1));
-        scrollPane.getViewport().setBackground(viewportColor);
+        scrollPane.setBorder(new LineBorder(BORDER_COLOR, 1)); // Set scroll pane outer border.
+        scrollPane.getViewport().setBackground(viewportColor); // Color the inner viewport area.
         scrollPane.setBackground(viewportColor);
     }
 
